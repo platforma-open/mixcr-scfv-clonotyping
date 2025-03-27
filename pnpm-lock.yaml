@@ -104,7 +104,6 @@ importers:
       '@platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow':
         specifier: workspace:*
         version: link:../workflow
-    devDependencies:
       '@platforma-sdk/block-tools':
         specifier: 'catalog:'
         version: 2.5.24
