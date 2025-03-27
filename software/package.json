@@ -22,7 +22,7 @@
               "toolset": "pip",
               "requirements": "requirements.txt"
             },
-            "root": "./src"
+            "root": "./src/assemble-scfv"
           },
           "cmd": [
             "python",
