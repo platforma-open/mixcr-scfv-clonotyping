@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 1.0.5
+
+### Patch Changes
+
+- 1ab1242: chore; chnage deps
+
 ## 1.0.4
 
 ### Patch Changes
