@@ -1,8 +1,10 @@
 {
   "name": "@platforma-open/milaboratories.mixcr-scfv-clonotyping",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "scripts": {
-    "build": "rm -rf block-pack/* && block-tools pack"
+    "build": "rm -rf block-pack/* && block-tools pack",
+    "mark-stable": "block-tools mark-stable -r 's3://milab-euce1-prod-pkgs-s3-block-registry/pub/releases/?region=eu-central-1'",
+    "prepublishOnly": "block-tools pack && block-tools publish -r 's3://milab-euce1-prod-pkgs-s3-block-registry/pub/releases/?region=eu-central-1'"
   },
   "files": [
     "index.d.ts",
@@ -11,7 +13,8 @@
   "dependencies": {
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow": "workspace:*",
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model": "workspace:*",
-    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.ui": "workspace:*"
+    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.ui": "workspace:*",
+    "@platforma-sdk/block-tools": "catalog:"
   },
   "block": {
     "components": {
@@ -21,7 +24,7 @@
     },
     "meta": {
       "title": "MiXCR-scFv: single-chain Fragment variable clonotype assembly",
-      "logo": "file:../logos/milaboratories.png",
+      "logo": "file:../logos/block-logo.png",
       "url": "https://github.com/platforma-open/mixcr-scfv-clonotyping",
       "docs": "https://github.com/platforma-open/mixcr-scfv-clonotyping/docs",
       "support": "mailto:support@milaboratories.com",
@@ -36,7 +39,7 @@
       "organization": {
         "name": "MiLaboratories Inc",
         "url": "https://milaboratories.com/",
-        "logo": "file:../logos/milaboratories.png"
+        "logo": "file:../logos/organization-logo.png"
       }
     }
   },

@@ -104,7 +104,6 @@ importers:
       '@platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow':
         specifier: workspace:*
         version: link:../workflow
-    devDependencies:
       '@platforma-sdk/block-tools':
         specifier: 'catalog:'
         version: 2.5.24
@@ -131,7 +130,7 @@ importers:
         specifier: 'catalog:'
         version: 6.2.3(@types/node@22.9.0)(yaml@2.7.0)
 
-  software/assemble-scfv:
+  software:
     devDependencies:
       '@platforma-open/milaboratories.runenv-python-3':
         specifier: 'catalog:'
@@ -200,7 +199,7 @@ importers:
     dependencies:
       '@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv':
         specifier: workspace:*
-        version: link:../software/assemble-scfv
+        version: link:../software
     devDependencies:
       '@milaboratories/software-pframes-conv':
         specifier: 'catalog:'

@@ -1,10 +1,10 @@
 packages:
+  - software
   - workflow
   - model
   - ui
-  - test
-  - software/assemble-scfv
   - block
+  - test
 
 catalog:
   "@platforma-sdk/model": ^1.24.5
@@ -27,7 +27,7 @@ catalog:
 
   "vue": ^3.5.12
   "vue-tsc": ^2.1.6
-  
+
   "typescript": ~5.5.4
   "tsup": ~8.3.5
   "turbo": ^2.2.3
