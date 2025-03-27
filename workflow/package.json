@@ -1,0 +1,24 @@
+{
+  "name": "@platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Block Workflow",
+  "scripts": {
+    "build": "rm -rf dist && pl-tengo check && pl-tengo build",
+    "test": "vitest",
+    "format": "/usr/bin/env emacs --script ./format.el"
+  },
+  "dependencies": {
+    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv": "workspace:*"
+  },
+  "devDependencies": {
+    "@platforma-sdk/tengo-builder": "catalog:",
+    "@platforma-sdk/workflow-tengo": "catalog:",
+    "@platforma-open/milaboratories.software-small-binaries": "catalog:",
+    "@platforma-open/milaboratories.software-mixcr": "catalog:",
+    "@platforma-open/milaboratories.software-ptransform": "catalog:",
+    "@milaboratories/software-pframes-conv": "catalog:",
+    "@platforma-sdk/test": "catalog:",
+    "vitest": "catalog:"
+  }
+}

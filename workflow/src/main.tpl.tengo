@@ -1,0 +1,45 @@
+// "hello world"
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets:= import("@platforma-sdk/workflow-tengo:assets")
+render := import("@platforma-sdk/workflow-tengo:render")
+maps := import("@platforma-sdk/workflow-tengo:maps")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+
+processTpl := assets.importTemplate(":process")
+
+
+wf.body(func(args) {
+
+	input := wf.resolve(args.input)
+
+	runMixcr := render.createEphemeral(processTpl, {
+		inputSpec: input.getFutureInputField("spec"),
+		inputData: input.getFutureInputField("data"),
+		species: args.species,
+		linker: args.linker,
+  		heavyTagPattern: args.heavyTagPattern,
+  		heavyAssemblingFeature: args.heavyAssemblingFeature,
+  		lightTagPattern: args.lightTagPattern,
+  		lightAssemblingFeature: args.lightAssemblingFeature,
+		blockId: wf.blockId().getDataAsJson(),
+		limitInput: args.limitInput
+	})
+
+	exports := {
+		clones: runMixcr.output("clonotypes")
+	}
+
+	outputs := {}
+	for chain in ["IGHeavy", "IGLight"] {
+		outputs["logs" + chain] = runMixcr.output("logs" + chain + ".data")
+		outputs["qc" + chain] = pframes.exportColumnData(runMixcr.output("qc" + chain + ".data"))
+		outputs["reports" + chain ] = pframes.exportColumnData(runMixcr.output("reports" + chain + ".data"))
+	}
+
+	return {
+		outputs: outputs,
+		exports: exports
+	}
+})

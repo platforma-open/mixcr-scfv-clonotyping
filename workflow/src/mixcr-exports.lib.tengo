@@ -1,0 +1,413 @@
+maps := import("@platforma-sdk/workflow-tengo:maps")
+slices := import("@platforma-sdk/workflow-tengo:slices")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+text := import("text")
+json := import("json")
+
+a := func(order, defaultVisibility, spec) {
+	return maps.merge(spec, {
+		"pl7.app/table/orderPriority": string(order),
+		"pl7.app/table/visibility": defaultVisibility ? "default" : "optional"
+	})
+}
+
+toCombinedDomainValue := func(spec) {
+	result := [spec.name]
+	// getKeys sort keys
+	for domain in maps.getKeys(spec.domain) {
+		result = append(result, [domain, spec.domain[domain]])
+	}
+	return result
+}
+
+/**
+ * Given assembling feature, identifies its corresponding productive feature, core feature and
+ * features to be exported by MiXCR as imputed and non-imputed.
+ *
+ * @param assemblingFeature - The input feature identifier in a format of "begin:end"
+ * @return An object containing:
+ *   - productiveFeature: formatted identifier for the productive feature
+ *   - coreGeneFeatures: an object containing core features used for mutation analysis:
+ *     - V: formatted identifier for the V gene core feature
+ *     - J: formatted identifier for the J gene core feature (if applicable)
+ *   - imputed: an array of features to be imputed in export
+ *   - nonImputed: an array of features to be non-imputed in export
+ */
+parseAssemblingFeature := func(assemblingFeature) {
+	be := text.split(assemblingFeature, ":")
+	if len(be) != 2 {
+		ll.panic("assemblingFeature must be in the format of 'begin:end', got " + assemblingFeature)
+	}
+	begin := be[0]
+	end := be[1]
+
+	features := ["FR1", "CDR1", "FR2", "CDR2", "FR3", "CDR3", "FR4"]
+
+	iBegin := -1
+	iEnd := -1
+
+	for i, f in features {
+		if f == begin {
+			iBegin = i
+		}
+		if f == end {
+			iEnd = i
+		}
+	}
+
+	if iBegin == -1 || iEnd == -1 {
+		ll.panic("begin or end not found in features: " + assemblingFeature)
+	}
+
+	if iBegin > iEnd {
+		ll.panic("begin is after end: " + assemblingFeature)
+	}
+
+	imputed := []
+	nonImputed := []
+
+	for i := 0; i < iBegin; i++ {
+		imputed = append(imputed, features[i])
+	}
+
+	for i := iEnd + 1; i < len(features); i++ {
+		imputed = append(imputed, features[i])
+	}
+
+
+	for i := iBegin; i <= iEnd; i++ {
+		nonImputed = append(nonImputed, features[i])
+	}
+
+	coreVFeature := undefined
+	coreJFeature := undefined
+
+	if begin != "CDR3" {
+		coreVFeature = "{"+begin+"Begin:FR3End}"
+	}
+
+	if end == "FR4" {
+		coreJFeature = "FR4"
+	}
+
+	if begin == "FR1" && end == "FR4" {
+		nonImputed = append(nonImputed, "VDJRegion")
+	} else {
+		imputed = append(imputed, "VDJRegion")
+	}
+
+	return {
+		imputed: imputed,
+		nonImputed: nonImputed,
+		coreVFeature: coreVFeature,
+		coreJFeature: coreJFeature
+	}
+}
+
+
+/**
+ * Adds annotations to column specifications.
+ *
+ * @param columns - An array of column specifications
+ * @param additionalSpec - Additional annotations to add to each column specification
+ * @return An array of column specifications with added annotations
+ */
+addSpec := func(columns, additionalSpec) {
+	return slices.map(columns, func(columnSpec) {
+		return maps.deepMerge(columnSpec, additionalSpec)
+	})
+}
+
+/**
+ * Calculates the export specifications columns for a specific chain (IGHeavy or IGLight).
+ *
+ * @param chain - Either IGHeavy or IGLight
+ * @param assemblingFeature - The assembling feature string in a format of "begin:end"
+ * @param blockId - The block ID
+ * @return An object containing:
+ *   - exportArgs: an array of arrays of MiXCR arg groups
+ *   - columnSpecs: an array of column specifications for clonotypes
+ */
+
+cloneColumns := func(chain, assemblingFeature, blockId) {
+	if chain != "IGHeavy" && chain != "IGLight" {
+		ll.panic("chain must be either IGHeavy or IGLight, got " + chain)
+	}
+
+	chainLabels := {
+		"IGHeavy": "heavy",
+		"IGLight": "light"
+	}
+
+	chainLabel := chainLabels[chain]
+
+	assemblingFeatureInfo := parseAssemblingFeature(assemblingFeature)
+	productiveFeature := assemblingFeatureInfo.productiveFeature
+	coreGeneFeatures := assemblingFeatureInfo.coreGeneFeatures
+
+	// array of array of arg groups
+	exportArgs := []
+	columnsSpecPerClonotype := []
+
+	// VDJ Hits
+
+	orderP := 80000
+	geneHitColumnVariants := [ {
+		name: "pl7.app/vdj/geneHitWithAllele",
+		columnNameSuffix: "Hit-" + chain,
+		idSuffix: "-hit-with-allele-" + chain,
+		labelSuffix: " hit with allele (" + chainLabel + ")",
+		argSuffix: "Hit",
+		visible: false
+	}, {
+		name: "pl7.app/vdj/geneHit",
+		columnNameSuffix: "Gene-" + chain,
+		idSuffix: "-gene-" + chain,
+		labelSuffix: " gene (" + chainLabel + ")",
+		argSuffix: "Gene",
+		visible: true
+	} ]
+
+	for vdjU in ["V", "D", "J"] {
+		vdjL := text.to_lower(vdjU)
+		for variant in geneHitColumnVariants {
+			columnsSpecPerClonotype += [ {
+				column: "best" + vdjU + variant.columnNameSuffix,
+				id: "best-" + vdjL + variant.idSuffix,
+				naRegex: "",
+				allowNA: vdjU == "D",
+				spec: {
+					name: variant.name,
+					valueType: "String",
+					domain: {
+						"pl7.app/vdj/reference": vdjU + "Gene",
+						"pl7.app/vdj/scClonotypeChain": chain
+					},
+					annotations: a(orderP, variant.visible, {
+						"pl7.app/label": "Best " + vdjU + variant.labelSuffix,
+						"pl7.app/isDiscreteFilter": "true"
+					})
+				}
+			} ]
+			exportArgs += [ [ "-" + vdjL + variant.argSuffix ] ]
+			orderP -= 100
+		}
+	}
+
+	// Sequences
+
+	// column with nucleotide sequence of this feature will be marked as anchor
+	for isImputed in [false, true] {
+		features := undefined
+		if isImputed {
+			features = assemblingFeatureInfo.imputed
+		} else {
+			features = assemblingFeatureInfo.nonImputed
+		}
+
+		imputedU := isImputed ? "Imputed" : ""
+		imputedL := text.to_lower(imputedU)
+
+		for featureU in features {
+			featureL := text.to_lower(featureU)
+			for isAminoAcid in [false, true] {
+				alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
+				alphabetShort := isAminoAcid ? "aa" : "nt"
+				alphabetShortMixcr := isAminoAcid ? "aa" : "n"
+				visibility := (featureU == "CDR3") || (featureU == assemblingFeature)
+				columnsSpecPerClonotype += [ {
+					column: alphabetShortMixcr + "Seq" + imputedU + featureU + "-" + chain,
+					id: alphabetShortMixcr + "-seq-" + featureL + (isImputed ? "-imputed" : "") + "-" + chain,
+					naRegex: "region_not_covered",
+					spec: {
+						name: "pl7.app/vdj/sequence",
+						valueType: "String",
+						domain: {
+							"pl7.app/vdj/feature": featureU,
+							"pl7.app/alphabet": alphabet,
+							"pl7.app/vdj/scClonotypeChain": chain
+						},
+						annotations: a(orderP, visibility, {
+							"pl7.app/vdj/imputed": string(isImputed),
+							"pl7.app/label": featureU + " " + alphabetShort + " (" + chainLabel + ")"
+						})
+					}
+				} ]
+				exportArgs += [ [ "-" + alphabetShortMixcr + "Feature" + imputedU, featureU ] ]
+				orderP -= 100
+			}
+		}
+	}
+
+	// Mutations
+
+	orderP = 10000
+
+	mutationColumnVariants := [ {
+		name: "Mutations",
+		valueType: "String",
+		labelPart: " mutations in ",
+		idPart: "-mutations-"
+	}, {
+		name: "MutationsCount",
+		valueType: "Int",
+		labelPart: " mutations count in ",
+		idPart: "-mutations-count-"
+	}, {
+		name: "MutationsRate",
+		valueType: "Double",
+		labelPart: " mutations rate in ",
+		idPart: "-mutations-rate-"
+	} ]
+
+	for isAminoAcid in [false, true] {
+		alphabetShort := isAminoAcid ? "AA" : "Nt"
+		alphabetShortMixcr := isAminoAcid ? "aa" : "n"
+
+		// Now loop over gene types.
+		for geneU in ["V", "J"] {
+			geneL := text.to_lower(geneU)
+
+			coreFeature := coreGeneFeatures[geneU]
+			if is_undefined(coreFeature) {
+				continue
+			}
+
+			for variant in mutationColumnVariants {
+				columnsSpecPerClonotype += [ {
+					column: alphabetShortMixcr + variant.name + coreFeature + "-" + chain,
+					id: alphabetShortMixcr + variant.idPart + geneL + "-" + chain,
+					allowNA: true,
+					naRegex: "region_not_covered",
+					spec: {
+						valueType: variant.valueType,
+						name: "pl7.app/vdj/sequence/" + alphabetShortMixcr + variant.name,
+						domain: {
+							"pl7.app/vdj/scClonotypeChain": chain
+						},
+						annotations: a(orderP, false, {
+							"pl7.app/label": alphabetShort + variant.labelPart + geneU + " gene (" + chainLabel + ")"
+						})
+					}
+				} ]
+				exportArgs += [ [ "-" + alphabetShortMixcr + variant.name, coreFeature ] ]
+				orderP -= 100
+			}
+		}
+	}
+
+	//   "pl7.app/segmentedBy" annotation indicates columns that can be meaningfully merged across
+	//   different runs (given they have the same name and axes signature).
+	//   Its absence indicates that merging would be semantically meaningless (e.g., abundance
+	//   measurements specific to each analysis)
+
+	columnsSpecPerClonotype = addSpec(columnsSpecPerClonotype, { spec: {
+		domain: {
+			"pl7.app/vdj/clonotypingRunId": blockId
+		},
+		annotations: {
+			"pl7.app/segmentedBy": string(json.encode(["pl7.app/vdj/clonotypingRunId"]))
+		}
+	} })
+
+	// required for py script to work
+	exportArgs += [ [ "-cloneId" ], [ "-targetSequences" ] ]
+
+	return  {
+		exportArgs : exportArgs,
+		columnSpecs : columnsSpecPerClonotype
+	}
+}
+
+/**
+ * Calculates the export specifications for a specific chain (IGHeavy or IGLight).
+ *
+ * @param blockId - The block ID
+ * @return An object containing:
+ *   - cloneKeyAxes: an array of axes specifications for clonotype key
+ *   - columnSpecs: an array of column specifications for sample (abundance etc)
+ *   - mainAbundanceColumn: the main abundance column
+ */
+abundanceColumns := func(blockId) {
+
+	columnsSpecPerSample := []
+
+	// Abundance
+	columnsSpecPerSample += [ {
+		column: "readCount",
+		id: "read-count",
+		allowNA: false,
+		spec: {
+			name: "pl7.app/vdj/readCount",
+			valueType: "Long",
+			annotations: a(90000, true, {
+				"pl7.app/min": "1",
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/unit": "reads",
+				"pl7.app/abundance/normalized": "false",
+				"pl7.app/abundance/isPrimary": "true",
+				"pl7.app/isAnchor": "true",
+				"pl7.app/label": "Number Of Reads"
+			})
+		}
+	}, {
+		column: "readFraction",
+		id: "read-fraction",
+		allowNA: false,
+		spec: {
+			name: "pl7.app/vdj/readFraction",
+			valueType: "Double",
+			annotations: a(89000, true, {
+				"pl7.app/min": "0",
+				"pl7.app/max": "1",
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/unit": "reads",
+				"pl7.app/abundance/normalized": "true",
+				"pl7.app/abundance/isPrimary": "true",
+				"pl7.app/label": "Fraction of reads"
+			})
+		}
+	} ]
+
+	mainAbundanceColumn := "readFraction"
+
+	columnsSpecPerSample = addSpec(columnsSpecPerSample, { spec: { domain: {
+		"pl7.app/vdj/clonotypingRunId": blockId
+	} } })
+
+	// // Creating a column map for fast search
+	// columnsByName := {}
+	// for columnSpec in columnsSpecs {
+	// 	columnsByName[columnSpec.column] = columnSpec
+	// }
+
+	// Axes
+
+	cloneKeyAxes := [ {
+		column: "clonotypeKey",
+		naRegex: "",
+		spec: {
+			name: "pl7.app/vdj/clonotypeKey",
+			type: "String",
+			domain: {
+				"pl7.app/vdj/clonotypeKey/structure": "@TODO: we need proper structure here"
+			},
+			annotations: {
+				"pl7.app/label": "Clonotype key",
+				"pl7.app/table/visibility": "optional",
+				"pl7.app/table/orderPriority": "110000"
+			}
+		}
+	} ]
+
+	return {
+		cloneKeyAxes: cloneKeyAxes,
+		columnSpecs: columnsSpecPerSample,
+		mainAbundanceColumn: mainAbundanceColumn
+	}
+}
+
+export {
+	cloneColumns: cloneColumns,
+	abundanceColumns: abundanceColumns
+}

@@ -1,0 +1,222 @@
+// mixcr analyze
+
+self := import("@platforma-sdk/workflow-tengo:tpl")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+render := import("@platforma-sdk/workflow-tengo:render")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+pcolumn := import("@platforma-sdk/workflow-tengo:pframes.pcolumn")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+file := import("@platforma-sdk/workflow-tengo:file")
+times := import("times")
+text := import("text")
+
+json := import("json")
+
+self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv"])
+
+mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
+
+progressPrefix := "[==PROGRESS==]"
+
+/** Formats the assembling feature for MiXCR. */
+formatAssemblingFeature := func(assemblingFeature) {
+	parts := text.split(assemblingFeature, ":")
+	if len(parts) != 2 {
+		ll.panic("malformed assembling feature: %v", assemblingFeature)
+	}
+	return "{" + parts[0] + "Begin:" + parts[1] + "End}"
+}
+
+self.body(func(inputs) {
+	inputData := inputs[pConstants.VALUE_FIELD_NAME]
+	inputDataMeta := inputData.getDataAsJson()
+	aggregationAxesNames := inputs[pConstants.AGGREGATION_AXES_NAMES_FIELD_NAME]
+
+
+	fileExtension := inputs.fileExtension
+	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
+	mixcrExportArgsLight := inputs.mixcrExportArgsLight
+
+	clnaFileName := "result.clna"
+	reports := [
+		{
+			id: "align",
+			fileJson: "result.align.report.json",
+			fileTxt: "result.align.report.txt"
+		}, {
+			id: "assemble",
+			fileJson: "result.assemble.report.json",
+			fileTxt: "result.assemble.report.txt"
+		} ]
+
+	// run single MiXCR command for single chain
+	runMixcr := func(chain, assemblingFeature, tagPattern, exportArgs) {
+
+		mixcrCmdBuilder := exec.builder().
+			printErrStreamToStdout().
+			env("MI_PROGRESS_PREFIX", progressPrefix).
+			software(mixcrSw).
+			secret("MI_LICENSE", "MI_LICENSE").
+			arg("analyze").
+			arg("generic-amplicon").
+			arg("--species").arg(inputs.species).
+			arg("--rna").
+			arg("--rigid-left-alignment-boundary").
+			arg("--rigid-right-alignment-boundary").arg("J").
+			arg("--tag-pattern").arg(tagPattern).
+			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
+			arg("-Malign.tagUnstranded=true").
+			arg("-Malign.parameters.saveOriginalReads=true").
+			arg("-Malign.parameters.jParameters.minSumScore=50").
+			arg("-Massemble.clnaOutput=true")
+
+		if !is_undefined(inputs.limitInput) {
+			mixcrCmdBuilder.arg("--limit-input").arg(string(inputs.limitInput))
+		}
+		
+		if inputDataMeta.keyLength == 0 {
+			ll.assert(aggregationAxesNames == [], "unexpected aggregation axes names")
+			inputFile := inputData.inputs()["[]"]
+			ll.assert(!is_undefined(inputFile), "unexpected agg group structure")
+			inputFileName := "input." + fileExtension
+			mixcrCmdBuilder.addFile(inputFileName, inputFile)
+			mixcrCmdBuilder.arg(inputFileName)
+		} else if inputDataMeta.keyLength == 1 {
+			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
+			for sKey, inputFile in inputData.inputs() {
+				key := json.decode(sKey)
+				if len(key) != 1 {
+					ll.panic("malformed key: %v", sKey)
+				}
+				r := key[0]
+				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
+					ll.panic("malformed read index: %v", r)
+				}
+				mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile)
+			}
+			mixcrCmdBuilder.arg("input_{{R}}." + fileExtension)
+		} else if inputDataMeta.keyLength == 2 {
+			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/lane", "pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
+			for sKey, inputFile in inputData.inputs() {
+				key := json.decode(sKey)
+				if len(key) != 2 {
+					ll.panic("malformed key: %v", sKey)
+				}
+				lane := key[0]
+				r := key[1]
+				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
+					ll.panic("malformed read index: %v", r)
+				}
+				if is_undefined(int(lane)) {
+					ll.panic("malformed lane: %v", lane)
+				}
+				mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile)
+			}
+			mixcrCmdBuilder.arg("input_L{{n}}_{{R}}." + fileExtension)
+		} else {
+			ll.panic("too many axes / not supported")
+		}
+
+		mixcrCmdBuilder.arg("result")
+
+		mixcrCmdBuilder.saveFile("result.qc.json")
+		mixcrCmdBuilder.saveFile(clnaFileName)
+
+		for report in reports {
+			mixcrCmdBuilder.saveFile(report.fileJson)
+			mixcrCmdBuilder.saveFile(report.fileTxt)
+		}
+
+		mixcrCmdBuilder = mixcrCmdBuilder.cache(48 * times.hour)
+		mixcrCmd := mixcrCmdBuilder.run()
+
+		// run export alignments
+		alignments := exec.builder().
+			printErrStreamToStdout().
+			software(mixcrSw).
+			secret("MI_LICENSE", "MI_LICENSE").
+			arg("exportAlignments").
+			arg("-cloneId").
+			arg("-descrR1").
+			arg("--drop-default-fields").
+			arg(clnaFileName).
+			arg("alignments.tsv").
+			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
+			saveFile("alignments.tsv").
+			cache(48 * times.hour).
+			run().
+			getFile("alignments.tsv")
+
+
+		// run export clones
+		clones := exec.builder().
+			printErrStreamToStdout().
+			software(mixcrSw).
+			secret("MI_LICENSE", "MI_LICENSE").
+			arg("exportClones").
+			arg("--dont-split-files").
+			arg("--drop-default-fields")
+
+		for argGrp in exportArgs {
+			for arg in argGrp {
+				clones = clones.arg(arg)
+			}
+		}
+
+		clones = clones.
+			arg(clnaFileName).
+			arg("clones.tsv").
+			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
+			saveFile("clones.tsv").
+			cache(48 * times.hour).
+			run().
+			getFile("clones.tsv")
+
+
+		reportsMap := pcolumn.resourceMapBuilder( /* keyLength */ 2 )
+		for report in reports {
+			reportsMap.add([report.id, "json"], mixcrCmd.getFile(report.fileJson))
+			reportsMap.add([report.id, "txt"], mixcrCmd.getFile(report.fileTxt))
+		}
+
+		result := {
+			qc: mixcrCmd.getFile("result.qc.json"),
+			log: mixcrCmd.getStdoutStream(),
+			reports: reportsMap.build(),
+			alignments: alignments,
+			clones: clones
+		}
+
+		return result
+	}
+
+
+	heavy := runMixcr("IGHeavy", inputs.heavyAssemblingFeature, inputs.heavyTagPattern, mixcrExportArgsHeavy)
+	light := runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
+
+
+	assembleScFv := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
+		addFile("hc.clones.tsv", heavy.clones).
+		addFile("lc.clones.tsv", light.clones).
+		addFile("hc.alignments.tsv", heavy.alignments).
+		addFile("lc.alignments.tsv", light.alignments).
+		saveFile("result.tsv").
+		saveStdoutContent().
+		run()
+
+
+	return {
+		clonotypesTableTsv: assembleScFv.getFile("result.tsv"),
+		qcIGHeavy: heavy.qc,
+		qcIGLight: light.qc,
+		logsIGHeavy: heavy.log,
+		logsIGLight: light.log,
+		reportsIGHeavy: heavy.reports,
+		reportsIGLight: light.reports
+	}
+})
