@@ -1,5 +1,17 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 1.0.4
+
+### Patch Changes
+
+- eb539af: chore: publish block
+
+## 1.0.3
+
+### Patch Changes
+
+- ee65e85: chore: add block publish
+
 ## 1.0.2
 
 ### Patch Changes
