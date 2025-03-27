@@ -101,6 +101,8 @@ export const model = BlockModel.create()
     parseResourceMap(ctx.outputs?.resolve('reportsIGLight'), (acc) => acc.getFileHandle(), false),
   )
 
+  .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
+
   .sections((_) => [{ type: 'link', href: '/', label: 'Main' }])
 
   .title((ctx) => ctx.uiState.title ?? 'MiXCR ScFv')
