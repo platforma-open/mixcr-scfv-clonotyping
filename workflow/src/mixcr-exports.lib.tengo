@@ -99,8 +99,10 @@ parseAssemblingFeature := func(assemblingFeature) {
 	return {
 		imputed: imputed,
 		nonImputed: nonImputed,
-		coreVFeature: coreVFeature,
-		coreJFeature: coreJFeature
+		coreGeneFeatures: {
+			V: coreVFeature,
+			J: coreJFeature
+		}
 	}
 }
 
@@ -142,7 +144,6 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 	chainLabel := chainLabels[chain]
 
 	assemblingFeatureInfo := parseAssemblingFeature(assemblingFeature)
-	productiveFeature := assemblingFeatureInfo.productiveFeature
 	coreGeneFeatures := assemblingFeatureInfo.coreGeneFeatures
 
 	// array of array of arg groups

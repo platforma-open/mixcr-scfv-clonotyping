@@ -25,6 +25,35 @@ aggClonesTpl := assets.importTemplate(":agg-clones")
 self.awaitState("InputsLocked")
 self.awaitState("inputSpec", "ResourceReady")
 
+constructColumns := func(linker, hinge, blockId) {
+	columns := []
+
+	for alphabet in ["nt", "aa"] {
+		columns += [{
+			column: "construct-" + alphabet,
+			id: "construct-" + alphabet,
+			naRegex: "",
+			spec: {
+				name: "pl7.app/vdj/scFv-sequence",
+				valueType: "String",
+				domain: {
+					"pl7.app/alphabet": alphabet,
+					"pl7.app/vdj/scFv-linker": linker,
+					"pl7.app/vdj/scFv-hinge": hinge,
+					"pl7.app/vdj/clonotypingRunId": blockId
+				},
+				annotations: {
+					"pl7.app/label": "scFv sequence " + alphabet,
+					"pl7.app/table/orderPriority": "80000",
+					"pl7.app/table/visibility": alphabet == "aa" ? "default" : "optional"
+				}
+			}
+		}]
+	}
+
+	return columns
+}
+
 self.body(func(inputs) {
 
 	inputSpec := inputs.inputSpec
@@ -35,7 +64,7 @@ self.body(func(inputs) {
 	// [clonotypeKey] -> heavy/light property columns
 	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", "CDR3:CDR3", blockId)
 	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", "CDR3:CDR3", blockId)
-	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs
+	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
@@ -160,6 +189,7 @@ self.body(func(inputs) {
 				species: inputs.species,
 				limitInput: inputs.limitInput,
 				linker: inputs.linker,
+				hinge: inputs.hinge,
 				heavyTagPattern: inputs.heavyTagPattern,
 				heavyAssemblingFeature: inputs.heavyAssemblingFeature,
 				lightTagPattern: inputs.lightTagPattern,
