@@ -1,5 +1,15 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 2.0.0
+
+### Major Changes
+
+- 9a8e5f3: chore: oh I love nightly builds
+
+### Patch Changes
+
+- 9a8e5f3: chore: change logo
+
 ## 1.0.6
 
 ### Patch Changes
