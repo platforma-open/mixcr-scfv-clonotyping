@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.mixcr-scfv-clonotyping",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "build": "rm -rf block-pack/* && block-tools pack"
   },
@@ -28,7 +28,11 @@
       "description": "Analysis of single-chain Fragment variable (scFv) clonotypes.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
-      "tags": ["airr", "upstream", "scFv"],
+      "tags": [
+        "airr",
+        "upstream",
+        "scFv"
+      ],
       "organization": {
         "name": "MiLaboratories Inc",
         "url": "https://milaboratories.com/",
