@@ -13,7 +13,8 @@
   "dependencies": {
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow": "workspace:*",
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model": "workspace:*",
-    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.ui": "workspace:*"
+    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.ui": "workspace:*",
+    "@platforma-sdk/block-tools": "catalog:"
   },
   "block": {
     "components": {
