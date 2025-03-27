@@ -5,6 +5,7 @@ export type BlockArgs = {
   input?: PlRef;
   species?: string;
   linker?: string;
+  hinge?: string;
   heavyTagPattern?: string;
   heavyAssemblingFeature?: string;
   lightTagPattern?: string;
@@ -34,6 +35,7 @@ export const model = BlockModel.create()
   .argsValid((ctx) =>
     ctx.args.species !== undefined
     && ctx.args.linker !== undefined
+    && ctx.args.hinge !== undefined
     && ctx.args.heavyTagPattern !== undefined
     && ctx.args.lightTagPattern !== undefined,
   )
@@ -98,6 +100,8 @@ export const model = BlockModel.create()
   .output('reportsIGLight', (ctx) =>
     parseResourceMap(ctx.outputs?.resolve('reportsIGLight'), (acc) => acc.getFileHandle(), false),
   )
+
+  .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
   .sections((_) => [{ type: 'link', href: '/', label: 'Main' }])
 

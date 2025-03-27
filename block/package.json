@@ -25,10 +25,10 @@
     "meta": {
       "title": "MiXCR-scFv: single-chain Fragment variable clonotype assembly",
       "logo": "file:../logos/block-logo.png",
-      "url": "https://github.com/milaboratory/platforma-mixcr-fusion-clonotyping",
-      "docs": "https://github.com/milaboratory/platforma-mixcr-fusion-clonotyping/docs",
+      "url": "https://github.com/platforma-open/mixcr-scfv-clonotyping",
+      "docs": "https://github.com/platforma-open/mixcr-scfv-clonotyping/docs",
       "support": "mailto:support@milaboratories.com",
-      "description": "Analysis of single-chain Fragment variable (scFv) clonotypes.",
+      "description": "Extract single-chain Fragment variable (scFv) clonotypes from next-generation sequencing data.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
       "tags": [

@@ -19,6 +19,7 @@ wf.body(func(args) {
 		inputData: input.getFutureInputField("data"),
 		species: args.species,
 		linker: args.linker,
+		hinge: args.hinge,
   		heavyTagPattern: args.heavyTagPattern,
   		heavyAssemblingFeature: args.heavyAssemblingFeature,
   		lightTagPattern: args.lightTagPattern,

@@ -8,7 +8,7 @@ import {
   PlTextArea,
   ReactiveFileContent,
 } from '@platforma-sdk/ui-vue';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useApp } from '../app';
 
 const props = defineProps<{
@@ -24,9 +24,23 @@ const data = reactive<{
 
 const app = useApp();
 
+const chainOptions = [
+  { value: 'heavy', label: 'Heavy chain' },
+  { value: 'light', label: 'Light chain' },
+];
+const selectedChain = ref('heavy');
+
+const tabOptions: SimpleOption<ReportId>[] = [
+  { value: 'align', text: 'Align' },
+  { value: 'assemble', text: 'Assemble' },
+];
+
 const reportHandle = computed(() => {
   const sampleId = props.sampleId;
-  return app.model.outputs.reportsIGHeavy?.data?.find(
+  const report = selectedChain.value === 'heavy'
+    ? app.model.outputs.reportsIGHeavy
+    : app.model.outputs.reportsIGLight; ;
+  return report?.data?.find(
     (d) => d.key[0] === sampleId
       && d.key[1] === data.currentReport
       && d.key[2] === 'txt')?.value?.handle;
@@ -36,14 +50,11 @@ const reportContent = computed(
   () => ReactiveFileContent.getContentString(reportHandle.value)?.value,
 );
 
-const tabOptions: SimpleOption<ReportId>[] = [
-  { value: 'align', text: 'Align' },
-  { value: 'assemble', text: 'Assemble' },
-];
 </script>
 
 <template>
   <PlContainer>
+    <PlBtnGroup v-model="selectedChain" :options="chainOptions" />
     <PlBtnGroup v-model="data.currentReport" :options="tabOptions" />
     <PlTextArea :model-value="reportContent" :rows="30" readonly />
   </PlContainer>

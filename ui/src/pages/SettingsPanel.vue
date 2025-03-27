@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlDropdown, PlDropdownRef, PlTextField } from '@platforma-sdk/ui-vue';
+import { PlAccordionSection, PlDropdown, PlDropdownRef, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -16,17 +16,17 @@ const speciesOptions: ListOption[] = [
 
 const assemblingFeatureOptions: ListOption[] = [
   { label: 'CDR3', value: 'CDR3:CDR3' },
-  { label: 'FR1-FR4', value: 'FR1:FR4' },
-  { label: 'CDR1-FR4', value: 'CDR1:FR4' },
-  { label: 'FR2-FR4', value: 'FR2:FR4' },
-  { label: 'CDR2-FR4', value: 'CDR2:FR4' },
-  { label: 'FR3-FR4', value: 'FR3:FR4' },
-  { label: 'CDR3-FR4', value: 'CDR3:FR4' },
-  { label: 'FR1-CDR3', value: 'FR1:CDR3' },
-  { label: 'CDR1-CDR3', value: 'CDR1:CDR3' },
-  { label: 'FR2-CDR3', value: 'FR2:CDR3' },
-  { label: 'CDR2-CDR3', value: 'CDR2:CDR3' },
-  { label: 'FR3-CDR3', value: 'FR3:CDR3' },
+  { label: 'FR1 – FR4', value: 'FR1:FR4' },
+  { label: 'CDR1 – FR4', value: 'CDR1:FR4' },
+  { label: 'FR2 – FR4', value: 'FR2:FR4' },
+  { label: 'CDR2 – FR4', value: 'CDR2:FR4' },
+  { label: 'FR3 – FR4', value: 'FR3:FR4' },
+  { label: 'CDR3 – FR4', value: 'CDR3:FR4' },
+  { label: 'FR1 – CDR3', value: 'FR1:CDR3' },
+  { label: 'CDR1 – CDR3', value: 'CDR1:CDR3' },
+  { label: 'FR2 – CDR3', value: 'FR2:CDR3' },
+  { label: 'CDR2 – CDR3', value: 'CDR2:CDR3' },
+  { label: 'FR3 – CDR3', value: 'FR3:CDR3' },
 ];
 
 /* @deprecated Migrate to SDK method when will be published */
@@ -37,7 +37,7 @@ function plRefsEqual(ref1: PlRef, ref2: PlRef) {
 function setInput(inputRef?: PlRef) {
   app.model.args.input = inputRef;
   if (inputRef)
-    app.model.ui.title = 'MiXCR scFv: ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
+    app.model.ui.title = 'MiXCR scFv - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
   else
     app.model.ui.title = undefined;
 }
@@ -68,12 +68,6 @@ function parseNumber(v: string): number {
   />
 
   <PlTextField
-    v-model="app.model.args.linker"
-    label="Linker nt sequence"
-    required
-  />
-
-  <PlTextField
     v-model="app.model.args.heavyTagPattern"
     label="Heavy chain tag pattern"
     required
@@ -95,6 +89,20 @@ function parseNumber(v: string): number {
     v-model="app.model.args.lightAssemblingFeature"
     :options="assemblingFeatureOptions"
     label="Light chain assembling feature"
+  />
+
+  <PlTextArea
+    v-model="app.model.args.linker"
+    :rows="3"
+    label="Linker nt sequence"
+    required
+  />
+
+  <PlTextArea
+    v-model="app.model.args.hinge"
+    :rows="3"
+    label="Hinge region nt sequence"
+    required
   />
 
   <PlAccordionSection label="Advanced Settings">
