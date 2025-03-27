@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 1.0.6
+
+### Patch Changes
+
+- 90a9b45: chore: change deps
+
 ## 1.0.5
 
 ### Patch Changes
