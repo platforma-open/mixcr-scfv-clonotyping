@@ -13,7 +13,6 @@ const speciesOptions: ListOption[] = [
   { label: 'Alpaca', value: 'alpaca' },
   { label: 'Macaca fascicularis', value: 'mfas' },
   { label: 'Macaca mulatta', value: 'mmul' },
-  { label: 'Chicken', value: 'gallus' },
   { label: 'Rabbit', value: 'rabbit' },
   { label: 'Rat', value: 'rat' },
   { label: 'Sheep', value: 'sheep' },
