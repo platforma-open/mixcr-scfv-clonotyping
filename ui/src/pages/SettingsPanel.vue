@@ -51,6 +51,11 @@ function parseNumber(v: string): number {
 
   return parsed;
 }
+
+const orderOptions: ListOption[] = [
+  { label: 'Heavy-linker-light-hinge', value: 'hl' },
+  { label: 'Light-linker-heavy-hinge', value: 'lh' },
+];
 </script>
 
 <template>
@@ -103,6 +108,12 @@ function parseNumber(v: string): number {
     :rows="3"
     label="Hinge region nt sequence"
     required
+  />
+
+  <PlDropdown
+    v-model="app.model.args.order"
+    :options="orderOptions"
+    label="Construct building order"
   />
 
   <PlAccordionSection label="Advanced Settings">

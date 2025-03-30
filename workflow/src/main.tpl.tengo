@@ -20,6 +20,7 @@ wf.body(func(args) {
 		species: args.species,
 		linker: args.linker,
 		hinge: args.hinge,
+		order: args.order,
   		heavyTagPattern: args.heavyTagPattern,
   		heavyAssemblingFeature: args.heavyAssemblingFeature,
   		lightTagPattern: args.lightTagPattern,

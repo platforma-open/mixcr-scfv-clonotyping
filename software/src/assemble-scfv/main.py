@@ -6,6 +6,9 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--linker", help="linker nt sequence")
 parser.add_argument("--hinge", help="hinge nt sequence")
+parser.add_argument(
+    "--order",
+    help="construct building order: hl for 'heavy-linker-light-hinge' or lh for 'light-linker-heavy-hinge'")
 args = parser.parse_args()
 
 
@@ -51,14 +54,18 @@ hl = hl.groupby([
 hl['readFraction'] = hl['readCount'] / hl['readCount'].sum()
 
 # heavy
-result = pd.merge(hl, hc_mixcr_clones, left_on='cloneId-IGHeavy',
-                  right_on='cloneId', how='left')
-result = result.drop('cloneId', axis=1)
-# light
-result = pd.merge(result, lc_mixcr_clones, left_on='cloneId-IGLight',
-                  right_on='cloneId', how='left', suffixes=('-IGHeavy', '-IGLight'))
-result = result.drop('cloneId', axis=1)
+hc_mixcr_clones = hc_mixcr_clones.add_suffix('-IGHeavy')
+result = pd.merge(hl, hc_mixcr_clones,
+                  left_on='cloneId-IGHeavy',
+                  right_on='cloneId-IGHeavy',
+                  how='left')
 
+# light
+lc_mixcr_clones = lc_mixcr_clones.add_suffix('-IGLight')
+result = pd.merge(result, lc_mixcr_clones,
+                  left_on='cloneId-IGLight',
+                  right_on='cloneId-IGLight',
+                  how='left')
 
 result["clonotypeKey"] = result["targetSequences-IGHeavy"] + "-" + result["targetSequences-IGLight"] + "-" + \
     result["bestVGene-IGHeavy"] + "-" + result["bestVGene-IGLight"] + \
@@ -75,7 +82,7 @@ lightVdj = "nSeqImputedVDJRegion-IGLight"
 if "nSeqImputedVDJRegion-IGHeavy" in result:
     heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
 elif "nSeqVDJRegion-IGHeavy" in result:
-    heavyVdj = "nSeqVDJRegion-IGHeavy" 
+    heavyVdj = "nSeqVDJRegion-IGHeavy"
 else:
     raise ValueError("VDJ region - heavy not found")
 
@@ -89,41 +96,50 @@ else:
 
 # Filter out rows where VDJ regions are empty/null
 result = result[
-    (result[heavyVdj].notna()) & 
+    (result[heavyVdj].notna()) &
     (result[heavyVdj].str.len() > 0) &
-    (result[lightVdj].notna()) & 
+    (result[lightVdj].notna()) &
     (result[lightVdj].str.len() > 0)
 ].copy()
 
 
 # Create construct-nt column
-result["construct-nt"] = result[heavyVdj] + linker + result[lightVdj] + hinge
+if args.order == "hl":
+    result["construct-nt"] = result[heavyVdj] + \
+        linker + result[lightVdj] + hinge
+elif args.order == "lh":
+    result["construct-nt"] = result[lightVdj] + \
+        linker + result[heavyVdj] + hinge
+else:
+    raise ValueError("Invalid order: " + args.order)
 
 # Translate nucleotide sequence to amino acid sequence
+
+
 def translate(seq):
     if pd.isna(seq):
         return None
-    
+
     # Standard genetic code
     genetic_code = {
-        'ATA':'I', 'ATC':'I', 'ATT':'I', 'ATG':'M',
-        'ACA':'T', 'ACC':'T', 'ACG':'T', 'ACT':'T',
-        'AAC':'N', 'AAT':'N', 'AAA':'K', 'AAG':'K',
-        'AGC':'S', 'AGT':'S', 'AGA':'R', 'AGG':'R',
-        'CTA':'L', 'CTC':'L', 'CTG':'L', 'CTT':'L',
-        'CCA':'P', 'CCC':'P', 'CCG':'P', 'CCT':'P',
-        'CAC':'H', 'CAT':'H', 'CAA':'Q', 'CAG':'Q',
-        'CGA':'R', 'CGC':'R', 'CGG':'R', 'CGT':'R',
-        'GTA':'V', 'GTC':'V', 'GTG':'V', 'GTT':'V',
-        'GCA':'A', 'GCC':'A', 'GCG':'A', 'GCT':'A',
-        'GAC':'D', 'GAT':'D', 'GAA':'E', 'GAG':'E',
-        'GGA':'G', 'GGC':'G', 'GGG':'G', 'GGT':'G',
-        'TCA':'S', 'TCC':'S', 'TCG':'S', 'TCT':'S',
-        'TTC':'F', 'TTT':'F', 'TTA':'L', 'TTG':'L',
-        'TAC':'Y', 'TAT':'Y', 'TAA':'*', 'TAG':'*',
-        'TGC':'C', 'TGT':'C', 'TGA':'*', 'TGG':'W',
+        'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
+        'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
+        'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
+        'AGC': 'S', 'AGT': 'S', 'AGA': 'R', 'AGG': 'R',
+        'CTA': 'L', 'CTC': 'L', 'CTG': 'L', 'CTT': 'L',
+        'CCA': 'P', 'CCC': 'P', 'CCG': 'P', 'CCT': 'P',
+        'CAC': 'H', 'CAT': 'H', 'CAA': 'Q', 'CAG': 'Q',
+        'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R',
+        'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V',
+        'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A',
+        'GAC': 'D', 'GAT': 'D', 'GAA': 'E', 'GAG': 'E',
+        'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
+        'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S',
+        'TTC': 'F', 'TTT': 'F', 'TTA': 'L', 'TTG': 'L',
+        'TAC': 'Y', 'TAT': 'Y', 'TAA': '*', 'TAG': '*',
+        'TGC': 'C', 'TGT': 'C', 'TGA': '*', 'TGG': 'W',
     }
-    
+
     protein = ""
     # Read in codons (3 nucleotides at a time)
     for i in range(0, len(seq), 3):
@@ -134,14 +150,20 @@ def translate(seq):
         # Translate codon to amino acid
         aa = genetic_code.get(codon, 'X')  # X for unknown codons
         protein += aa
-    
+
     # Add underscore if sequence length is not divisible by 3
     if len(seq) % 3 != 0:
         protein += '_'
-    
+
     return protein
+
 
 # Add amino acid sequence column
 result["construct-aa"] = result["construct-nt"].apply(translate)
+
+# Add isProductive column - false if construct-aa contains stop codon (*) or incomplete codon (_)
+result["isProductive"] = (~result["construct-aa"].str.contains(
+    "[*_]", regex=True, na=True)).astype(str).str.lower()
+
 
 result.to_csv("result.tsv", sep="\t", index=False)
