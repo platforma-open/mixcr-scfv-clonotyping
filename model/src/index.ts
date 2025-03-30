@@ -6,6 +6,7 @@ export type BlockArgs = {
   species?: string;
   linker?: string;
   hinge?: string;
+  order: string;
   heavyTagPattern?: string;
   heavyAssemblingFeature?: string;
   lightTagPattern?: string;
@@ -27,6 +28,7 @@ export const model = BlockModel.create()
   .withArgs<BlockArgs>({
     heavyAssemblingFeature: 'CDR3:CDR3',
     lightAssemblingFeature: 'CDR3:CDR3',
+    order: 'hl',
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',

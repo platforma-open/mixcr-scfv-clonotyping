@@ -51,6 +51,28 @@ constructColumns := func(linker, hinge, blockId) {
 		}]
 	}
 
+	columns += [{
+		column: "isProductive",
+		id: "isProductive",
+		naRegex: "",
+		spec: {
+			name: "pl7.app/vdj/sequence/productive",
+			valueType: "String",
+			domain: {
+				"pl7.app/vdj/scFv-linker": linker,
+				"pl7.app/vdj/scFv-hinge": hinge,
+				"pl7.app/vdj/clonotypingRunId": blockId
+			},
+			annotations: {
+				"pl7.app/label": "Productive",
+				"pl7.app/table/orderPriority": "40000",
+				"pl7.app/isDiscreteFilter": "true",
+				"pl7.app/discreteValues": string(json.encode(["true", "false"])),
+				"pl7.app/table/visibility": "optional"
+			}
+		}
+	}]
+
 	return columns
 }
 
@@ -62,8 +84,8 @@ self.body(func(inputs) {
 	fileExtension := inputSpec.domain["pl7.app/fileExtension"]
 
 	// [clonotypeKey] -> heavy/light property columns
-	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", "CDR3:CDR3", blockId)
-	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", "CDR3:CDR3", blockId)
+	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId)
+	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId)
 	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
@@ -190,6 +212,7 @@ self.body(func(inputs) {
 				limitInput: inputs.limitInput,
 				linker: inputs.linker,
 				hinge: inputs.hinge,
+				order: inputs.order,
 				heavyTagPattern: inputs.heavyTagPattern,
 				heavyAssemblingFeature: inputs.heavyAssemblingFeature,
 				lightTagPattern: inputs.lightTagPattern,

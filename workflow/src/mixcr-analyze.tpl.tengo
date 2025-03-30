@@ -203,6 +203,7 @@ self.body(func(inputs) {
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
+		arg("--order").arg(inputs.order).
 		addFile("hc.clones.tsv", heavy.clones).
 		addFile("lc.clones.tsv", light.clones).
 		addFile("hc.alignments.tsv", heavy.alignments).
