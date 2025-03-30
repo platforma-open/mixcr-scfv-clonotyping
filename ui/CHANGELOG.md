@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 1.2.0
+
+### Minor Changes
+
+- d1bfd67: add species
+
 ## 1.1.1
 
 ### Patch Changes
