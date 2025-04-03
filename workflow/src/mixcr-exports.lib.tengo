@@ -241,7 +241,11 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 	}
 
 	//Sequence length
-	for featureU in assemblingFeatureInfo.nonImputed {
+	
+	// for now use only CDR3 length to avoid generating too many columns
+	lengthColumns := ["CDR3"] // assemblingFeatureInfo.nonImputed
+
+	for featureU in lengthColumns {
 		featureL := text.to_lower(featureU)
 		for isAminoAcid in [false, true] {
 			alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
@@ -273,24 +277,26 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 
 	orderP = 10000
 
-	mutationColumnVariants := [ {
-		name: "Mutations",
-		valueType: "String",
-		labelPart: " mutations in ",
-		idPart: "-mutations-"
-	}, {
-		name: "MutationsCount",
-		valueType: "Int",
-		labelPart: " mutations count in ",
-		idPart: "-mutations-count-"
-	}, {
+	mutationColumnVariants := [
+	// {
+	// 	name: "Mutations",
+	// 	valueType: "String",
+	// 	labelPart: " mutations in ",
+	// 	idPart: "-mutations-"
+	// }, {
+	// 	name: "MutationsCount",
+	// 	valueType: "Int",
+	// 	labelPart: " mutations count in ",
+	// 	idPart: "-mutations-count-"
+	// }, 
+	{
 		name: "MutationsRate",
 		valueType: "Double",
 		labelPart: " mutations rate in ",
 		idPart: "-mutations-rate-"
 	} ]
 
-	for isAminoAcid in [false, true] {
+	for isAminoAcid in [false] { // for now use only nucleotide mutations
 		alphabetShort := isAminoAcid ? "AA" : "Nt"
 		alphabetShortMixcr := isAminoAcid ? "aa" : "n"
 

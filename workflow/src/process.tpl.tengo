@@ -67,7 +67,7 @@ constructColumns := func(linker, hinge, blockId) {
 				"pl7.app/label": "Productive",
 				"pl7.app/table/orderPriority": "40000",
 				"pl7.app/isDiscreteFilter": "true",
-				"pl7.app/discreteValues": string(json.encode(["true", "false"])),
+				"pl7.app/discreteValues": string(json.encode(["True", "False"])),
 				"pl7.app/table/visibility": "optional"
 			}
 		}
