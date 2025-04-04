@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 1.2.1
+
+### Patch Changes
+
+- 3f073bb: Fix productivity filters
+- Updated dependencies [3f073bb]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes
