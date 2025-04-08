@@ -62,13 +62,10 @@ export const model = BlockModel.create()
     const inputRef = ctx.args.input;
     if (inputRef === undefined) return undefined;
 
-    const inputSpec = ctx.resultPool.getPColumnSpecByRef(inputRef);
-    if (inputSpec === undefined) return undefined;
+    const input = ctx.resultPool.getPColumnByRef(inputRef);
+    if (input === undefined) return undefined;
 
-    const labels = ctx.findLabels(inputSpec.axesSpec[0]);
-    if (!labels) return undefined;
-
-    return labels;
+    return ctx.resultPool.findLabelsForColumnAxis(input, 0);
   })
 
   .output('logsIGHeavy', (ctx) => {

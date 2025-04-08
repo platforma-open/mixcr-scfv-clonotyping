@@ -76,6 +76,25 @@ constructColumns := func(linker, hinge, blockId) {
 	return columns
 }
 
+clonotypeKeyLabelColumns := func(blockId) {
+	return [{
+		column: "clonotypeLabel",
+		id: "clonotypeLabel",
+		naRegex: "",
+		spec: {
+			name: "pl7.app/label",
+			valueType: "String",
+			domain: {
+				"pl7.app/vdj/clonotypingRunId": blockId
+			},
+			annotations: {
+				"pl7.app/label": "scFv label",
+				"pl7.app/table/orderPriority": "40000"
+			}
+		}
+	}]
+}
+
 self.body(func(inputs) {
 
 	inputSpec := inputs.inputSpec
@@ -86,7 +105,8 @@ self.body(func(inputs) {
 	// [clonotypeKey] -> heavy/light property columns
 	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId)
 	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId)
-	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId)
+
+	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
