@@ -71,6 +71,8 @@ result["clonotypeKey"] = result["targetSequences-IGHeavy"] + "-" + result["targe
     result["bestVGene-IGHeavy"] + "-" + result["bestVGene-IGLight"] + \
     result["bestJGene-IGHeavy"] + "-" + result["bestJGene-IGLight"]
 
+result["clonotypeLabel"] = "C" + result["clonotypeKey"].rank(method='dense').astype(int).astype(str)
+
 if "bestCGene-IGHeavy" in result:
     result["clonotypeKey"] = result["clonotypeKey"] + "-" + \
         result["bestCGene-IGHeavy"] + "-" + result["bestCGene-IGLight"]
@@ -175,7 +177,6 @@ for feature in ["FR1", "CDR1", "FR2", "CDR2", "FR3", "CDR3"]:
                 pr = ~result[colName].str.contains(
                     "[*_]", regex=True, na=True)
                 result['isProductive'] = result['isProductive'] & pr
-
 
 result["isProductive"] = result["isProductive"].astype(str).str.lower()
 result.to_csv("result.tsv", sep="\t", index=False)

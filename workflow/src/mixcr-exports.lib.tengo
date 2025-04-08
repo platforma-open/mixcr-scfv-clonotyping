@@ -137,8 +137,8 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 	}
 
 	chainLabels := {
-		"IGHeavy": "heavy",
-		"IGLight": "light"
+		"IGHeavy": "Heavy",
+		"IGLight": "Light"
 	}
 
 	chainLabel := chainLabels[chain]
@@ -157,14 +157,14 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 		name: "pl7.app/vdj/geneHitWithAllele",
 		columnNameSuffix: "Hit-" + chain,
 		idSuffix: "-hit-with-allele-" + chain,
-		labelSuffix: " hit with allele (" + chainLabel + ")",
+		labelSuffix: " hit with allele",
 		argSuffix: "Hit",
 		visible: false
 	}, {
 		name: "pl7.app/vdj/geneHit",
 		columnNameSuffix: "Gene-" + chain,
 		idSuffix: "-gene-" + chain,
-		labelSuffix: " gene (" + chainLabel + ")",
+		labelSuffix: " gene",
 		argSuffix: "Gene",
 		visible: true
 	} ]
@@ -185,7 +185,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						"pl7.app/vdj/scClonotypeChain": chain
 					},
 					annotations: a(orderP, variant.visible, {
-						"pl7.app/label": "Best " + vdjU + variant.labelSuffix,
+						"pl7.app/label": chainLabel + " Best " + vdjU + variant.labelSuffix,
 						"pl7.app/isDiscreteFilter": "true"
 					})
 				}
@@ -230,7 +230,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						},
 						annotations: a(orderP, visibility, {
 							"pl7.app/vdj/imputed": string(isImputed),
-							"pl7.app/label": featureU + " " + alphabetShort + " (" + chainLabel + ")"
+							"pl7.app/label": chainLabel + " " + featureU + " " + alphabetShort
 						})
 					}
 				} ]
@@ -264,7 +264,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						"pl7.app/vdj/scClonotypeChain": chain
 					},
 					annotations: a(orderP, false, {
-						"pl7.app/label": "Length of " + featureU + " " + alphabetShort + " (" + chainLabel + ")"
+						"pl7.app/label": chainLabel + " Length of " + featureU + " " + alphabetShort
 					})
 				}
 			} ]
@@ -322,7 +322,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 							"pl7.app/vdj/scClonotypeChain": chain
 						},
 						annotations: a(orderP, false, {
-							"pl7.app/label": alphabetShort + variant.labelPart + geneU + " gene (" + chainLabel + ")"
+							"pl7.app/label": chainLabel + " " + alphabetShort + variant.labelPart + geneU + " gene"
 						})
 					}
 				} ]
@@ -342,7 +342,9 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 
 	columnsSpecPerClonotype = addSpec(columnsSpecPerClonotype, { spec: {
 		domain: {
-			"pl7.app/vdj/clonotypingRunId": blockId
+			"pl7.app/vdj/clonotypingRunId": blockId,
+			"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B",
+			"pl7.app/vdj/scClonotypeChain/index": "primary"
 		},
 		annotations: {
 			"pl7.app/segmentedBy": string(json.encode(["pl7.app/vdj/clonotypingRunId"]))
@@ -426,10 +428,11 @@ abundanceColumns := func(blockId) {
 		column: "clonotypeKey",
 		naRegex: "",
 		spec: {
-			name: "pl7.app/vdj/clonotypeKey",
+			name: "pl7.app/vdj/scClonotypeKey",
 			type: "String",
 			domain: {
-				"pl7.app/vdj/clonotypeKey/structure": "@TODO: we need proper structure here"
+				"pl7.app/vdj/scClonotypeKey/structure": "@TODO: we need proper structure here",
+				"pl7.app/vdj/receptor": "IG"
 			},
 			annotations: {
 				"pl7.app/label": "Clonotype key",
