@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.model
 
+## 1.2.0
+
+### Minor Changes
+
+- 2eb837e: Added label for clonotype key
+
 ## 1.1.1
 
 ### Patch Changes

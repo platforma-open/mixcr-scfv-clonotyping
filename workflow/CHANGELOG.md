@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 1.3.0
+
+### Minor Changes
+
+- 2eb837e: Added label for clonotype key
+
+### Patch Changes
+
+- Updated dependencies [2eb837e]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@1.3.0
+
 ## 1.2.1
 
 ### Patch Changes
