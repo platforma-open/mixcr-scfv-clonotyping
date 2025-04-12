@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.model
 
+## 1.2.1
+
+### Patch Changes
+
+- 0a83f6a: update SDK
+
 ## 1.2.0
 
 ### Minor Changes
