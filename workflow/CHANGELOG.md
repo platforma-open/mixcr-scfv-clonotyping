@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 1.3.1
+
+### Patch Changes
+
+- 0a83f6a: update SDK
+
 ## 1.3.0
 
 ### Minor Changes

@@ -240,38 +240,40 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 		}
 	}
 
-	//Sequence length
-	
-	// for now use only CDR3 length to avoid generating too many columns
-	lengthColumns := ["CDR3"] // assemblingFeatureInfo.nonImputed
+	// **** NOTE: we don't need sequence length columns for now ****
 
-	for featureU in lengthColumns {
-		featureL := text.to_lower(featureU)
-		for isAminoAcid in [false, true] {
-			alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
-			alphabetShort := isAminoAcid ? "aa" : "nt"
-			alphabetShortMixcr := isAminoAcid ? "aa" : "n"
-			columnsSpecPerClonotype += [ {
-				column: alphabetShortMixcr + "Length" + featureU + "-" + chain,
-				id: alphabetShortMixcr + "-length-" + featureL + "-" + chain,
-				naRegex: "region_not_covered",
-				spec: {
-					name: "pl7.app/vdj/sequenceLength",
-					valueType: "Int",
-					domain: {
-						"pl7.app/vdj/feature": featureU,
-						"pl7.app/alphabet": alphabet,
-						"pl7.app/vdj/scClonotypeChain": chain
-					},
-					annotations: a(orderP, false, {
-						"pl7.app/label": chainLabel + " Length of " + featureU + " " + alphabetShort
-					})
-				}
-			} ]
-			exportArgs += [ [ "-" + alphabetShortMixcr + "Length", featureU ] ]
-			orderP -= 100
-		}
-	}
+	// //Sequence length
+	
+	// // for now use only CDR3 length to avoid generating too many columns
+	// lengthColumns := ["CDR3"] // assemblingFeatureInfo.nonImputed
+
+	// for featureU in lengthColumns {
+	// 	featureL := text.to_lower(featureU)
+	// 	for isAminoAcid in [false, true] {
+	// 		alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
+	// 		alphabetShort := isAminoAcid ? "aa" : "nt"
+	// 		alphabetShortMixcr := isAminoAcid ? "aa" : "n"
+	// 		columnsSpecPerClonotype += [ {
+	// 			column: alphabetShortMixcr + "Length" + featureU + "-" + chain,
+	// 			id: alphabetShortMixcr + "-length-" + featureL + "-" + chain,
+	// 			naRegex: "region_not_covered",
+	// 			spec: {
+	// 				name: "pl7.app/vdj/sequenceLength",
+	// 				valueType: "Int",
+	// 				domain: {
+	// 					"pl7.app/vdj/feature": featureU,
+	// 					"pl7.app/alphabet": alphabet,
+	// 					"pl7.app/vdj/scClonotypeChain": chain
+	// 				},
+	// 				annotations: a(orderP, false, {
+	// 					"pl7.app/label": chainLabel + " Length of " + featureU + " " + alphabetShort
+	// 				})
+	// 			}
+	// 		} ]
+	// 		exportArgs += [ [ "-" + alphabetShortMixcr + "Length", featureU ] ]
+	// 		orderP -= 100
+	// 	}
+	// }
 
 	// Mutations
 
