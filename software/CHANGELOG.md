@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 1.3.1
+
+### Patch Changes
+
+- 3e1e118: Fix productivity
+
 ## 1.3.0
 
 ### Minor Changes

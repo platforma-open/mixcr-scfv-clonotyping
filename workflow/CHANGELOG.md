@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 1.3.2
+
+### Patch Changes
+
+- Updated dependencies [3e1e118]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@1.3.1
+
 ## 1.3.1
 
 ### Patch Changes
