@@ -182,7 +182,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 					valueType: "String",
 					domain: {
 						"pl7.app/vdj/reference": vdjU + "Gene",
-						"pl7.app/vdj/scClonotypeChain": chain
+						"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 					},
 					annotations: a(orderP, variant.visible, {
 						"pl7.app/label": chainLabel + " Best " + vdjU + variant.labelSuffix,
@@ -226,7 +226,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						domain: {
 							"pl7.app/vdj/feature": featureU,
 							"pl7.app/alphabet": alphabet,
-							"pl7.app/vdj/scClonotypeChain": chain
+							"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 						},
 						annotations: a(orderP, visibility, {
 							"pl7.app/vdj/imputed": string(isImputed),
@@ -321,7 +321,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						valueType: variant.valueType,
 						name: "pl7.app/vdj/sequence/" + alphabetShortMixcr + variant.name,
 						domain: {
-							"pl7.app/vdj/scClonotypeChain": chain
+							"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 						},
 						annotations: a(orderP, false, {
 							"pl7.app/label": chainLabel + " " + alphabetShort + variant.labelPart + geneU + " gene"
@@ -344,7 +344,6 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 
 	columnsSpecPerClonotype = addSpec(columnsSpecPerClonotype, { spec: {
 		domain: {
-			"pl7.app/vdj/clonotypingRunId": blockId,
 			"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B",
 			"pl7.app/vdj/scClonotypeChain/index": "primary"
 		},
@@ -414,10 +413,6 @@ abundanceColumns := func(blockId) {
 
 	mainAbundanceColumn := "readFraction"
 
-	columnsSpecPerSample = addSpec(columnsSpecPerSample, { spec: { domain: {
-		"pl7.app/vdj/clonotypingRunId": blockId
-	} } })
-
 	// // Creating a column map for fast search
 	// columnsByName := {}
 	// for columnSpec in columnsSpecs {
@@ -434,10 +429,11 @@ abundanceColumns := func(blockId) {
 			type: "String",
 			domain: {
 				"pl7.app/vdj/scClonotypeKey/structure": "@TODO: we need proper structure here",
+				"pl7.app/vdj/clonotypingRunId": blockId,
 				"pl7.app/vdj/receptor": "IG"
 			},
 			annotations: {
-				"pl7.app/label": "Clonotype key",
+				"pl7.app/label": "Clone label",
 				"pl7.app/table/visibility": "optional",
 				"pl7.app/table/orderPriority": "110000"
 			}

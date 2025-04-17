@@ -43,8 +43,8 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     '@platforma-sdk/test':
-      specifier: ^1.29.18
-      version: 1.29.18
+      specifier: ^1.29.20
+      version: 1.29.20
     '@platforma-sdk/ui-vue':
       specifier: ^1.29.17
       version: 1.29.17
@@ -153,7 +153,7 @@ importers:
     devDependencies:
       '@platforma-sdk/test':
         specifier: 'catalog:'
-        version: 1.29.18(@types/node@22.9.0)
+        version: 1.29.20(@types/node@22.9.0)
       typescript:
         specifier: 'catalog:'
         version: 5.5.4
@@ -224,7 +224,7 @@ importers:
         version: 2.1.0
       '@platforma-sdk/test':
         specifier: 'catalog:'
-        version: 1.29.18(@types/node@22.9.0)
+        version: 1.29.20(@types/node@22.9.0)
       '@platforma-sdk/workflow-tengo':
         specifier: 'catalog:'
         version: 4.1.2
@@ -1044,8 +1044,8 @@ packages:
   '@milaboratories/pl-config@1.4.6':
     resolution: {integrity: sha512-r/1YLMZ23vSDlBSKavmhKvT6UWJBaxGyyp3lk1LurI42yqamc1r+KevnT29MFALZdGq2q/ZruihLR1T+59nAwQ==}
 
-  '@milaboratories/pl-deployments@1.8.1':
-    resolution: {integrity: sha512-W0iuYsgqHFusTPGua0AvEX1DMmTf3fCDFKaA4vFlvZDTQJd6jV4qsmj9iVrkDTUifK1AjDdPQsBFjzX9NlpkiA==}
+  '@milaboratories/pl-deployments@2.0.0':
+    resolution: {integrity: sha512-bS11IQ/lMTlVBI6GN6Fov4Pu6LrXeft2n2OdTnz9qQinD6U0JvZbBAouG/XPPEMjzyhC+v6QAnsXYcfkRV0DXw==}
     engines: {node: '>=20.16.0'}
 
   '@milaboratories/pl-drivers@1.5.46':
@@ -1061,8 +1061,8 @@ packages:
   '@milaboratories/pl-http@1.1.2':
     resolution: {integrity: sha512-PCo3So6+4BS1uPleT82EBBo83aQviGUBnUddyxcPd9d446L/SSM6eCSG5oAF4Z4NdVGJT343pb58nV1ejikVrQ==}
 
-  '@milaboratories/pl-middle-layer@1.34.20':
-    resolution: {integrity: sha512-ShyvuwPDBU0r62LlmxxRyOSI3gM1D/DJ3wAOXSalmpVScNjC8kLZQaGAFVSoBibGFCzzMkUAo1U6n6IVPCZ3DQ==}
+  '@milaboratories/pl-middle-layer@1.34.22':
+    resolution: {integrity: sha512-arq7vz7l2tJKXZxufxx3JgHZzs6W6cpkjFNPsMaAA//eQbEtfCCpEU5TtSRz5HsXNbUPFbWGUjI32O9cA8mg4w==}
     engines: {node: '>=20.16.0'}
 
   '@milaboratories/pl-model-backend@1.1.0':
@@ -1201,8 +1201,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@platforma-sdk/test@1.29.18':
-    resolution: {integrity: sha512-JvsCZ+B3KV0ZKQ4HDuBGj6cXRHDTRiZb8nl7ZMoYRuVjUSbX6r4euzlCa5aljVUWf79Spmi8S0CjW/LEF1dU6w==}
+  '@platforma-sdk/test@1.29.20':
+    resolution: {integrity: sha512-Ohu7Kl2F0GijFKFQ73Fx2HTirwSf9Ej7kqqwMBdldyRFoabOZMBZWzOt9upqeEHTJ8Sp+92jsifxBMgrUU7yow==}
 
   '@platforma-sdk/ui-vue@1.29.17':
     resolution: {integrity: sha512-xo6Ycnmyxvb0iCGttSaxeoUvg/QPPRavLENnQsF+scT68IBxFgfnIMaQvAi05RsDKKUldR2q11soMoygdrYI7Q==}
@@ -4915,7 +4915,7 @@ snapshots:
       yaml: 2.7.0
       zod: 3.23.8
 
-  '@milaboratories/pl-deployments@1.8.1':
+  '@milaboratories/pl-deployments@2.0.0':
     dependencies:
       '@milaboratories/pl-config': 1.4.6
       '@milaboratories/ts-helpers': 1.1.5
@@ -4968,13 +4968,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@milaboratories/pl-middle-layer@1.34.20':
+  '@milaboratories/pl-middle-layer@1.34.22':
     dependencies:
       '@milaboratories/computable': 2.4.3
       '@milaboratories/pframes-rs-node': 1.0.27(@milaboratories/pl-model-common@1.13.7)
       '@milaboratories/pl-client': 2.8.0
       '@milaboratories/pl-config': 1.4.6
-      '@milaboratories/pl-deployments': 1.8.1
+      '@milaboratories/pl-deployments': 2.0.0
       '@milaboratories/pl-drivers': 1.5.46
       '@milaboratories/pl-errors': 1.0.6
       '@milaboratories/pl-http': 1.1.2
@@ -5215,11 +5215,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@platforma-sdk/test@1.29.18(@types/node@22.9.0)':
+  '@platforma-sdk/test@1.29.20(@types/node@22.9.0)':
     dependencies:
       '@milaboratories/computable': 2.4.3
       '@milaboratories/pl-client': 2.8.0
-      '@milaboratories/pl-middle-layer': 1.34.20
+      '@milaboratories/pl-middle-layer': 1.34.22
       '@milaboratories/pl-tree': 1.5.5
       '@milaboratories/ts-helpers': 1.1.5
       '@platforma-sdk/model': 1.29.17
