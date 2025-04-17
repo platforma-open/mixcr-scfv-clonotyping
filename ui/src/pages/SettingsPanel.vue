@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlDropdown, PlDropdownRef, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
+import { PlAccordionSection, PlBtnGroup, PlDropdown, PlDropdownRef, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
 
 const app = useApp();
@@ -16,7 +16,7 @@ const speciesOptions: ListOption[] = [
   { label: 'Rabbit', value: 'rabbit' },
   { label: 'Rat', value: 'rat' },
   { label: 'Sheep', value: 'sheep' },
-  { label: 'Spalax', value: 'spalax' }
+  { label: 'Spalax', value: 'spalax' },
 ];
 
 const assemblingFeatureOptions: ListOption[] = [
@@ -61,6 +61,11 @@ const orderOptions: ListOption[] = [
   { label: 'Heavy-linker-light-hinge', value: 'hl' },
   { label: 'Light-linker-heavy-hinge', value: 'lh' },
 ];
+
+const imputeOptions: ListOption[] = [
+  { label: 'From germline', value: true },
+  { label: 'From fixed sequence', value: false },
+];
 </script>
 
 <template>
@@ -104,7 +109,7 @@ const orderOptions: ListOption[] = [
   <PlTextArea
     v-model="app.model.args.linker"
     :rows="3"
-    label="Linker nt sequence"
+    label="Linker nt sequence (including first nt of C gene)"
     required
   />
 
@@ -125,6 +130,38 @@ const orderOptions: ListOption[] = [
     <PlTextField
       v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
       label="Take only this number of reads into analysis"
+    />
+
+    <PlBtnGroup
+      v-if="app.model.args.heavyAssemblingFeature !== 'FR1:FR4'"
+      v-model="app.model.args.imputeHeavy"
+      :options="imputeOptions"
+      label="Reconstruct uncovered heavy regions"
+    />
+    <div v-if="!app.model.args.imputeHeavy && app.model.args.heavyAssemblingFeature !== 'CDR3:FR4'">
+      ERROR: only CDR3:FR4 assembling feature is supported for imputing heavy regions from fixed sequence
+    </div>
+    <PlTextArea
+      v-if="!app.model.args.imputeHeavy"
+      v-model="app.model.args.heavyImputeSequence"
+      label="Heavy nt sequence of V region (pre NGS)"
+      required
+    />
+
+    <PlBtnGroup
+      v-if="app.model.args.lightAssemblingFeature !== 'FR1:FR4'"
+      v-model="app.model.args.imputeLight"
+      :options="imputeOptions"
+      label="Reconstruct uncovered heavy regions"
+    />
+    <div v-if="!app.model.args.imputeLight && app.model.args.lightAssemblingFeature !== 'CDR3:FR4'">
+      ERROR: only CDR3:FR4 assembling feature is supported for imputing light regions from fixed sequence
+    </div>
+    <PlTextArea
+      v-if="!app.model.args.imputeLight"
+      v-model="app.model.args.lightImputeSequence"
+      label="Light nt sequence of V region (pre NGS)"
+      required
     />
   </PlAccordionSection>
 </template>

@@ -196,6 +196,7 @@ const gridOptions: GridOptions<ScFvResult> = {
     v-model="data.settingsOpen"
     :shadow="true"
     :close-on-outside-click="true"
+    width="40%"
   >
     <template #title>Settings</template>
     <SettingsPanel />

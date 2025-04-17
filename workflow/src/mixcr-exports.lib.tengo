@@ -215,7 +215,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 				alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
 				alphabetShort := isAminoAcid ? "aa" : "nt"
 				alphabetShortMixcr := isAminoAcid ? "aa" : "n"
-				visibility := (featureU == "CDR3") || (featureU == assemblingFeature)
+				visibility := false // (featureU == "CDR3" || featureU == assemblingFeature) && isAminoAcid
 				columnsSpecPerClonotype += [ {
 					column: alphabetShortMixcr + "Seq" + imputedU + featureU + "-" + chain,
 					id: alphabetShortMixcr + "-seq-" + featureL + (isImputed ? "-imputed" : "") + "-" + chain,

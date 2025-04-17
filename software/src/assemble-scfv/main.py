@@ -6,6 +6,12 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--linker", help="linker nt sequence")
 parser.add_argument("--hinge", help="hinge nt sequence")
+parser.add_argument("--imputeHeavy", help="impute heavy VDJ region")
+parser.add_argument("--heavyImputeSequence",
+                    help="heavy VDJ region sequence to impute")
+parser.add_argument("--imputeLight", help="impute light VDJ region")
+parser.add_argument("--lightImputeSequence",
+                    help="light VDJ region sequence to impute")
 parser.add_argument(
     "--order",
     help="construct building order: hl for 'heavy-linker-light-hinge' or lh for 'light-linker-heavy-hinge'")
@@ -71,29 +77,47 @@ result["clonotypeKey"] = result["targetSequences-IGHeavy"] + "-" + result["targe
     result["bestVGene-IGHeavy"] + "-" + result["bestVGene-IGLight"] + \
     result["bestJGene-IGHeavy"] + "-" + result["bestJGene-IGLight"]
 
-result["clonotypeLabel"] = "C" + result["clonotypeKey"].rank(method='dense').astype(int).astype(str)
+result = result[result['clonotypeKey'].notna()]
+
+result["clonotypeLabel"] = "C" + \
+    result["clonotypeKey"].rank(method='dense').astype(int).astype(str)
 
 if "bestCGene-IGHeavy" in result:
     result["clonotypeKey"] = result["clonotypeKey"] + "-" + \
         result["bestCGene-IGHeavy"] + "-" + result["bestCGene-IGLight"]
 
 
-heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
-lightVdj = "nSeqImputedVDJRegion-IGLight"
+heavyVdj = None
+lightVdj = None
 
-if "nSeqImputedVDJRegion-IGHeavy" in result:
-    heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
-elif "nSeqVDJRegion-IGHeavy" in result:
+if "nSeqVDJRegion-IGHeavy" in result:
     heavyVdj = "nSeqVDJRegion-IGHeavy"
+elif (args.imputeHeavy == 'true' and "nSeqImputedVDJRegion-IGHeavy" in result) or (args.imputeHeavy == 'false'):
+    heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
 else:
     raise ValueError("VDJ region - heavy not found")
 
-if "nSeqImputedVDJRegion-IGLight" in result:
-    lightVdj = "nSeqImputedVDJRegion-IGLight"
-elif "nSeqVDJRegion-IGLight" in result:
+if "nSeqVDJRegion-IGLight" in result:
     lightVdj = "nSeqVDJRegion-IGLight"
+elif (args.imputeLight == 'true' and "nSeqImputedVDJRegion-IGLight" in result) or (args.imputeLight == 'false'):
+    lightVdj = "nSeqImputedVDJRegion-IGLight"
 else:
     raise ValueError("VDJ region - light not found")
+
+
+if args.imputeHeavy == 'false':
+    result = result[result["nSeqCDR3-IGHeavy"].notna()
+                    & result["nSeqFR4-IGHeavy"].notna()]
+    result[heavyVdj] = args.heavyImputeSequence + \
+        result["nSeqCDR3-IGHeavy"] + \
+        result["nSeqFR4-IGHeavy"]  # @TODO currently only CDR3:FR4 is supported here
+
+if args.imputeLight == 'false':
+    result = result[result["nSeqCDR3-IGLight"].notna()
+                    & result["nSeqFR4-IGLight"].notna()]
+    result[lightVdj] = args.lightImputeSequence + \
+        result["nSeqCDR3-IGLight"] + \
+        result["nSeqFR4-IGLight"]  # @TODO currently only CDR3:FR4 is supported here
 
 
 # Filter out rows where VDJ regions are empty/null

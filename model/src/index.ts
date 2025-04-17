@@ -12,6 +12,10 @@ export type BlockArgs = {
   lightTagPattern?: string;
   lightAssemblingFeature?: string;
   limitInput?: number;
+  imputeHeavy: boolean;
+  heavyImputeSequence?: string;
+  imputeLight: boolean;
+  lightImputeSequence?: string;
 };
 
 export type UiState = {
@@ -29,6 +33,8 @@ export const model = BlockModel.create()
     heavyAssemblingFeature: 'CDR3:CDR3',
     lightAssemblingFeature: 'CDR3:CDR3',
     order: 'hl',
+    imputeHeavy: true,
+    imputeLight: true,
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',

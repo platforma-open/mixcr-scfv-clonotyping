@@ -71,7 +71,7 @@ self.body(func(inputs) {
 			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
 			arg("-Malign.tagUnstranded=true").
 			arg("-Malign.parameters.saveOriginalReads=true").
-			arg("-Malign.parameters.jParameters.minSumScore=50").
+			// arg("-Malign.parameters.jParameters.minSumScore=50").
 			arg("-Massemble.clnaOutput=true")
 
 		if !is_undefined(inputs.limitInput) {
@@ -158,6 +158,7 @@ self.body(func(inputs) {
 			software(mixcrSw).
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("exportClones").
+			arg("--export-productive-clones-only").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
 
@@ -201,6 +202,15 @@ self.body(func(inputs) {
 
 	assembleScFv := exec.builder().
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
+		arg("--imputeHeavy").arg(string(inputs.imputeHeavy)).
+		arg("--imputeLight").arg(string(inputs.imputeLight))
+	if !is_undefined(inputs.heavyImputeSequence) {
+		assembleScFv = assembleScFv.arg("--heavyImputeSequence").arg(inputs.heavyImputeSequence)
+	}
+	if !is_undefined(inputs.lightImputeSequence) {	
+		assembleScFv = assembleScFv.arg("--lightImputeSequence").arg(inputs.lightImputeSequence)
+	}
+	assembleScFv = assembleScFv.
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
 		arg("--order").arg(inputs.order).
