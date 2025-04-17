@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 1.3.0
+
+### Minor Changes
+
+- 17391c1: Ability to override imputed seq
+
+### Patch Changes
+
+- Updated dependencies [17391c1]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.3.0
+
 ## 1.2.3
 
 ### Patch Changes

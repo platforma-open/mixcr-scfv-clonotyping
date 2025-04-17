@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 1.4.0
+
+### Minor Changes
+
+- 17391c1: Ability to override imputed seq
+
 ## 1.3.2
 
 ### Patch Changes
