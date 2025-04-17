@@ -1,5 +1,17 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 1.4.0
+
+### Minor Changes
+
+- 5323f18: specs similar to mixcr-clonotyping single cell output
+
+### Patch Changes
+
+- 8a502ce: update dependencies
+- Updated dependencies [8a502ce]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@1.3.2
+
 ## 1.3.2
 
 ### Patch Changes
