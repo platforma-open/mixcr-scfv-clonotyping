@@ -76,10 +76,11 @@ const columnDefs: ColDef<ScFvResult>[] = [
     field: 'heavy.progress',
     headerName: 'Progress (Heavy)',
     headerComponentParams: { type: 'Progress' } satisfies PlAgHeaderComponentParams,
-    progress(cellData) {
+    progress(cellData, cd) {
       const parsed = parseProgressString(cellData);
 
-      if (parsed.stage === 'Queued') {
+      const p = cd?.data?.heavy.progress;
+      if (p === 'Not started' || p === 'Queued') {
         return {
           status: 'not_started',
           text: parsed.stage,
@@ -99,10 +100,11 @@ const columnDefs: ColDef<ScFvResult>[] = [
     field: 'light.progress',
     headerName: 'Progress (Light)',
     headerComponentParams: { type: 'Progress' } satisfies PlAgHeaderComponentParams,
-    progress(cellData) {
+    progress(cellData, cd) {
       const parsed = parseProgressString(cellData);
 
-      if (parsed.stage === 'Queued') {
+      const p = cd?.data?.light.progress;
+      if (p === 'Not started' || p === 'Queued') {
         return {
           status: 'not_started',
           text: parsed.stage,
