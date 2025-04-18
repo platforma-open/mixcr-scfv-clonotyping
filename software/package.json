@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "description": "Block Software",
   "scripts": {

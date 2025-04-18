@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 1.4.1
+
+### Patch Changes
+
+- 14e7d67: Group by aa seq of construct
+
 ## 1.4.0
 
 ### Minor Changes
