@@ -190,17 +190,22 @@ result["construct-aa"] = result["construct-nt"].apply(translate)
 # Add isProductive column - false if construct-aa contains stop codon (*) or incomplete codon (_)
 result["isProductive"] = ~result["construct-aa"].str.contains(
     "[*_]", regex=True, na=True)
-# astype(str).str.lower()
 
-# for feature in ["FR1", "CDR1", "FR2", "CDR2", "FR3", "CDR3"]:
-#     for imputed in ["", "Imputed"]:
-#         for chain in ["IGHeavy", "IGLight"]:
-#             colName = f"aaSeq{feature}{imputed}-{chain}"
-#             if colName in result:
-#                 print(colName)
-#                 pr = ~result[colName].str.contains(
-#                     "[*_]", regex=True, na=True)
-#                 result['isProductive'] = result['isProductive'] & pr
+# Group by 'construct-aa' and aggregate
+# Sum readCount and readFraction, take first value for all other columns
+agg_dict = {
+    'readCount': 'sum',
+    'readFraction': 'sum'
+}
+
+# Create a dictionary for all other columns to take the first value
+for col in result.columns:
+    if col not in ['readCount', 'readFraction']:
+        agg_dict[col] = 'first'
+
+# Perform the groupby operation
+result = result.groupby('construct-aa', dropna=False).agg(agg_dict).reset_index(drop=True)
+
 
 result["isProductive"] = result["isProductive"].astype(str).str.lower()
 result.to_csv("result.tsv", sep="\t", index=False)
