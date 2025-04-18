@@ -347,7 +347,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 				domain: {
 					"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 				},
-				annotations: a(orderP, true, {
+				annotations: a(orderP, false, {
 					"pl7.app/label": "Chain",
 					"pl7.app/isDiscreteFilter": "true",
 					"pl7.app/discreteValues": "['TRA','TRB','TRG','TRD','IGH','IGK','IGL']"
