@@ -334,7 +334,29 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 		}
 	}
 
-	// column with nucleotide sequence of this feature will be marked as anchor
+	// Isotype and chain
+
+	columnsSpecPerClonotype += [ {
+			column: "topChains-" + chain,
+			id: "top-chains-" + chain,
+			naRegex: "",
+			allowNA: true,
+			spec: {
+				valueType: "String",
+				name: "pl7.app/vdj/chain",
+				domain: {
+					"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
+				},
+				annotations: a(orderP, false, {
+					"pl7.app/label": "Chain",
+					"pl7.app/isDiscreteFilter": "true",
+					"pl7.app/discreteValues": "['TRA','TRB','TRG','TRD','IGH','IGK','IGL']"
+				})
+			}
+		} ]
+	exportArgs += [
+		[ "-topChains" ]
+	]
 
 
 	//   "pl7.app/segmentedBy" annotation indicates columns that can be meaningfully merged across

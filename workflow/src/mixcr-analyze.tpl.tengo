@@ -219,7 +219,6 @@ self.body(func(inputs) {
 		addFile("hc.alignments.tsv", heavy.alignments).
 		addFile("lc.alignments.tsv", light.alignments).
 		saveFile("result.tsv").
-		saveStdoutContent().
 		run()
 
 
