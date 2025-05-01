@@ -34,11 +34,11 @@ Below are example commands to reproduce the pipeline steps.
 
 These parameters are used in the commands below:
 
-*   **Heavy Chain Tag Pattern:** `^(R1:*)ggaggcgg*^*`
+*   **Heavy Chain Tag Pattern:** `^(R1:*)ggaggcgg*\^*`
     *   Identifies reads potentially containing heavy chain sequences based on flanking patterns. `(R1:*)` captures the read identifier from R1.
 *   **Heavy Chain Assembling Feature:** `cdr3-fr4`
     *   Defines the region used for clonotype assembly (CDR3 + FR4). MiXCR format: `{cdr3Begin:fr4End}`.
-*   **Light Chain Tag Pattern:** `^*gcggaagt(R1:*)^*gactcggatc(R2:*)`
+*   **Light Chain Tag Pattern:** `^*gcggaagt(R1:*)\^*gactcggatc(R2:*)`
     *   Identifies reads potentially containing light chain sequences. `(R1:*)` and `(R2:*)` capture read identifiers.
 *   **Light Chain Assembling Feature:** `fr1-fr4`
     *   Defines the region used for clonotype assembly (FR1 through FR4). MiXCR format: `{fr1Begin:fr4End}`.
@@ -49,7 +49,7 @@ These parameters are used in the commands below:
     *   `imputeLight: true` (If light chain is missing, use the provided `lightImputeSequence`)
 *   **Heavy Impute Sequence (nt):** `GAGGTGCAGCTGTTGGAGTCTGGGGGAGGCTTGGTACAGCCTGGGGGGTCCCTGAGACTCTCCTGTGCAGCCTCTGGATTCACCTTTAGCAGCTATGCCATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTGGAGTGGGTCTCAGCTATTAGTGGTAGTGGTGGTAGCACATACTACGCAGACTCCGTGAAGGGCCGGTTCACCATCTCCAGAGACAATTCCAAGAACACGCTGTATCTGCAAATGAACAGCCTGAGAGCCGAGGACACGGCCGTATATTAC` (Used only if `imputeHeavy` were `true`)
 *   **Light Impute Sequence (nt):** (A corresponding sequence would be needed here if `imputeLight` is `true`)
-*   **scFv Order:** `VH-VL` (Specifies the order of concatenation)
+*   **scFv Order:** `hl` (Specifies the order of concatenation)
 
 ### Commands
 
@@ -63,7 +63,7 @@ mixcr analyze generic-amplicon \
     --rna \
     --rigid-left-alignment-boundary \
     --rigid-right-alignment-boundary J \
-    --tag-pattern '^(R1:*)ggaggcgg*^*' \
+    --tag-pattern '^(R1:*)ggaggcgg*\^*' \
     --assemble-clonotypes-by "{CDR3Begin:FR4End}" \
     -Malign.tagUnstranded=true \
     -Malign.parameters.saveOriginalReads=true \
@@ -81,7 +81,7 @@ mixcr analyze generic-amplicon \
     --rna \
     --rigid-left-alignment-boundary \
     --rigid-right-alignment-boundary J \
-    --tag-pattern '^*gcggaagt(R1:*)^*gactcggatc(R2:*)' \
+    --tag-pattern '^*gcggaagt(R1:*)\^*gactcggatc(R2:*)' \
     --assemble-clonotypes-by "VDJRegion" \
     -Malign.tagUnstranded=true \
     -Malign.parameters.saveOriginalReads=true \
@@ -107,13 +107,16 @@ mixcr exportClones \
     --export-productive-clones-only \
     --dont-split-files \
     --drop-default-fields \
-    -f cloneId \
-    -f cloneCount \
-    -f VDJCSequence \
-    -f VDJTranscriptAminoAcid \
-    -f VGene \
-    -f JGene \
-    -f CDR3AminoAcid \
+    -cloneId \
+    -readCount \
+    -targetSequences \
+    -nFeature {CDR3Begin:FR4End} \
+    -nFeature CDR3 \
+    -allNFeatures \
+    -aaFeature {CDR3Begin:FR4End} \
+    -vGene \
+    -jGene \
+    -aaFeature CDR3 \
     result_heavy.clna \
     hc.clones.tsv
 ```
@@ -134,13 +137,16 @@ mixcr exportClones \
     --export-productive-clones-only \
     --dont-split-files \
     --drop-default-fields \
-    -f cloneId \
-    -f cloneCount \
-    -f VDJCSequence \
-    -f VDJTranscriptAminoAcid \
-    -f VGene \
-    -f JGene \
-    -f CDR3AminoAcid \
+    -targetSequences \
+    -allNFeatures \
+    -cloneId \
+    -readCount \
+    -nFeature VDJRegion \
+    -aaFeature VDJRegion \
+    -nFeature CDR3 \
+    -vGene \
+    -jGene \
+    -aaFeature CDR3 \
     result_light.clna \
     lc.clones.tsv
 ```
@@ -148,17 +154,11 @@ mixcr exportClones \
 **5. Assemble scFv (Python Script):**
 
 ```bash
-python assemble-scfv.py \
+python assemble-scfv.py \   
     --imputeHeavy false \
     --imputeLight true \
     --heavyImputeSequence 'GAGGTGCAGCTGTTGGAGTCTGGGGGAGGCTTGGTACAGCCTGGGGGGTCCCTGAGACTCTCCTGTGCAGCCTCTGGATTCACCTTTAGCAGCTATGCCATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTGGAGTGGGTCTCAGCTATTAGTGGTAGTGGTGGTAGCACATACTACGCAGACTCCGTGAAGGGCCGGTTCACCATCTCCAGAGACAATTCCAAGAACACGCTGTATCTGCAAATGAACAGCCTGAGAGCCGAGGACACGGCCGTATATTAC' \
-    --lightImputeSequence '<light_impute_sequence_nt>' \
     --linker 'TGGAGGCGGCGGTTCAGGCGGAGGTGGCTCTGGCGGTGGCGGAAGT' \
     --hinge 'GATCCGAGTCTAAGTACGGCCCTCCGTGTCCT' \
-    --order 'VH-VL' \
-    --heavy-clones hc.clones.tsv \
-    --light-clones lc.clones.tsv \
-    --heavy-alignments hc.alignments.tsv \
-    --light-alignments lc.alignments.tsv \
-    --output result.tsv
+    --order hl
 ``` 

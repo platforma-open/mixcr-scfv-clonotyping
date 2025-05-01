@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 1.3.1
+
+### Patch Changes
+
+- 57c2526: Export chain column
+
 ## 1.3.0
 
 ### Minor Changes

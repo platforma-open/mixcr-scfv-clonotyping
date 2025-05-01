@@ -37,10 +37,10 @@ export const resultMap = computed(() => {
       sampleId: sampleId,
       label: label,
       heavy: {
-        progress: 'Queued',
+        progress: app.model.outputs.isRunning ? 'Queued' : 'Not started',
       },
       light: {
-        progress: 'Queued',
+        progress: app.model.outputs.isRunning ? 'Queued' : 'Not started',
       },
     };
     resultMap.set(sampleId, result);
