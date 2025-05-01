@@ -1,5 +1,7 @@
 import pandas as pd
 import argparse
+import hashlib
+import base64
 
 parser = argparse.ArgumentParser(
     description="Assembles scFv from MiXCR alignments"
@@ -79,13 +81,17 @@ result["clonotypeKey"] = result["targetSequences-IGHeavy"] + "-" + result["targe
 
 result = result[result['clonotypeKey'].notna()]
 
-result["clonotypeLabel"] = "C" + \
-    result["clonotypeKey"].rank(method='dense').astype(int).astype(str)
 
 if "bestCGene-IGHeavy" in result:
     result["clonotypeKey"] = result["clonotypeKey"] + "-" + \
         result["bestCGene-IGHeavy"] + "-" + result["bestCGene-IGLight"]
 
+# Hash the clonotypeKey after potentially adding C-genes
+result['clonotypeKey'] = result['clonotypeKey'].apply(
+    lambda x: base64.b32encode(bytes.fromhex(hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8')
+)
+
+result["clonotypeLabel"] = "C-" + result["clonotypeKey"].str[:4]
 
 heavyVdj = None
 lightVdj = None

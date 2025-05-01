@@ -82,11 +82,6 @@ export const resultMap = computed(() => {
         if (report.key[2] !== 'json' || report.value === undefined) continue;
         const r = resultMap.get(sampleId);
         if (r) {
-          console.log(report);
-          console.log(report.key);
-          console.log(report.value);
-          console.log(ReactiveFileContent.getContentBytes(report.value.handle!).value);
-
           let chainResult;
           if (c == 'h')
             chainResult = r.heavy;
@@ -126,37 +121,5 @@ export const resultMap = computed(() => {
     }
   }
 
-  console.log(resultMap);
-
   return resultMap;
 });
-
-// /** Results augmented with execution progress */
-// export const MiXCRResultsFull = computed<MiXCRResult[] | undefined>(() => {
-//   const app = useApp();
-
-//   const progress = app.model.outputs.progress;
-//   if (progress === undefined) return undefined;
-
-//   const doneRaw = app.model.outputs.done;
-//   if (doneRaw === undefined) return undefined;
-//   const done = new Set(doneRaw);
-
-//   const rawMap = MiXCRResultsMap.value;
-//   if (rawMap === undefined) return undefined;
-
-//   // shellow cloning the map and it's values
-//   const resultMap = new Map([...rawMap].map((v) => [v[0], { ...v[1] }]));
-
-//   // adding progress information
-//   for (const p of progress.data) {
-//     const sampleId = p.key[0] as string;
-//     if (resultMap.get(sampleId))
-//       if (p?.value)
-//         resultMap.get(sampleId)!.progress = done.has(sampleId)
-//           ? 'Done'
-//           : p.value?.replace(ProgressPrefix, '') ?? 'Not started';
-//   }
-
-//   return [...resultMap.values()];
-// });

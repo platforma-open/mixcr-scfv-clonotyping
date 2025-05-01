@@ -433,7 +433,7 @@ abundanceColumns := func(blockId) {
 				"pl7.app/vdj/receptor": "IG"
 			},
 			annotations: {
-				"pl7.app/label": "Clone label",
+				"pl7.app/label": "Clone Id",
 				"pl7.app/table/visibility": "optional",
 				"pl7.app/table/orderPriority": "110000"
 			}
