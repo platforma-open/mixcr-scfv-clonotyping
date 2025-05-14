@@ -321,6 +321,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 						valueType: variant.valueType,
 						name: "pl7.app/vdj/sequence/" + alphabetShortMixcr + variant.name,
 						domain: {
+							"pl7.app/vdj/gene": geneU,
 							"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 						},
 						annotations: a(orderP, false, {
@@ -348,7 +349,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 					"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
 				},
 				annotations: a(orderP, false, {
-					"pl7.app/label": "Chain",
+					"pl7.app/label": chain == "IGHeavy" ? "Heavy Chain" : "Light Chain",
 					"pl7.app/isDiscreteFilter": "true",
 					"pl7.app/discreteValues": "['TRA','TRB','TRG','TRD','IGH','IGK','IGL']"
 				})
@@ -455,7 +456,7 @@ abundanceColumns := func(blockId) {
 				"pl7.app/vdj/receptor": "IG"
 			},
 			annotations: {
-				"pl7.app/label": "Clone label",
+				"pl7.app/label": "Clone Id",
 				"pl7.app/table/visibility": "optional",
 				"pl7.app/table/orderPriority": "110000"
 			}

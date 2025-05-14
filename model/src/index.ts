@@ -41,7 +41,8 @@ export const model = BlockModel.create()
   })
 
   .argsValid((ctx) =>
-    ctx.args.species !== undefined
+    ctx.args.input !== undefined
+    && ctx.args.species !== undefined
     && ctx.args.linker !== undefined
     && ctx.args.hinge !== undefined
     && ctx.args.heavyTagPattern !== undefined
