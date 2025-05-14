@@ -37,7 +37,7 @@ constructColumns := func(linker, hinge, blockId) {
 				name: "pl7.app/vdj/scFv-sequence",
 				valueType: "String",
 				domain: {
-					"pl7.app/alphabet": alphabet,
+					"pl7.app/alphabet": alphabet == "nt" ? "nucleotide" : "aminoacid",
 					"pl7.app/vdj/scFv-linker": linker,
 					"pl7.app/vdj/scFv-hinge": hinge,
 					"pl7.app/vdj/clonotypingRunId": blockId
@@ -45,6 +45,9 @@ constructColumns := func(linker, hinge, blockId) {
 				annotations: {
 					"pl7.app/label": "scFv sequence " + alphabet,
 					"pl7.app/table/orderPriority": "80000",
+					"pl7.app/vdj/isAssemblingFeature": "true",
+					"pl7.app/vdj/isMainSequence": "true",
+					"pl7.app/vdj/isAssemblingFeature": "true",
 					"pl7.app/table/visibility": alphabet == "aa" ? "default" : "optional"
 				}
 			}

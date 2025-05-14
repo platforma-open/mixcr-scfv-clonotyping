@@ -91,7 +91,7 @@ result['clonotypeKey'] = result['clonotypeKey'].apply(
     lambda x: base64.b32encode(bytes.fromhex(hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8')
 )
 
-result["clonotypeLabel"] = "C-" + result["clonotypeKey"].str[:4]
+result["clonotypeLabel"] = "C-" + result["clonotypeKey"].str[:6]
 
 heavyVdj = None
 lightVdj = None
