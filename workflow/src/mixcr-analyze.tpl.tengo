@@ -139,7 +139,7 @@ self.body(func(inputs) {
 			printErrStreamToStdout().
 			software(mixcrSw).
 			secret("MI_LICENSE", "MI_LICENSE").
-			dontSaveStdoutOrStderr().
+		//	dontSaveStdoutOrStderr().
 			arg("exportAlignments").
 			arg("-cloneId").
 			arg("-descrR1").
@@ -158,7 +158,7 @@ self.body(func(inputs) {
 			printErrStreamToStdout().
 			software(mixcrSw).
 			secret("MI_LICENSE", "MI_LICENSE").
-			dontSaveStdoutOrStderr().
+			//dontSaveStdoutOrStderr().
 			arg("exportClones").
 			arg("--export-productive-clones-only").
 			arg("--dont-split-files").
@@ -197,6 +197,8 @@ self.body(func(inputs) {
 		return result
 	}
 
+	ll.print("__THE_LOG__" + inputs.heavyAssemblingFeature)
+
 
 	heavy := runMixcr("IGHeavy", inputs.heavyAssemblingFeature, inputs.heavyTagPattern, mixcrExportArgsHeavy)
 	light := runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
@@ -206,27 +208,34 @@ self.body(func(inputs) {
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
 		arg("--imputeHeavy").arg(string(inputs.imputeHeavy)).
 		arg("--imputeLight").arg(string(inputs.imputeLight))
-	if !is_undefined(inputs.heavyImputeSequence) {
+	if !is_undefined(inputs.heavyImputeSequence) {	
 		assembleScFv = assembleScFv.arg("--heavyImputeSequence").arg(inputs.heavyImputeSequence)
 	}
 	if !is_undefined(inputs.lightImputeSequence) {	
 		assembleScFv = assembleScFv.arg("--lightImputeSequence").arg(inputs.lightImputeSequence)
 	}
 	assembleScFv = assembleScFv.
-		arg("--linker").arg(inputs.linker).
-		arg("--hinge").arg(inputs.hinge).
-		arg("--order").arg(inputs.order).
+		arg("--linker").arg(string(inputs.linker)).
+		arg("--hinge").arg(string(inputs.hinge)).
+		arg("--order").arg(string(inputs.order)).
 		addFile("hc.clones.tsv", heavy.clones).
 		addFile("lc.clones.tsv", light.clones).
 		addFile("hc.alignments.tsv", heavy.alignments).
 		addFile("lc.alignments.tsv", light.alignments).
 		saveFile("result.tsv").
-		dontSaveStdoutOrStderr().
+		printErrStreamToStdout().
+		stdoutFileName("assemble-scfv.log").
+
+
+	//	dontSaveStdoutOrStderr().
 		run()
 
 
+	result := assembleScFv.getFile("result.tsv")
+
+
 	return {
-		clonotypesTableTsv: assembleScFv.getFile("result.tsv"),
+		clonotypesTableTsv: result,
 		qcIGHeavy: heavy.qc,
 		qcIGLight: light.qc,
 		logsIGHeavy: heavy.log,
