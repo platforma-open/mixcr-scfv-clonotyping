@@ -126,14 +126,19 @@ if args.imputeLight == 'false':
         result["nSeqFR4-IGLight"]  # @TODO currently only CDR3:FR4 is supported here
 
 
-# Filter out rows where VDJ regions are empty/null
+# Filter out rows where VDJ regions are empty/null or contain region_not_covered
+initial_count = len(result)
 result = result[
     (result[heavyVdj].notna()) &
     (result[heavyVdj].str.len() > 0) &
+    (~result[heavyVdj].str.contains('region_not_covered', na=False)) &
     (result[lightVdj].notna()) &
-    (result[lightVdj].str.len() > 0)
+    (result[lightVdj].str.len() > 0) &
+    (~result[lightVdj].str.contains('region_not_covered', na=False))
 ].copy()
 
+dropped_count = initial_count - len(result)
+print(f"Dropped {dropped_count} sequences ({dropped_count/initial_count*100:.1f}%) due to empty/null or region_not_covered VDJ regions")
 
 # Create construct-nt column
 if args.order == "hl":
