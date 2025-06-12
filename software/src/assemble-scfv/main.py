@@ -127,7 +127,6 @@ if args.imputeLight == 'false':
 
 
 # Filter out rows where VDJ regions are empty/null or contain region_not_covered
-initial_count = len(result)
 result = result[
     (result[heavyVdj].notna()) &
     (result[heavyVdj].str.len() > 0) &
@@ -136,9 +135,6 @@ result = result[
     (result[lightVdj].str.len() > 0) &
     (~result[lightVdj].str.contains('region_not_covered'))
 ].copy()
-
-dropped_count = initial_count - len(result)
-print(f"Dropped {dropped_count} sequences ({dropped_count/initial_count*100:.1f}%) due to empty/null or region_not_covered VDJ regions")
 
 # Create construct-nt column
 if args.order == "hl":
