@@ -131,10 +131,10 @@ initial_count = len(result)
 result = result[
     (result[heavyVdj].notna()) &
     (result[heavyVdj].str.len() > 0) &
-    (~result[heavyVdj].str.contains('region_not_covered', na=False)) &
+    (~result[heavyVdj].str.contains('region_not_covered')) &
     (result[lightVdj].notna()) &
     (result[lightVdj].str.len() > 0) &
-    (~result[lightVdj].str.contains('region_not_covered', na=False))
+    (~result[lightVdj].str.contains('region_not_covered'))
 ].copy()
 
 dropped_count = initial_count - len(result)
