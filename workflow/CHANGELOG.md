@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 2.0.0
+
+### Major Changes
+
+- 02cb719: chore: update deps
+
 ## 1.5.3
 
 ### Patch Changes
