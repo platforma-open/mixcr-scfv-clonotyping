@@ -130,10 +130,10 @@ if args.imputeLight == 'false':
 result = result[
     (result[heavyVdj].notna()) &
     (result[heavyVdj].str.len() > 0) &
-    (~result[heavyVdj].str.contains('region_not_covered')) &
+    (~result[heavyVdj].str.contains('region_not_covered', na=False)) &
     (result[lightVdj].notna()) &
     (result[lightVdj].str.len() > 0) &
-    (~result[lightVdj].str.contains('region_not_covered'))
+    (~result[lightVdj].str.contains('region_not_covered', na=False))
 ].copy()
 
 # Create construct-nt column
