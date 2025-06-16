@@ -429,7 +429,8 @@ abundanceColumns := func(blockId) {
 				"pl7.app/abundance/unit": "reads",
 				"pl7.app/abundance/normalized": "true",
 				"pl7.app/abundance/isPrimary": "true",
-				"pl7.app/label": "Fraction of reads"
+				"pl7.app/label": "Fraction of reads",
+				"pl7.app/format": ".2p"
 			})
 		}
 	} ]
