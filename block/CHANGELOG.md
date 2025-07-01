@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 2.2.0
+
+### Minor Changes
+
+- dd0ce5d: allow prepare venv on Windows
+
 ## 2.1.13
 
 ### Patch Changes
