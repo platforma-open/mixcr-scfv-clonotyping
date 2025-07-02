@@ -60,6 +60,8 @@ self.body(func(inputs) {
 			printErrStreamToStdout().
 			env("MI_PROGRESS_PREFIX", progressPrefix).
 			software(mixcrSw).
+			cpu(16).
+			mem("110GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("analyze").
 			arg("generic-amplicon").
@@ -138,6 +140,8 @@ self.body(func(inputs) {
 		alignments := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
+			cpu(8).
+			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportAlignments").
@@ -157,6 +161,8 @@ self.body(func(inputs) {
 		clones := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
+			cpu(8).
+			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportClones").
@@ -204,6 +210,8 @@ self.body(func(inputs) {
 
 	assembleScFv := exec.builder().
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
+		cpu(1).
+		mem("64GiB").
 		arg("--imputeHeavy").arg(string(inputs.imputeHeavy)).
 		arg("--imputeLight").arg(string(inputs.imputeLight))
 	if !is_undefined(inputs.heavyImputeSequence) {

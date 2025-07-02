@@ -85,7 +85,7 @@ const imputeOptions: ListOption[] = [
   <PlTextField
     v-model="app.model.args.heavyTagPattern"
     label="Heavy chain tag pattern"
-    required
+    :clearable="() => undefined"
   />
 
   <PlDropdown
@@ -97,7 +97,7 @@ const imputeOptions: ListOption[] = [
   <PlTextField
     v-model="app.model.args.lightTagPattern"
     label="Light chain tag pattern"
-    required
+    :clearable="() => undefined"
   />
 
   <PlDropdown
