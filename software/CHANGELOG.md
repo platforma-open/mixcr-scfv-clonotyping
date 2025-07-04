@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 1.5.0
+
+### Minor Changes
+
+- a95c520: Modify python script to drop clonotypes with "region_not_covered" to avoid errors downstream
+
 ## 1.4.2
 
 ### Patch Changes
