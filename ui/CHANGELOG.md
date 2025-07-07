@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 1.4.0
+
+### Minor Changes
+
+- f4bd7ab: support batch system
+
 ## 1.3.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 2.1.0
+
+### Minor Changes
+
+- f4bd7ab: support batch system
+
 ## 2.0.1
 
 ### Patch Changes
