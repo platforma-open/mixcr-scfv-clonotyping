@@ -4,6 +4,8 @@ pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
 slices := import("@platforma-sdk/workflow-tengo:slices")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 exec := import("@platforma-sdk/workflow-tengo:exec")
+units := import("@platforma-sdk/workflow-tengo:units")
+math := import("math")
 
 json := import("json")
 
@@ -14,6 +16,8 @@ ptransformSw := assets.importSoftware("@platforma-open/milaboratories.software-p
 self.body(func(inputs) {
 	inputData := inputs[pConstants.VALUE_FIELD_NAME]
 	inputDataMeta := inputData.getDataAsJson()
+	inputMap := inputData.inputs()
+	numberOfSamples := len(inputMap)
 
 	ll.assert(inputDataMeta.keyLength == 1, "unexpected number of aggregation axes")
 
@@ -38,10 +42,12 @@ self.body(func(inputs) {
 	aggregateBuilderCmd := exec.builder().
 		printErrStreamToStdout().
 		software(ptransformSw).
+		mem(int(math.max(numberOfSamples, 64)) * units.GiB).
+		cpu(int(math.max(numberOfSamples, 32))).
 		arg("--workflow").arg("wf.json").
 		writeFile("wf.json", json.encode(pWorkflow))
 
-	for sKey, inputFile in inputData.inputs() {
+	for sKey, inputFile in inputMap {
 		key := json.decode(sKey)
 		if len(key) != 1 {
 			ll.panic("malformed key: %v", sKey)
