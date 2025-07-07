@@ -61,7 +61,7 @@ self.body(func(inputs) {
 			env("MI_PROGRESS_PREFIX", progressPrefix).
 			software(mixcrSw).
 			cpu(16).
-			mem("110GiB").
+			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("analyze").
 			arg("generic-amplicon").
