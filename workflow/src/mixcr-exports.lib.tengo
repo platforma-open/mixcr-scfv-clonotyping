@@ -34,7 +34,7 @@ toCombinedDomainValue := func(spec) {
  *   - nonImputed: an array of features to be non-imputed in export
  */
 assemblingFeatureTransform := func(assemblingFeature) {
-	if assemblingFeature == "CDR3" {
+	if assemblingFeature == "CDR3:CDR3" {
 		return "CDR3"
 	} else if assemblingFeature == "FR1:FR4" {
 		return "VDJRegion"
@@ -105,7 +105,7 @@ parseAssemblingFeature := func(assemblingFeature) {
 	if begin == "FR1" && end == "FR4" {
 		nonImputed = append(nonImputed, "VDJRegion")
 	} else {
-		nonImputed = append(nonImputed, assemblingFeatureTransform(assemblingFeature))
+		//nonImputed = append(nonImputed, assemblingFeatureTransform(assemblingFeature))
 		imputed = append(imputed, "VDJRegion")
 	}
 
@@ -209,8 +209,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 	}
 
 	// Sequences
-
-	annotationTypes := assemblingFeature == "CDR3" ? ["Segments"] : ["CDRs", "Segments"]
+	annotationTypes := assemblingFeature == "{CDR3Begin:CDR3End}" ? ["Segments"] : ["CDRs", "Segments"]
 
 	inFrameFeatures := {
 	"FR4": "FR4InFrame",

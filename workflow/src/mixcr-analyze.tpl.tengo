@@ -197,9 +197,6 @@ self.body(func(inputs) {
 		return result
 	}
 
-	ll.print("__THE_LOG__" + inputs.heavyAssemblingFeature)
-
-
 	heavy := runMixcr("IGHeavy", inputs.heavyAssemblingFeature, inputs.heavyTagPattern, mixcrExportArgsHeavy)
 	light := runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
 

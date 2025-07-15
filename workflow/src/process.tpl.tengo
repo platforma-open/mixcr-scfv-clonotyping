@@ -278,10 +278,6 @@ self.body(func(inputs) {
 		}
 	)
 
-	ll.print("__THE_LOG__" + slices.map(cloneColumnSpecs, func(col) {
-		return col.column
-	}))
-
 	aggregationOutputs := [ {
 		type: "Xsv",
 		xsvType: "tsv",
