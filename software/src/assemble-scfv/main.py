@@ -317,17 +317,31 @@ def impute_vdj_sequences(df, args, heavy_vdj_col_name, light_vdj_col_name):
 
 
 def filter_valid_vdj(df, heavy_vdj_col, light_vdj_col):
-    """Filters out rows where VDJ regions are empty/null AFTER imputation/selection."""
+    """Filters out rows where VDJ regions are empty/null or contain 'region_not_covered' AFTER imputation/selection."""
     if df.empty: return df
     if heavy_vdj_col not in df.columns:
         return pd.DataFrame()
     if light_vdj_col not in df.columns:
         return pd.DataFrame()
 
+    # Store original length for logging
+    original_length = len(df)
+    
+    # Filter out rows where VDJ regions are empty/null or contain 'region_not_covered'
     df = df[
-        (df[heavy_vdj_col].notna()) & (df[heavy_vdj_col].astype(str).str.strip().str.len() > 0) &
-        (df[light_vdj_col].notna()) & (df[light_vdj_col].astype(str).str.strip().str.len() > 0)
+        (df[heavy_vdj_col].notna()) & 
+        (df[heavy_vdj_col].astype(str).str.strip().str.len() > 0) &
+        (~df[heavy_vdj_col].astype(str).str.contains('region_not_covered', case=False, na=False)) &
+        (df[light_vdj_col].notna()) & 
+        (df[light_vdj_col].astype(str).str.strip().str.len() > 0) &
+        (~df[light_vdj_col].astype(str).str.contains('region_not_covered', case=False, na=False))
     ].copy()
+    
+    # Log filtering statistics
+    removed_count = original_length - len(df)
+    if removed_count > 0:
+        print(f"Filtered out {removed_count} rows with invalid VDJ regions (empty/null or 'region_not_covered')")
+    
     return df
 
 
