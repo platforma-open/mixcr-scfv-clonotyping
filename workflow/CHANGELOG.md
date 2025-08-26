@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 2.2.0
+
+### Minor Changes
+
+- dfc69e5: Columns with CDR3 length added
+
 ## 2.1.0
 
 ### Minor Changes
