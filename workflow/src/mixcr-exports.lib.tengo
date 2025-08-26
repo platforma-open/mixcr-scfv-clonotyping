@@ -236,6 +236,25 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 				} ]
 				exportArgs += [ [ "-" + alphabetShortMixcr + "Feature" + imputedU, featureU ] ]
 				orderP -= 100
+				if featureU == "CDR3" {
+				columnsSpecPerClonotype += [ {
+					column: alphabetShortMixcr + "Length" + featureU + "-" + chain,
+					id: alphabetShortMixcr + "-length-" + featureL + "-" + chain,
+					naRegex: "region_not_covered",
+					spec: {
+						name: "pl7.app/vdj/sequenceLength",
+						valueType: "Int",
+						domain: {
+							"pl7.app/vdj/feature": featureU,
+							"pl7.app/alphabet": alphabet
+						},
+						annotations: a(orderP, false, {
+							"pl7.app/label":"Length of " + featureU + " " + alphabetShort + ", " + chainLabel
+						})
+					}
+				}]
+				exportArgs += [ [ "-" + alphabetShortMixcr + "Length", featureU ] ]
+				}
 			}
 		}
 	}
