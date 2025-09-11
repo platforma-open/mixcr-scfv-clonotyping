@@ -68,7 +68,14 @@ self.body(func(inputs) {
 			arg("--species").arg(inputs.species).
 			arg("--rna").
 			arg("--rigid-left-alignment-boundary").
-			arg("--rigid-right-alignment-boundary").arg("J").
+			arg("--rigid-right-alignment-boundary").arg("J")
+
+		// attach combined custom reference if provided
+		if !is_undefined(inputs.referenceLibrary) {
+			mixcrCmdBuilder.arg("--library").arg("library.json").addFile("library.json", inputs.referenceLibrary)
+		}
+
+		mixcrCmdBuilder.
 			arg("--tag-pattern").arg(tagPattern).
 			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
 			arg("-Malign.tagUnstranded=true").

@@ -9,6 +9,7 @@ pframes := import("@platforma-sdk/workflow-tengo:pframes")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 
 processTpl := assets.importTemplate(":process")
+repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
 
 wf.body(func(args) {
@@ -20,6 +21,53 @@ wf.body(func(args) {
 	}
 
 	input := wf.resolve(args.input)
+
+	// Optional per-chain reference libraries (only if both V and J provided)
+	referenceLibrary := undefined
+	referenceLibraryHeavy := undefined
+	referenceLibraryLight := undefined
+
+	if !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
+			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
+			writeFile("heavyJ.fasta", args.heavyJGenes).saveFile("heavyJ.fasta").
+			run()
+		referenceLibraryHeavy = render.create(repseqioLibraryTpl, {
+			vGeneFasta: heavyFiles.getFile("heavyV.fasta"),
+			jGeneFasta: heavyFiles.getFile("heavyJ.fasta"),
+			chains: "IGH"
+		}).output("referenceLibrary")
+	}
+	if !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
+			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
+			writeFile("lightJ.fasta", args.lightJGenes).saveFile("lightJ.fasta").
+			run()
+		referenceLibraryLight = render.create(repseqioLibraryTpl, {
+			vGeneFasta: lightFiles.getFile("lightV.fasta"),
+			jGeneFasta: lightFiles.getFile("lightJ.fasta"),
+			chains: "IGK"
+		}).output("referenceLibrary")
+	}
+
+	if !is_undefined(referenceLibraryHeavy) && !is_undefined(referenceLibraryLight) {
+		// Merge heavy and light into one combined library
+		merge := exec.builder().
+			software(assets.importSoftware("@platforma-open/milaboratories.software-repseqio:main")).
+			arg("merge").
+			addFile("heavy.json", referenceLibraryHeavy).
+			addFile("light.json", referenceLibraryLight).
+			arg("heavy.json").
+			arg("light.json").
+			arg("referenceLibrary.json").
+			saveFile("referenceLibrary.json").
+			run()
+		referenceLibrary = merge.getFile("referenceLibrary.json")
+	} else if !is_undefined(referenceLibraryHeavy) {
+		referenceLibrary = referenceLibraryHeavy
+	} else if !is_undefined(referenceLibraryLight) {
+		referenceLibrary = referenceLibraryLight
+	}
 
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
@@ -37,7 +85,8 @@ wf.body(func(args) {
   		lightTagPattern: args.lightTagPattern,
   		lightAssemblingFeature: args.lightAssemblingFeature,
 		blockId: wf.blockId().getDataAsJson(),
-		limitInput: args.limitInput
+		limitInput: args.limitInput,
+		referenceLibrary: referenceLibrary
 	})
 
 	exports := {

@@ -16,6 +16,19 @@ export type BlockArgs = {
   heavyImputeSequence?: string;
   imputeLight: boolean;
   lightImputeSequence?: string;
+  // Custom reference sequences (optional)
+  // Derived FASTA strings for repseqio
+  heavyVGenes?: string;
+  heavyJGenes?: string;
+  lightVGenes?: string;
+  lightJGenes?: string;
+  // Optional inputs for deriving heavy/light sequences from full scFv or per-chain DNA
+  customRefMode?: 'scFv' | 'separate';
+  scFvSequence?: string;
+  scFvLinker?: string;
+  scFvOrder?: 'hl' | 'lh';
+  heavyChainSequence?: string;
+  lightChainSequence?: string;
 };
 
 export type UiState = {
@@ -35,6 +48,7 @@ export const model = BlockModel.create()
     order: 'hl',
     imputeHeavy: true,
     imputeLight: true,
+    customRefMode: 'scFv',
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',
