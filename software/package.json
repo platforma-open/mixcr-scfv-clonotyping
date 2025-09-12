@@ -5,7 +5,7 @@
   "description": "Block Software",
   "scripts": {
     "build": "pl-pkg build",
-    "prepublishOnly": "pl-pkg prepublish",
+    "prepublish": "pl-pkg prepublish",
     "do-pack": "rm -f *.tgz && pl-pkg build && pnpm pack && mv platforma-open*.tgz package.tgz",
     "changeset": "changeset",
     "version-packages": "changeset version"

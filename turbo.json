@@ -5,7 +5,8 @@
     "build": {
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["./dist/**", "./block-pack/**", "./pkg-*.tgz"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["PL_DOCKER_REGISTRY_PUSH_TO"]
     },
     "test": {
       "dependsOn": ["build"],
