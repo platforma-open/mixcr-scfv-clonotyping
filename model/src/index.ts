@@ -27,6 +27,7 @@ export type BlockArgs = {
   scFvSequence?: string;
   scFvLinker?: string;
   scFvOrder?: 'hl' | 'lh';
+  scFvHinge?: string;
   heavyChainSequence?: string;
   lightChainSequence?: string;
 };

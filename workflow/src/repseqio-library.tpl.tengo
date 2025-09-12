@@ -59,8 +59,58 @@ self.body(func(inputs) {
     repseqioMergeResult := repseqioMergeCmd.run()
     referenceLibrary := repseqioMergeResult.getFile("referenceLibrary.json")
 
+    // inferPoints for V
+    repseqioInferPointsVCmd := exec.builder().
+        software(repseqioSw).
+        arg("inferPoints").
+        arg("--gene-feature").arg("VRegion").
+        arg("--min-score").arg("150").
+        arg("--force").
+        addFile("referenceLibrary.json", referenceLibrary).
+        arg("referenceLibrary.json").
+        arg("referenceLibrary.json").
+        saveFile("referenceLibrary.json").
+        addFile("vGene.fasta", vGeneFasta).
+        cpu(1).mem("4GB")
+
+    repseqioInferPointsVResult := repseqioInferPointsVCmd.run()
+    referenceLibraryV := repseqioInferPointsVResult.getFile("referenceLibrary.json")
+
+    // inferPoints for J
+    repseqioInferPointsJCmd := exec.builder().
+        software(repseqioSw).
+        arg("inferPoints").
+        arg("--gene-feature").arg("JRegion").
+        arg("--min-score").arg("30").
+        arg("--force").
+        addFile("referenceLibrary.json", referenceLibraryV).
+        arg("referenceLibrary.json").
+        arg("referenceLibrary.json").
+        saveFile("referenceLibrary.json").
+        addFile("jGene.fasta", jGeneFasta).
+        cpu(1).mem("4GB")
+
+    repseqioInferPointsJResult := repseqioInferPointsJCmd.run()
+    referenceLibraryJ := repseqioInferPointsJResult.getFile("referenceLibrary.json")
+
+    // compile the library
+    repseqioCompileCmd := exec.builder().
+        software(repseqioSw).
+        arg("compile").
+        arg("--force").
+        addFile("referenceLibrary.json", referenceLibraryJ).
+        arg("referenceLibrary.json").
+        arg("referenceLibrary.json").
+        saveFile("referenceLibrary.json").
+        addFile("vGene.fasta", vGeneFasta).
+        addFile("jGene.fasta", jGeneFasta).
+        cpu(1).mem("4GB")
+
+    repseqioCompileResult := repseqioCompileCmd.run()
+    referenceLibraryCompiled := repseqioCompileResult.getFile("referenceLibrary.json")
+
     return {
-        referenceLibrary: referenceLibrary
+        referenceLibrary: referenceLibraryCompiled
     }
 })
 

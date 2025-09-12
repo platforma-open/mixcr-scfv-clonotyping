@@ -8,6 +8,10 @@ import { validateLibrarySequence } from '../utils/sequenceValidator';
 import { parseFasta } from '../utils/fastaValidator';
 
 const app = useApp();
+const scFvHinge = computed<string | undefined>({
+  get: () => (app.model.args.scFvHinge),
+  set: (v) => { app.model.args.scFvHinge = v; },
+});
 
 const speciesOptions: ListOption[] = [
   { label: 'Homo sapiens', value: 'hsa' },
@@ -86,6 +90,7 @@ watch(
     args.lightChainSequence = undefined;
     args.scFvSequence = undefined;
     args.scFvLinker = undefined;
+    args.scFvHinge = undefined;
     args.scFvOrder = 'hl';
     args.heavyVGenes = undefined;
     args.heavyJGenes = undefined;
@@ -106,6 +111,7 @@ watch(
     args.lightChainSequence = undefined;
     args.scFvSequence = undefined;
     args.scFvLinker = undefined;
+    args.scFvHinge = undefined;
     args.scFvOrder = 'hl';
     args.heavyVGenes = undefined;
     args.heavyJGenes = undefined;
@@ -145,12 +151,42 @@ const currentLightDNA = computed<string | undefined>(() => {
 });
 
 const heavyValidation = computed(() => {
+  if (customRefMode.value === 'separate') {
+    const raw = (app.model.args.heavyChainSequence ?? '').trim();
+    if (!raw) return undefined;
+    if (raw.startsWith('>')) {
+      const recs = parseFasta(raw);
+      if (recs.length === 0) return { isValid: false, error: 'No FASTA records found' };
+      const errors: string[] = [];
+      for (const r of recs) {
+        const res = validateLibrarySequence(r.seq);
+        if (!res.isValid) errors.push(`${r.header}: ${res.error ?? 'invalid sequence'}`);
+      }
+      return errors.length ? { isValid: false, error: errors.join('\n') } : { isValid: true };
+    }
+    return validateLibrarySequence(raw);
+  }
   const s = currentHeavyDNA.value;
   if (!s) return undefined;
   return validateLibrarySequence(s);
 });
 
 const lightValidation = computed(() => {
+  if (customRefMode.value === 'separate') {
+    const raw = (app.model.args.lightChainSequence ?? '').trim();
+    if (!raw) return undefined;
+    if (raw.startsWith('>')) {
+      const recs = parseFasta(raw);
+      if (recs.length === 0) return { isValid: false, error: 'No FASTA records found' };
+      const errors: string[] = [];
+      for (const r of recs) {
+        const res = validateLibrarySequence(r.seq);
+        if (!res.isValid) errors.push(`${r.header}: ${res.error ?? 'invalid sequence'}`);
+      }
+      return errors.length ? { isValid: false, error: errors.join('\n') } : { isValid: true };
+    }
+    return validateLibrarySequence(raw);
+  }
   const s = currentLightDNA.value;
   if (!s) return undefined;
   return validateLibrarySequence(s);
@@ -220,6 +256,7 @@ watch(
 
     // scFv mode: allow multi-record FASTA in scFvSequence
     const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
+    const hingeRaw = ((app.model.args as Record<string, unknown>).scFvHinge as string | undefined ?? '').toUpperCase().replace(/\s/g, '');
     const linker = (app.model.args.scFvLinker ?? '').toUpperCase().replace(/\s/g, '');
     const order = app.model.args.scFvOrder ?? 'hl';
     if (!scfvRaw || !linker) return;
@@ -233,7 +270,13 @@ watch(
     const lightJParts: string[] = [];
 
     for (const r of records) {
-      const seq = r.seq.toUpperCase().replace(/\s/g, '');
+      let seq = r.seq.toUpperCase().replace(/\s/g, '');
+      if (hingeRaw) {
+        const idx = seq.indexOf(hingeRaw);
+        if (idx >= 0) {
+          seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
+        }
+      }
       const parts = seq.split(linker);
       if (parts.length !== 2) continue;
       const heavySeq = order === 'hl' ? parts[0] : parts[1];
@@ -288,7 +331,9 @@ watch(
       <PlTextArea
         v-model="app.model.args.heavyChainSequence"
         :rows="4"
-        label="Heavy chain DNA (optional)"
+        label="Heavy chain sequence"
+        placeholder=">name
+ATCGATCGATCG..."
       />
       <PlAlert
         v-if="lightValidation && !lightValidation.isValid"
@@ -300,7 +345,9 @@ watch(
       <PlTextArea
         v-model="app.model.args.lightChainSequence"
         :rows="4"
-        label="Light chain DNA (optional)"
+        label="Light chain sequence"
+        placeholder=">name
+ATCGATCGATCG..."
       />
     </template>
 
@@ -316,12 +363,18 @@ watch(
       <PlTextArea
         v-model="app.model.args.scFvSequence"
         :rows="4"
-        label="Full scFv DNA (optional)"
-        placeholder="heavy-DNA + linker + light-DNA (or reverse)"
+        label="Full scFv sequence"
+        placeholder=">name
+heavy-seq + linker + light-seq (or reverse)"
       />
       <PlTextField
         v-model="app.model.args.scFvLinker"
-        label="Linker DNA"
+        label="Linker sequence"
+        :clearable="() => undefined"
+      />
+      <PlTextField
+        v-model="scFvHinge"
+        label="Hinge sequence (optional, will be removed before split)"
         :clearable="() => undefined"
       />
       <PlDropdown
