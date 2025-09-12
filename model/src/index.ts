@@ -128,6 +128,6 @@ export const model = BlockModel.create()
 
   .title((ctx) => ctx.uiState.title ?? 'MiXCR ScFv')
 
-  .done();
+  .done(2);
 
 export type BlockOutputs = InferOutputsType<typeof model>;
