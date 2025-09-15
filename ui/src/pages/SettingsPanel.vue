@@ -192,6 +192,9 @@ watch(
     heavy: app.model.args.heavyChainSequence,
     light: app.model.args.lightChainSequence,
     scfv: app.model.args.scFvSequence,
+    linker: app.model.args.linker,
+    hinge: app.model.args.hinge,
+    order: app.model.args.order,
   }),
   () => {
     const setVJ = (chain: 'heavy' | 'light', v?: string, j?: string) => {
@@ -274,21 +277,31 @@ watch(
       }
       const parts = seq.split(linker);
       if (parts.length !== 2) continue;
-      const heavySeq = order === 'hl' ? parts[0] : parts[1];
-      const lightSeq = order === 'hl' ? parts[1] : parts[0];
 
-      const resH = validateLibrarySequence(heavySeq);
-      if (resH.isValid && resH.vGene && resH.jGene) {
+      // Try both orders and pick the one that yields valid V/J for both chains; fall back to selected order
+      const tryOrder = (ord: 'hl' | 'lh') => {
+        const hs = ord === 'hl' ? parts[0] : parts[1];
+        const ls = ord === 'hl' ? parts[1] : parts[0];
+        const hRes = validateLibrarySequence(hs);
+        const lRes = validateLibrarySequence(ls);
+        const bothValid = Boolean(hRes.isValid && hRes.vGene && hRes.jGene && lRes.isValid && lRes.vGene && lRes.jGene);
+        return { ord, hs, ls, hRes, lRes, bothValid };
+      };
+
+      const cand1 = tryOrder('hl');
+      const cand2 = tryOrder('lh');
+      const chosen = cand1.bothValid ? cand1 : (cand2.bothValid ? cand2 : (order === 'hl' ? cand1 : cand2));
+
+      if (chosen.hRes.isValid && chosen.hRes.vGene && chosen.hRes.jGene) {
         const base = r.header.replace(/\s+/g, '_');
-        heavyVParts.push(resH.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
-        heavyJParts.push(resH.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
+        heavyVParts.push(chosen.hRes.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
+        heavyJParts.push(chosen.hRes.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
       }
 
-      const resL = validateLibrarySequence(lightSeq);
-      if (resL.isValid && resL.vGene && resL.jGene) {
+      if (chosen.lRes.isValid && chosen.lRes.vGene && chosen.lRes.jGene) {
         const base = r.header.replace(/\s+/g, '_');
-        lightVParts.push(resL.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
-        lightJParts.push(resL.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
+        lightVParts.push(chosen.lRes.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
+        lightJParts.push(chosen.lRes.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
       }
     }
 
