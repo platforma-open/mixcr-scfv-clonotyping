@@ -23,7 +23,7 @@ export type BlockArgs = {
   lightVGenes?: string;
   lightJGenes?: string;
   // Optional inputs for deriving heavy/light sequences from full scFv or per-chain DNA
-  customRefMode?: 'scFv' | 'separate';
+  customRefMode?: 'builtin' | 'scFv' | 'separate';
   scFvSequence?: string;
   scFvLinker?: string;
   scFvOrder?: 'hl' | 'lh';
@@ -49,20 +49,24 @@ export const model = BlockModel.create()
     order: 'hl',
     imputeHeavy: true,
     imputeLight: true,
-    customRefMode: 'scFv',
+    customRefMode: 'builtin',
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',
   })
 
-  .argsValid((ctx) =>
-    ctx.args.input !== undefined
-    && ctx.args.species !== undefined
-    && ctx.args.linker !== undefined
-    && ctx.args.hinge !== undefined
-    && ctx.args.heavyTagPattern !== undefined
-    && ctx.args.lightTagPattern !== undefined,
-  )
+  .argsValid((ctx) => {
+    const mode = ctx.args.customRefMode ?? 'builtin';
+    const speciesOk = mode === 'builtin' ? ctx.args.species !== undefined : true;
+    return (
+      ctx.args.input !== undefined
+      && speciesOk
+      && ctx.args.linker !== undefined
+      && ctx.args.hinge !== undefined
+      && ctx.args.heavyTagPattern !== undefined
+      && ctx.args.lightTagPattern !== undefined
+    );
+  })
 
   .retentiveOutput('inputOptions', (ctx) => {
     return ctx.resultPool.getOptions((v) => {

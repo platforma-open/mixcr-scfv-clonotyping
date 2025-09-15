@@ -55,7 +55,6 @@ export function validateLibrarySequence(sequence: string): SequenceValidationRes
   if (cleanSequence.length % 3 !== 0) {
     warnings.push('Sequence length is not a multiple of 3 - translation may be incomplete');
   }
-  if (cleanSequence.length < 9) return { isValid: false, error: 'Sequence is too short (minimum 9 nucleotides required)' };
 
   const translatedSequence = translateDNAToProtein(cleanSequence);
   if (translatedSequence.length === 0) return { isValid: false, error: 'Translation resulted in empty protein sequence (possibly due to early stop codon)' };
@@ -88,4 +87,53 @@ export function validateLibrarySequence(sequence: string): SequenceValidationRes
   return { isValid: true, translatedSequence, vGene, jGene, warnings: warnings.length > 0 ? warnings : undefined };
 }
 
+// Centralized simple validators used by UI
+export type SimpleValidation = { isValid: boolean; error?: string };
 
+import { parseFasta, validateFastaSequence } from './fastaValidator';
+
+export function validateSeparateChain(raw: string): SimpleValidation {
+  const s = (raw ?? '').trim();
+  if (!s) return { isValid: true };
+  if (!s.startsWith('>')) return { isValid: false, error: 'FASTA header is required. Start with ">" and a record name.' };
+  const fv = validateFastaSequence(s);
+  if (!fv.isValid) return { isValid: false, error: fv.error ?? (fv.errors ? fv.errors.join('\n') : 'Invalid FASTA') };
+  const recs = parseFasta(s);
+  if (recs.length === 0) return { isValid: false, error: 'No FASTA records found' };
+  const errors: string[] = [];
+  for (const r of recs) {
+    const res = validateLibrarySequence(r.seq);
+    if (!res.isValid) errors.push(`${r.header}: ${res.error ?? 'invalid sequence'}`);
+  }
+  return errors.length ? { isValid: false, error: errors.join('\n') } : { isValid: true };
+}
+
+export function validateFullScFv(scfvRaw: string, linker: string, hinge: string | undefined, order: 'hl' | 'lh'): SimpleValidation {
+  const s = (scfvRaw ?? '').trim();
+  if (!s) return { isValid: true };
+  if (!s.startsWith('>')) return { isValid: false, error: 'FASTA header is required. Start with ">" and a record name.' };
+  const fv = validateFastaSequence(s);
+  if (!fv.isValid) return { isValid: false, error: fv.error ?? (fv.errors ? fv.errors.join('\n') : 'Invalid FASTA') };
+  const cleanLinker = (linker ?? '').toUpperCase().replace(/\s/g, '');
+  if (!cleanLinker) return { isValid: false, error: 'Linker sequence is required in Full scFv mode' };
+  const hingeRaw = (hinge ?? '').toUpperCase().replace(/\s/g, '');
+  const recs = parseFasta(s);
+  if (recs.length === 0) return { isValid: false, error: 'No FASTA records found' };
+  for (const r of recs) {
+    let seq = r.seq.toUpperCase().replace(/\s/g, '');
+    if (hingeRaw) {
+      const idx = seq.indexOf(hingeRaw);
+      if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
+    }
+    const parts = seq.split(cleanLinker);
+    if (parts.length !== 2) return { isValid: false, error: 'Cannot split Full scFv sequence by linker' };
+    // Optional: validate derived chains as well (commented out)
+    // const heavySeq = order === 'hl' ? parts[0] : parts[1];
+    // const lightSeq = order === 'hl' ? parts[1] : parts[0];
+    // const hRes = validateLibrarySequence(heavySeq);
+    // const lRes = validateLibrarySequence(lightSeq);
+    // if (!hRes.isValid) return { isValid: false, error: `Heavy chain: ${hRes.error ?? 'invalid sequence'}` };
+    // if (!lRes.isValid) return { isValid: false, error: `Light chain: ${lRes.error ?? 'invalid sequence'}` };
+  }
+  return { isValid: true };
+}
