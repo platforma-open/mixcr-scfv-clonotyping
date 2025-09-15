@@ -65,7 +65,8 @@ self.body(func(inputs) {
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("analyze").
 			arg("generic-amplicon")
-			if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
+			// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
+			if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) || is_undefined(inputs.species) {
 				mixcrCmdBuilder.arg("--species").arg("custom")
 			} else {
 				mixcrCmdBuilder.arg("--species").arg(inputs.species)

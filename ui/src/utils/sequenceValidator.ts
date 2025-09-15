@@ -114,8 +114,6 @@ export function validateFullScFv(scfvRaw: string, linker: string, hinge: string 
   if (!s.startsWith('>')) return { isValid: false, error: 'FASTA header is required. Start with ">" and a record name.' };
   const fv = validateFastaSequence(s);
   if (!fv.isValid) return { isValid: false, error: fv.error ?? (fv.errors ? fv.errors.join('\n') : 'Invalid FASTA') };
-  const cleanLinker = (linker ?? '').toUpperCase().replace(/\s/g, '');
-  if (!cleanLinker) return { isValid: false, error: 'Linker sequence is required in Full scFv mode' };
   const hingeRaw = (hinge ?? '').toUpperCase().replace(/\s/g, '');
   const recs = parseFasta(s);
   if (recs.length === 0) return { isValid: false, error: 'No FASTA records found' };
@@ -125,8 +123,6 @@ export function validateFullScFv(scfvRaw: string, linker: string, hinge: string 
       const idx = seq.indexOf(hingeRaw);
       if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
     }
-    const parts = seq.split(cleanLinker);
-    if (parts.length !== 2) return { isValid: false, error: 'Cannot split Full scFv sequence by linker' };
     // Optional: validate derived chains as well (commented out)
     // const heavySeq = order === 'hl' ? parts[0] : parts[1];
     // const lightSeq = order === 'hl' ? parts[1] : parts[0];
