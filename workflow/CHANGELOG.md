@@ -1,5 +1,17 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 2.3.0
+
+### Minor Changes
+
+- aaa2967: update dependencies
+- a5fccbc: reference building from user defined sequences support
+
+### Patch Changes
+
+- Updated dependencies [aaa2967]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@1.6.0
+
 ## 2.2.0
 
 ### Minor Changes

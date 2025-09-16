@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 1.6.0
+
+### Minor Changes
+
+- aaa2967: update dependencies
+
 ## 1.5.0
 
 ### Minor Changes

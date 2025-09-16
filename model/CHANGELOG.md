@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.model
 
+## 1.4.0
+
+### Minor Changes
+
+- aaa2967: update dependencies
+- a5fccbc: reference building from user defined sequences support
+
 ## 1.3.1
 
 ### Patch Changes
