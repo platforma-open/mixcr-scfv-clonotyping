@@ -64,11 +64,26 @@ self.body(func(inputs) {
 			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("analyze").
-			arg("generic-amplicon").
-			arg("--species").arg(inputs.species).
-			arg("--rna").
+			arg("generic-amplicon")
+			// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
+			if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
+				mixcrCmdBuilder.arg("--species").arg("custom")
+			} else {
+				mixcrCmdBuilder.arg("--species").arg(inputs.species)
+			}
+			mixcrCmdBuilder.arg("--rna").
 			arg("--rigid-left-alignment-boundary").
-			arg("--rigid-right-alignment-boundary").arg("J").
+			arg("--rigid-right-alignment-boundary").arg("J")
+
+		// attach per-chain custom reference if provided
+		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
+			mixcrCmdBuilder.arg("--library").arg("heavyLibrary.json").addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
+		}
+		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
+			mixcrCmdBuilder.arg("--library").arg("lightLibrary.json").addFile("lightLibrary.json", inputs.referenceLibraryLight)
+		}
+
+		mixcrCmdBuilder.
 			arg("--tag-pattern").arg(tagPattern).
 			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
 			arg("-Malign.tagUnstranded=true").
@@ -147,8 +162,14 @@ self.body(func(inputs) {
 			arg("exportAlignments").
 			arg("-cloneId").
 			arg("-descrR1").
-			arg("--drop-default-fields").
-			arg(clnaFileName).
+			arg("--drop-default-fields")
+			if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
+				alignments = alignments.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
+			}
+			if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
+				alignments = alignments.addFile("lightLibrary.json", inputs.referenceLibraryLight)
+			}
+			alignments = alignments.arg(clnaFileName).
 			arg("alignments.tsv").
 			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
 			saveFile("alignments.tsv").
@@ -174,6 +195,13 @@ self.body(func(inputs) {
 			for arg in argGrp {
 				clones = clones.arg(arg)
 			}
+		}
+
+		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
+			clones = clones.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
+		}
+		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
+			clones = clones.addFile("lightLibrary.json", inputs.referenceLibraryLight)
 		}
 
 		clones = clones.

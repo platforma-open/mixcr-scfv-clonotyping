@@ -9,6 +9,7 @@ pframes := import("@platforma-sdk/workflow-tengo:pframes")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 
 processTpl := assets.importTemplate(":process")
+repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
 
 wf.body(func(args) {
@@ -20,6 +21,40 @@ wf.body(func(args) {
 	}
 
 	input := wf.resolve(args.input)
+
+	// Optional per-chain reference libraries (only if both V and J provided)
+	referenceLibraryHeavy := undefined
+	referenceLibraryLight := undefined
+
+	if !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
+			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
+			writeFile("heavyJ.fasta", args.heavyJGenes).saveFile("heavyJ.fasta").
+			run()
+		referenceLibraryHeavyCmd := render.create(repseqioLibraryTpl, {
+			vGeneFasta: heavyFiles.getFile("heavyV.fasta"),
+			jGeneFasta: heavyFiles.getFile("heavyJ.fasta"),
+			chains: "IGH"
+		})
+		referenceLibraryHeavy = referenceLibraryHeavyCmd.output("referenceLibrary")
+	}
+
+	ll.print("__THE_LOG__", referenceLibraryHeavy)
+	if !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
+			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
+			writeFile("lightJ.fasta", args.lightJGenes).saveFile("lightJ.fasta").
+			run()
+		referenceLibraryLightCmd := render.create(repseqioLibraryTpl, {
+			vGeneFasta: lightFiles.getFile("lightV.fasta"),
+			jGeneFasta: lightFiles.getFile("lightJ.fasta"),
+			chains: "IGK"
+		})
+		referenceLibraryLight = referenceLibraryLightCmd.output("referenceLibrary")
+	}
+
+	
+	// keep separate heavy/light libraries; do not merge
 
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
@@ -37,7 +72,9 @@ wf.body(func(args) {
   		lightTagPattern: args.lightTagPattern,
   		lightAssemblingFeature: args.lightAssemblingFeature,
 		blockId: wf.blockId().getDataAsJson(),
-		limitInput: args.limitInput
+		limitInput: args.limitInput,
+		referenceLibraryHeavy: referenceLibraryHeavy,
+		referenceLibraryLight: referenceLibraryLight
 	})
 
 	exports := {

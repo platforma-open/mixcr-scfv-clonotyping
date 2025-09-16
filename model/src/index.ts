@@ -16,6 +16,20 @@ export type BlockArgs = {
   heavyImputeSequence?: string;
   imputeLight: boolean;
   lightImputeSequence?: string;
+  // Custom reference sequences (optional)
+  // Derived FASTA strings for repseqio
+  heavyVGenes?: string;
+  heavyJGenes?: string;
+  lightVGenes?: string;
+  lightJGenes?: string;
+  // Optional inputs for deriving heavy/light sequences from full scFv or per-chain DNA
+  customRefMode?: 'builtin' | 'scFv' | 'separate';
+  scFvSequence?: string;
+  scFvLinker?: string;
+  scFvOrder?: 'hl' | 'lh';
+  scFvHinge?: string;
+  heavyChainSequence?: string;
+  lightChainSequence?: string;
 };
 
 export type UiState = {
@@ -35,19 +49,24 @@ export const model = BlockModel.create()
     order: 'hl',
     imputeHeavy: true,
     imputeLight: true,
+    customRefMode: 'builtin',
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',
   })
 
-  .argsValid((ctx) =>
-    ctx.args.input !== undefined
-    && ctx.args.species !== undefined
-    && ctx.args.linker !== undefined
-    && ctx.args.hinge !== undefined
-    && ctx.args.heavyTagPattern !== undefined
-    && ctx.args.lightTagPattern !== undefined,
-  )
+  .argsValid((ctx) => {
+    const mode = ctx.args.customRefMode ?? 'builtin';
+    const speciesOk = mode === 'builtin' ? ctx.args.species !== undefined : true;
+    return (
+      ctx.args.input !== undefined
+      && speciesOk
+      && ctx.args.linker !== undefined
+      && ctx.args.hinge !== undefined
+      && ctx.args.heavyTagPattern !== undefined
+      && ctx.args.lightTagPattern !== undefined
+    );
+  })
 
   .retentiveOutput('inputOptions', (ctx) => {
     return ctx.resultPool.getOptions((v) => {
@@ -113,6 +132,6 @@ export const model = BlockModel.create()
 
   .title((ctx) => ctx.uiState.title ?? 'MiXCR ScFv')
 
-  .done();
+  .done(2);
 
 export type BlockOutputs = InferOutputsType<typeof model>;

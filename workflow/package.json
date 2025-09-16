@@ -9,7 +9,8 @@
     "format": "/usr/bin/env emacs --script ./format.el"
   },
   "dependencies": {
-    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv": "workspace:*"
+    "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv": "workspace:*",
+    "@platforma-open/milaboratories.software-repseqio": "catalog:"
   },
   "devDependencies": {
     "@platforma-sdk/tengo-builder": "catalog:",

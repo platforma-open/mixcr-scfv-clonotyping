@@ -246,7 +246,9 @@ self.body(func(inputs) {
 				lightAssemblingFeature: inputs.lightAssemblingFeature,
 				fileExtension: fileExtension,
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
-				mixcrExportArgsLight: mixcrExportArgsLight
+				mixcrExportArgsLight: mixcrExportArgsLight,
+				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
+				referenceLibraryLight: inputs.referenceLibraryLight
 			}
 		}
 	)
