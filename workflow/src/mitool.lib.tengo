@@ -1,0 +1,136 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+json := import("json")
+
+/**
+ * Runs mitool UMI pipeline over FASTQ inputs and returns exported FASTQs.
+ * Input structure mirrors mixcr-analyze expectations, using inputData and its meta/axes.
+ * Returns map { R1: File | undefined, R2: File | undefined }.
+ */
+run := func(inputData, inputDataMeta, aggregationAxesNames, fileExtension, pattern, progressPrefix) {
+    ll.assert(!is_undefined(pattern) && pattern != "", "UMI pattern is required")
+
+    // Collect files and decide input arg pattern for mitool
+    R1Files := []
+    R2Files := []
+    addInput := func(name, r, f) {
+        if r == "R1" {
+            R1Files = append(R1Files, { name: name, file: f })
+        } else if r == "R2" {
+            R2Files = append(R2Files, { name: name, file: f })
+        }
+    }
+
+    inputArg := ""
+    if inputDataMeta.keyLength == 0 {
+        ll.assert(aggregationAxesNames == [], "unexpected aggregation axes names")
+        inFile := inputData.inputs()["[]"]
+        ll.assert(!is_undefined(inFile), "unexpected input structure")
+        addInput("input." + fileExtension, "R1", inFile)
+        inputArg = "input." + fileExtension
+    } else if inputDataMeta.keyLength == 1 {
+        ll.assert(aggregationAxesNames == ["pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
+        for sKey, inFile in inputData.inputs() {
+            key := json.decode(sKey)
+            r := key[0]
+            if (r[0] != 'R') || (r[1] != '1' && r[1] != '2') || len(r) != 2 { continue }
+            addInput("input_" + r + "." + fileExtension, r, inFile)
+        }
+        inputArg = "input_{{R}}." + fileExtension
+    } else if inputDataMeta.keyLength == 2 {
+        ll.assert(aggregationAxesNames == ["pl7.app/sequencing/lane", "pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
+        for sKey, inFile in inputData.inputs() {
+            key := json.decode(sKey)
+            lane := key[0]
+            r := key[1]
+            if (r[0] != 'R') || (r[1] != '1' && r[1] != '2') || len(r) != 2 { continue }
+            ll.assert(!is_undefined(int(lane)), "malformed lane: %v", lane)
+            addInput("input_L" + lane + "_" + r + "." + fileExtension, r, inFile)
+        }
+        inputArg = "input_L{{n}}_{{R}}." + fileExtension
+    } else {
+        ll.panic("unsupported input key layout: %v", inputDataMeta.keyLength)
+    }
+
+    ll.assert(len(R1Files) > 0 || len(R2Files) > 0, "no R1/R2 inputs detected")
+
+    mitoolSw := assets.importSoftware("@platforma-open/milaboratories.software-mitool:main")
+
+    // parse
+    parse := exec.builder().
+        printErrStreamToStdout().
+        env("MI_PROGRESS_PREFIX", progressPrefix).
+        software(mitoolSw).
+        cpu(8).
+        mem("32GiB").
+        arg("parse").
+        arg("--pattern").arg(pattern).
+        arg("--trim-tags").arg("Molecule").
+        arg("--threads").argWithVar("{system.cpu}").
+        arg("-u").
+        arg(inputArg)
+    for it in R1Files { parse = parse.addFile(it.name, it.file) }
+    for it in R2Files { parse = parse.addFile(it.name, it.file) }
+    parse = parse.arg("parsed.mic").saveFile("parsed.mic").saveStdoutContent().run()
+
+    // refine-tags
+    refine := exec.builder().
+        printErrStreamToStdout().
+        env("MI_PROGRESS_PREFIX", progressPrefix).
+        software(mitoolSw).
+        cpu(8).
+        mem("16GiB").
+        arg("refine-tags").
+        arg("--tag-type").arg("Molecule").
+        addFile("parsed.mic", parse.getFile("parsed.mic")).
+        arg("parsed.mic").
+        arg("refined.mic").
+        saveFile("refined.mic").saveStdoutContent().run()
+
+    // consensus
+    consensus := exec.builder().
+        printErrStreamToStdout().
+        env("MI_PROGRESS_PREFIX", progressPrefix).
+        software(mitoolSw).
+        cpu(8).
+        mem("16GiB").
+        arg("consensus").
+        arg("--threads").argWithVar("{system.cpu}").
+        arg("--group-tag-type").arg("Molecule")
+    if len(R1Files) > 0 { consensus = consensus.arg("--assemble-tag").arg("R1") }
+    if len(R2Files) > 0 { consensus = consensus.arg("--assemble-tag").arg("R2") }
+    consensus = consensus.addFile("refined.mic", refine.getFile("refined.mic")).
+        arg("refined.mic").
+        arg("consensus.mic").
+        saveFile("consensus.mic").saveStdoutContent().run()
+
+    // export-fastq
+    exportFastq := exec.builder().
+        printErrStreamToStdout().
+        env("MI_PROGRESS_PREFIX", progressPrefix).
+        software(mitoolSw).
+        cpu(4).
+        mem("8GiB").
+        arg("export-fastq")
+    if len(R1Files) > 0 { exportFastq = exportFastq.arg("--output-file").arg("R1.fastq.gz").arg("R1").saveFile("R1.fastq.gz") }
+    if len(R2Files) > 0 { exportFastq = exportFastq.arg("--output-file").arg("R2.fastq.gz").arg("R2").saveFile("R2.fastq.gz") }
+    exportFastq = exportFastq.addFile("consensus.mic", consensus.getFile("consensus.mic")).
+        arg("consensus.mic").saveStdoutContent().run()
+
+    result := {}
+    if len(R1Files) > 0 { result.R1 = exportFastq.getFile("R1.fastq.gz") }
+    if len(R2Files) > 0 { result.R2 = exportFastq.getFile("R2.fastq.gz") }
+    result.parseLog = parse.getStdoutStream()
+    result.refineLog = refine.getStdoutStream()
+    result.consensusLog = consensus.getStdoutStream()
+    result.exportLog = exportFastq.getStdoutStream()
+    return result
+}
+
+export {
+    run: run
+}
+
+

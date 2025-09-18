@@ -2,8 +2,10 @@
 import type { SimpleOption } from '@platforma-sdk/ui-vue';
 import { PlBtnGroup } from '@platforma-sdk/ui-vue';
 import { computed, reactive } from 'vue';
+import { useApp } from '../app';
 import { resultMap } from '../results';
 import SampleReportPanelLogs from './SampleReportPanelLogs.vue';
+import SampleReportPanelMitoolLogs from './SampleReportPanelMitoolLogs.vue';
 import SampleReportPanelReports from './SampleReportPanelReports.vue';
 import SampleReportPanelVisualReport from './SampleReportPanelVisualReport.vue';
 
@@ -14,7 +16,7 @@ const sampleData = computed(() => {
   return resultMap.value.get(sampleId.value);
 });
 
-type TabId = 'visualReport' | 'qc' | 'logs' | 'reports';
+type TabId = 'visualReport' | 'qc' | 'logs' | 'mitool' | 'reports';
 
 const data = reactive<{
   currentTab: TabId;
@@ -22,12 +24,22 @@ const data = reactive<{
   currentTab: 'visualReport',
 });
 
-const tabOptions: SimpleOption<TabId>[] = [
-  { value: 'visualReport', text: 'Visual Report' },
-  // { value: 'qc', text: 'Quality Checks' },
-  { value: 'logs', text: 'Log' },
-  { value: 'reports', text: 'Reports' },
-];
+const app = useApp();
+
+const tabOptions = computed<SimpleOption<TabId>[]>(() => {
+  const opts: SimpleOption<TabId>[] = [
+    { value: 'visualReport', text: 'Visual Report' },
+    // { value: 'qc', text: 'Quality Checks' },
+    { value: 'logs', text: 'MiXCR Log' },
+  ];
+  const hasUMI = ((app.model.args as unknown as { hasUMI?: boolean }).hasUMI === true)
+    && ((app.model.args as unknown as { umiPattern?: string }).umiPattern ?? '') !== '';
+  if (hasUMI) {
+    opts.push({ value: 'mitool', text: 'MiTool Logs' });
+  }
+  opts.push({ value: 'reports', text: 'Reports' });
+  return opts;
+});
 </script>
 
 <template>
@@ -36,6 +48,7 @@ const tabOptions: SimpleOption<TabId>[] = [
     <SampleReportPanelVisualReport v-if="data.currentTab === 'visualReport'" :sample-data="sampleData" />
     <!-- <SampleReportPanelQc v-if="data.currentTab === 'qc'" :sample-data="sampleData" /> -->
     <SampleReportPanelLogs v-else-if="data.currentTab === 'logs'" :sample-data="sampleData" />
+    <SampleReportPanelMitoolLogs v-else-if="data.currentTab === 'mitool'" :sample-data="sampleData" />
     <SampleReportPanelReports v-else-if="data.currentTab === 'reports'" :sample-id="sampleId" />
   </div>
   <div v-else>No sample selected</div>

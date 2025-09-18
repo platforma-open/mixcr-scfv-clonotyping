@@ -184,7 +184,7 @@ self.body(func(inputs) {
 			} ]
 	}
 
-	targetOutputs += [
+    targetOutputs += [
 		{
 			type: "Resource",
 			spec: {
@@ -209,6 +209,66 @@ self.body(func(inputs) {
 			name: "abundance",
 			path: ["clonotypesTableTsv"]
 		} ]
+
+	// Mitool logs (always declare; child returns null resource when no UMI)
+	targetOutputs += [
+			{
+				type: "Resource",
+				spec: {
+					kind: "PColumn",
+					name: "pl7.app/log",
+					domain: {
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/step": "mitool/parse"
+					},
+					valueType: "Log"
+				},
+				name: "logsMitoolParse",
+				path: ["mitoolParseLog"]
+			},
+			{
+				type: "Resource",
+				spec: {
+					kind: "PColumn",
+					name: "pl7.app/log",
+					domain: {
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/step": "mitool/refine"
+					},
+					valueType: "Log"
+				},
+				name: "logsMitoolRefine",
+				path: ["mitoolRefineLog"]
+			},
+			{
+				type: "Resource",
+				spec: {
+					kind: "PColumn",
+					name: "pl7.app/log",
+					domain: {
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/step": "mitool/consensus"
+					},
+					valueType: "Log"
+				},
+				name: "logsMitoolConsensus",
+				path: ["mitoolConsensusLog"]
+			},
+			{
+				type: "Resource",
+				spec: {
+					kind: "PColumn",
+					name: "pl7.app/log",
+					domain: {
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/step": "mitool/export"
+					},
+					valueType: "Log"
+				},
+				name: "logsMitoolExport",
+				path: ["mitoolExportLog"]
+			}
+		]
 
 	mixcrResults := pframes.processColumn(
 		{ spec: inputSpec, data: inputs.inputData },
@@ -248,7 +308,9 @@ self.body(func(inputs) {
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
 				mixcrExportArgsLight: mixcrExportArgsLight,
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
-				referenceLibraryLight: inputs.referenceLibraryLight
+				referenceLibraryLight: inputs.referenceLibraryLight,
+				hasUMI: inputs.hasUMI,
+				umiPattern: inputs.umiPattern
 			}
 		}
 	)
@@ -297,6 +359,20 @@ self.body(func(inputs) {
 		result["reports" + chain + ".spec"] = mixcrResults.outputSpec("reports" + chain)
 		result["reports" + chain + ".data"] = mixcrResults.outputData("reports" + chain)
 	}
+
+	// Attach mitool logs to result (child returns null resources if no UMI)
+	result["logsMitoolParse.spec"] = mixcrResults.outputSpec("logsMitoolParse")
+	result["logsMitoolParse.data"] = mixcrResults.outputData("logsMitoolParse")
+
+	result["logsMitoolRefine.spec"] = mixcrResults.outputSpec("logsMitoolRefine")
+	result["logsMitoolRefine.data"] = mixcrResults.outputData("logsMitoolRefine")
+
+	result["logsMitoolConsensus.spec"] = mixcrResults.outputSpec("logsMitoolConsensus")
+	result["logsMitoolConsensus.data"] = mixcrResults.outputData("logsMitoolConsensus")
+
+	result["logsMitoolExport.spec"] = mixcrResults.outputSpec("logsMitoolExport")
+	result["logsMitoolExport.data"] = mixcrResults.outputData("logsMitoolExport")
+	// mitool progress is exposed from mixcr-analyze via model outputs
 	result["clonotypes"] = clonotypes
 
 	return result

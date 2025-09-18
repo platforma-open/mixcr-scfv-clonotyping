@@ -13,15 +13,18 @@ xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 file := import("@platforma-sdk/workflow-tengo:file")
 times := import("times")
 text := import("text")
+mitool := import(":mitool")
 
 json := import("json")
 
-self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv"])
+outputsList := ["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv", 
+	"mitoolParseLog", "mitoolRefineLog", "mitoolConsensusLog", "mitoolExportLog"]
+self.defineOutputs(outputsList)
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
 
 progressPrefix := "[==PROGRESS==]"
-
+mitoolProgressPrefix := "[==MITOOL_PROGRESS==]"
 /** Formats the assembling feature for MiXCR. */
 formatAssemblingFeature := func(assemblingFeature) {
 	parts := text.split(assemblingFeature, ":")
@@ -40,6 +43,13 @@ self.body(func(inputs) {
 	fileExtension := inputs.fileExtension
 	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
 	mixcrExportArgsLight := inputs.mixcrExportArgsLight
+
+// Preprocess with mitool if requested
+	pre := undefined
+	if inputs.hasUMI == true && !is_undefined(inputs.umiPattern) && inputs.umiPattern != "" {
+		pre = mitool.run(inputData, inputDataMeta, aggregationAxesNames, fileExtension, inputs.umiPattern, mitoolProgressPrefix)
+    // expose as return fields, and return smart nulls for no-UMI case below
+	}
 
 	clnaFileName := "result.clna"
 	reports := [
@@ -99,41 +109,56 @@ self.body(func(inputs) {
 			ll.assert(aggregationAxesNames == [], "unexpected aggregation axes names")
 			inputFile := inputData.inputs()["[]"]
 			ll.assert(!is_undefined(inputFile), "unexpected agg group structure")
-			inputFileName := "input." + fileExtension
-			mixcrCmdBuilder.addFile(inputFileName, inputFile)
-			mixcrCmdBuilder.arg(inputFileName)
+            if !is_undefined(pre) {
+                if !is_undefined(pre.R1) { mixcrCmdBuilder.addFile("input_R1.fastq.gz", pre.R1).arg("input_R1.fastq.gz") }
+                if !is_undefined(pre.R2) { mixcrCmdBuilder.addFile("input_R2.fastq.gz", pre.R2).arg("input_R2.fastq.gz") }
+            } else {
+				inputFileName := "input." + fileExtension
+				mixcrCmdBuilder.addFile(inputFileName, inputFile)
+				mixcrCmdBuilder.arg(inputFileName)
+			}
 		} else if inputDataMeta.keyLength == 1 {
 			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
-			for sKey, inputFile in inputData.inputs() {
-				key := json.decode(sKey)
-				if len(key) != 1 {
-					ll.panic("malformed key: %v", sKey)
+            if !is_undefined(pre) {
+                if !is_undefined(pre.R1) { mixcrCmdBuilder.addFile("input_R1.fastq.gz", pre.R1).arg("input_R1.fastq.gz") }
+                if !is_undefined(pre.R2) { mixcrCmdBuilder.addFile("input_R2.fastq.gz", pre.R2).arg("input_R2.fastq.gz") }
+            } else {
+				for sKey, inputFile in inputData.inputs() {
+					key := json.decode(sKey)
+					if len(key) != 1 {
+						ll.panic("malformed key: %v", sKey)
+					}
+					r := key[0]
+					if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
+						ll.panic("malformed read index: %v", r)
+					}
+					mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile)
 				}
-				r := key[0]
-				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
-					ll.panic("malformed read index: %v", r)
-				}
-				mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile)
+				mixcrCmdBuilder.arg("input_{{R}}." + fileExtension)
 			}
-			mixcrCmdBuilder.arg("input_{{R}}." + fileExtension)
 		} else if inputDataMeta.keyLength == 2 {
 			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/lane", "pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
-			for sKey, inputFile in inputData.inputs() {
-				key := json.decode(sKey)
-				if len(key) != 2 {
-					ll.panic("malformed key: %v", sKey)
+            if !is_undefined(pre) {
+                if !is_undefined(pre.R1) { mixcrCmdBuilder.addFile("input_R1.fastq.gz", pre.R1).arg("input_R1.fastq.gz") }
+                if !is_undefined(pre.R2) { mixcrCmdBuilder.addFile("input_R2.fastq.gz", pre.R2).arg("input_R2.fastq.gz") }
+            } else {
+				for sKey, inputFile in inputData.inputs() {
+					key := json.decode(sKey)
+					if len(key) != 2 {
+						ll.panic("malformed key: %v", sKey)
+					}
+					lane := key[0]
+					r := key[1]
+					if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
+						ll.panic("malformed read index: %v", r)
+					}
+					if is_undefined(int(lane)) {
+						ll.panic("malformed lane: %v", lane)
+					}
+					mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile)
 				}
-				lane := key[0]
-				r := key[1]
-				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
-					ll.panic("malformed read index: %v", r)
-				}
-				if is_undefined(int(lane)) {
-					ll.panic("malformed lane: %v", lane)
-				}
-				mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile)
+				mixcrCmdBuilder.arg("input_L{{n}}_{{R}}." + fileExtension)
 			}
-			mixcrCmdBuilder.arg("input_L{{n}}_{{R}}." + fileExtension)
 		} else {
 			ll.panic("too many axes / not supported")
 		}
@@ -268,6 +293,11 @@ self.body(func(inputs) {
 		logsIGHeavy: heavy.log,
 		logsIGLight: light.log,
 		reportsIGHeavy: heavy.reports,
-		reportsIGLight: light.reports
+		reportsIGLight: light.reports,
+    // mitool logs for parent mapping (return smart nulls if no UMI)
+    mitoolParseLog: is_undefined(pre) ? smart.createNullResource() : pre.parseLog,
+    mitoolRefineLog: is_undefined(pre) ? smart.createNullResource() : pre.refineLog,
+    mitoolConsensusLog: is_undefined(pre) ? smart.createNullResource() : pre.consensusLog,
+    mitoolExportLog: is_undefined(pre) ? smart.createNullResource() : pre.exportLog
 	}
 })

@@ -74,7 +74,9 @@ wf.body(func(args) {
 		blockId: wf.blockId().getDataAsJson(),
 		limitInput: args.limitInput,
 		referenceLibraryHeavy: referenceLibraryHeavy,
-		referenceLibraryLight: referenceLibraryLight
+		referenceLibraryLight: referenceLibraryLight,
+		hasUMI: args.hasUMI,
+		umiPattern: args.umiPattern
 	})
 
 	exports := {
@@ -86,6 +88,14 @@ wf.body(func(args) {
 		outputs["logs" + chain] = runMixcr.output("logs" + chain + ".data")
 		outputs["qc" + chain] = pframes.exportColumnData(runMixcr.output("qc" + chain + ".data"))
 		outputs["reports" + chain ] = pframes.exportColumnData(runMixcr.output("reports" + chain + ".data"))
+	}
+
+	// Mitool logs (when UMI preprocessing is enabled)
+	if args.hasUMI == true && !is_undefined(args.umiPattern) && args.umiPattern != "" {
+		outputs["logsMitoolParse"] = runMixcr.output("logsMitoolParse.data")
+		outputs["logsMitoolRefine"] = runMixcr.output("logsMitoolRefine.data")
+		outputs["logsMitoolConsensus"] = runMixcr.output("logsMitoolConsensus.data")
+		outputs["logsMitoolExport"] = runMixcr.output("logsMitoolExport.data")
 	}
 
 	return {

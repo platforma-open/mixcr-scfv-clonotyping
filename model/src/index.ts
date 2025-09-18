@@ -16,6 +16,9 @@ export type BlockArgs = {
   heavyImputeSequence?: string;
   imputeLight: boolean;
   lightImputeSequence?: string;
+  // UMI handling
+  hasUMI?: boolean;
+  umiPattern?: string;
   // Custom reference sequences (optional)
   // Derived FASTA strings for repseqio
   heavyVGenes?: string;
@@ -37,6 +40,7 @@ export type UiState = {
 };
 
 export const ProgressPrefix = '[==PROGRESS==]';
+export const MitoolProgressPrefix = '[==MITOOL_PROGRESS==]';
 
 export const ProgressPattern
   = /(?<stage>[^:]*):(?: *(?<progress>[0-9.]+)%)?(?: *ETA: *(?<eta>.+))?/;
@@ -50,6 +54,7 @@ export const model = BlockModel.create()
     imputeHeavy: true,
     imputeLight: true,
     customRefMode: 'builtin',
+    hasUMI: false,
   })
   .withUiState<UiState>({
     title: 'MiXCR ScFv',
@@ -110,6 +115,31 @@ export const model = BlockModel.create()
     return parseResourceMap(ctx.outputs?.resolve('logsIGLight'), (acc) => acc.getProgressLog(ProgressPrefix), false);
   })
 
+  // Mitool progress (when UMI is enabled)
+  .output('mitoolProgress', (ctx) => {
+    // Prefer parse/refine/consensus/export streams; fallback to heavy logs
+    const src = ctx.outputs?.resolve('logsMitoolParse')
+      ?? ctx.outputs?.resolve('logsMitoolRefine')
+      ?? ctx.outputs?.resolve('logsMitoolConsensus')
+      ?? ctx.outputs?.resolve('logsMitoolExport')
+      ?? ctx.outputs?.resolve('logsIGHeavy');
+    return parseResourceMap(src, (acc) => acc.getProgressLog(MitoolProgressPrefix), false);
+  })
+
+  // Per-step mitool progress
+  .output('mitoolParseProgress', (ctx) => {
+    return parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolParse', allowPermanentAbsence: true }), (acc) => acc.getProgressLog(MitoolProgressPrefix), false);
+  })
+  .output('mitoolRefineProgress', (ctx) => {
+    return parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolRefine', allowPermanentAbsence: true }), (acc) => acc.getProgressLog(MitoolProgressPrefix), false);
+  })
+  .output('mitoolConsensusProgress', (ctx) => {
+    return parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolConsensus', allowPermanentAbsence: true }), (acc) => acc.getProgressLog(MitoolProgressPrefix), false);
+  })
+  .output('mitoolExportProgress', (ctx) => {
+    return parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolExport', allowPermanentAbsence: true }), (acc) => acc.getProgressLog(MitoolProgressPrefix), false);
+  })
+
   .output('qcIGHeavy', (ctx) =>
     parseResourceMap(ctx.outputs?.resolve('qcIGHeavy'), (acc) => acc.getFileHandle(), true),
   )
@@ -124,6 +154,20 @@ export const model = BlockModel.create()
 
   .output('reportsIGLight', (ctx) =>
     parseResourceMap(ctx.outputs?.resolve('reportsIGLight'), (acc) => acc.getFileHandle(), false),
+  )
+
+  // MiTool logs (per-step)
+  .output('logsMitoolParse', (ctx) =>
+    parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolParse', assertFieldType: 'Input', allowPermanentAbsence: true }), (acc) => acc.getLogHandle(), false),
+  )
+  .output('logsMitoolRefine', (ctx) =>
+    parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolRefine', assertFieldType: 'Input', allowPermanentAbsence: true }), (acc) => acc.getLogHandle(), false),
+  )
+  .output('logsMitoolConsensus', (ctx) =>
+    parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolConsensus', assertFieldType: 'Input', allowPermanentAbsence: true }), (acc) => acc.getLogHandle(), false),
+  )
+  .output('logsMitoolExport', (ctx) =>
+    parseResourceMap(ctx.outputs?.resolve({ field: 'logsMitoolExport', assertFieldType: 'Input', allowPermanentAbsence: true }), (acc) => acc.getLogHandle(), false),
   )
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)

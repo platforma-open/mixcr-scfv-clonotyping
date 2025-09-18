@@ -10,6 +10,11 @@ import { parseFasta } from '../utils/fastaValidator';
 const app = useApp();
 // no separate scFv hinge field; use general hinge in Analysis section
 
+type Args = typeof app.model.args & {
+  hasUMI?: boolean;
+  umiPattern?: string;
+};
+
 const speciesOptions: ListOption[] = [
   { label: 'Homo sapiens', value: 'hsa' },
   { label: 'Mus musculus', value: 'mmu' },
@@ -44,7 +49,7 @@ function plRefsEqual(ref1: PlRef, ref2: PlRef) {
 }
 
 function setInput(inputRef?: PlRef) {
-  app.model.args.input = inputRef;
+  (app.model.args as Args).input = inputRef;
   if (inputRef)
     app.model.ui.title = 'MiXCR scFv - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
   else
@@ -95,14 +100,24 @@ watch(
   { immediate: false },
 );
 
+// Reset UMI pattern when switching to Without UMI
+watch(
+  () => (app.model.args as unknown as { hasUMI?: boolean }).hasUMI === true,
+  (has) => {
+    if (!has) {
+      (app.model.args as unknown as { umiPattern?: string | undefined }).umiPattern = undefined;
+    }
+  },
+  { immediate: false },
+);
 
 // Helpers to expose current DNA sequences per chain for validation display
-const currentHeavyDNA = computed<string | undefined>(() => {
+const _currentHeavyDNA = computed<string | undefined>(() => {
   if (customRefMode.value === 'builtin') return undefined;
   if (customRefMode.value === 'separate') return app.model.args.heavyChainSequence?.trim();
   const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
+  const linker = ((app.model.args.linker ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const order = (app.model.args.order as 'hl' | 'lh') ?? 'hl';
   if (!raw || !linker) return undefined;
   const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
   if (records.length === 0) return undefined;
@@ -112,12 +127,12 @@ const currentHeavyDNA = computed<string | undefined>(() => {
   return order === 'hl' ? parts[0] : parts[1];
 });
 
-const currentLightDNA = computed<string | undefined>(() => {
+const _currentLightDNA = computed<string | undefined>(() => {
   if (customRefMode.value === 'builtin') return undefined;
   if (customRefMode.value === 'separate') return app.model.args.lightChainSequence?.trim();
   const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
+  const linker = ((app.model.args.linker ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const order = (app.model.args.order as 'hl' | 'lh') ?? 'hl';
   if (!raw || !linker) return undefined;
   const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
   if (records.length === 0) return undefined;
@@ -131,23 +146,23 @@ const heavyValidation = computed(() => {
   if (customRefMode.value === 'separate') {
     const raw = (app.model.args.heavyChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
   if (customRefMode.value === 'builtin') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  const linker = ((app.model.args.linker ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const hingeRaw = ((app.model.args.hinge ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const order = (app.model.args.order as 'hl' | 'lh') ?? 'hl';
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as const;
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as const;
   const heavySeq = order === 'hl' ? parts[0] : parts[1];
   return validateLibrarySequence(heavySeq);
 });
@@ -156,23 +171,23 @@ const lightValidation = computed(() => {
   if (customRefMode.value === 'separate') {
     const raw = (app.model.args.lightChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
   if (customRefMode.value === 'builtin') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  const linker = ((app.model.args.linker ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const hingeRaw = ((app.model.args.hinge ?? '') as string).toUpperCase().replace(/\s/g, '');
+  const order = (app.model.args.order as 'hl' | 'lh') ?? 'hl';
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as const;
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as const;
   const lightSeq = order === 'hl' ? parts[1] : parts[0];
   return validateLibrarySequence(lightSeq);
 });
@@ -182,7 +197,7 @@ const scFvValidation = computed(() => {
   if (customRefMode.value !== 'scFv') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
-  return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
+  return validateFullScFv(scfvRaw, (app.model.args.linker ?? '') as string, app.model.args.hinge as string | undefined, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
 });
 
 // Derive per-chain V/J FASTA strings into args for workflow
@@ -219,8 +234,8 @@ watch(
       return;
     }
     if (mode === 'separate') {
-      const hv = app.model.args.heavyChainSequence?.trim();
-      const lv = app.model.args.lightChainSequence?.trim();
+      const hv = (app.model.args.heavyChainSequence as string | undefined)?.trim();
+      const lv = (app.model.args.lightChainSequence as string | undefined)?.trim();
       if (hv) {
         const hvRecs = hv.startsWith('>') ? parseFasta(hv) : [{ header: 'Heavy', seq: hv }];
         const hvVParts: string[] = [];
@@ -253,10 +268,10 @@ watch(
     }
 
     // scFv mode: allow multi-record FASTA in scFvSequence
-    const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
-    const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-    const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-    const order = app.model.args.order ?? 'hl';
+    const scfvRaw = (app.model.args.scFvSequence as string | undefined)?.trim();
+    const hingeRaw = ((app.model.args.hinge ?? '') as string).toUpperCase().replace(/\s/g, '');
+    const linker = ((app.model.args.linker ?? '') as string).toUpperCase().replace(/\s/g, '');
+    const order = (app.model.args.order as 'hl' | 'lh') ?? 'hl';
     if (!scfvRaw || !linker) return;
 
     const records = scfvRaw.startsWith('>') ? parseFasta(scfvRaw) : [{ header: 'scFv', seq: scfvRaw }];
@@ -285,7 +300,7 @@ watch(
         const hRes = validateLibrarySequence(hs);
         const lRes = validateLibrarySequence(ls);
         const bothValid = Boolean(hRes.isValid && hRes.vGene && hRes.jGene && lRes.isValid && lRes.vGene && lRes.jGene);
-        return { ord, hs, ls, hRes, lRes, bothValid };
+        return { ord, hs, ls, hRes, lRes, bothValid } as const;
       };
 
       const cand1 = tryOrder('hl');
@@ -397,6 +412,30 @@ heavy-seq + linker + light-seq (or reverse)"
       Select input sequencing dataset (FASTA/FASTQ).
     </template>
   </PlDropdownRef>
+
+  <PlBtnGroup
+    v-model="(app.model.args as Args).hasUMI"
+    :options="[
+      { label: 'Without UMI', value: false },
+      { label: 'With UMI', value: true },
+    ]"
+    label="UMI handling"
+  >
+    <template #tooltip>
+      Enable if your reads contain UMIs and you want to create consensus sequences.
+    </template>
+  </PlBtnGroup>
+  <PlTextField
+    v-if="(app.model.args as Args).hasUMI"
+    v-model="(app.model.args as Args).umiPattern"
+    label="UMI tag pattern"
+    placeholder="e.g. ^(?{UMI})..."
+    :clearable="() => undefined"
+  >
+    <template #tooltip>
+      UMI extraction pattern. Only used when UMI is enabled. Support MiXCR pattern syntax.
+    </template>
+  </PlTextField>
 
   <PlDropdown
     v-if="customRefMode === 'builtin'"

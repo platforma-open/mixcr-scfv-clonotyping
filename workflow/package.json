@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv": "workspace:*",
-    "@platforma-open/milaboratories.software-repseqio": "catalog:"
+    "@platforma-open/milaboratories.software-repseqio": "catalog:",
+    "@platforma-open/milaboratories.software-mitool": "catalog:"
   },
   "devDependencies": {
     "@platforma-sdk/tengo-builder": "catalog:",
