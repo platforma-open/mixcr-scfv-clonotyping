@@ -105,9 +105,11 @@ self.body(func(inputs) {
 
 	fileExtension := inputSpec.domain["pl7.app/fileExtension"]
 
+	truncateFR4 := !inputs.customLibrary
+
 	// [clonotypeKey] -> heavy/light property columns
-	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId)
-	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId)
+	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
+	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
 
 	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
@@ -248,7 +250,8 @@ self.body(func(inputs) {
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
 				mixcrExportArgsLight: mixcrExportArgsLight,
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
-				referenceLibraryLight: inputs.referenceLibraryLight
+				referenceLibraryLight: inputs.referenceLibraryLight,
+				truncateFR4: truncateFR4
 			}
 		}
 	)

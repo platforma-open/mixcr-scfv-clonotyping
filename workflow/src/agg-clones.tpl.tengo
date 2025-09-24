@@ -6,7 +6,6 @@ assets := import("@platforma-sdk/workflow-tengo:assets")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 units := import("@platforma-sdk/workflow-tengo:units")
 math := import("math")
-
 json := import("json")
 
 self.defineOutputs("tsv")

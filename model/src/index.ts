@@ -44,15 +44,16 @@ export const ProgressPattern
 export const model = BlockModel.create()
 
   .withArgs<BlockArgs>({
-    heavyAssemblingFeature: 'CDR3:CDR3',
-    lightAssemblingFeature: 'CDR3:CDR3',
+    heavyAssemblingFeature: 'FR1:FR4',
+    lightAssemblingFeature: 'FR1:FR4',
     order: 'hl',
+    hinge: '',
     imputeHeavy: true,
     imputeLight: true,
     customRefMode: 'builtin',
   })
   .withUiState<UiState>({
-    title: 'MiXCR ScFv',
+    title: 'MiXCR scFv Alignment',
   })
 
   .argsValid((ctx) => {
@@ -130,7 +131,7 @@ export const model = BlockModel.create()
 
   .sections((_) => [{ type: 'link', href: '/', label: 'Main' }])
 
-  .title((ctx) => ctx.uiState.title ?? 'MiXCR ScFv')
+  .title((ctx) => ctx.uiState.title ?? 'MiXCR scFv Alignment')
 
   .done(2);
 

@@ -23,12 +23,16 @@ mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:
 progressPrefix := "[==PROGRESS==]"
 
 /** Formats the assembling feature for MiXCR. */
-formatAssemblingFeature := func(assemblingFeature) {
+formatAssemblingFeature := func(assemblingFeature, truncateFR4) {
 	parts := text.split(assemblingFeature, ":")
 	if len(parts) != 2 {
 		ll.panic("malformed assembling feature: %v", assemblingFeature)
 	}
-	return "{" + parts[0] + "Begin:" + parts[1] + "End}"
+	end := parts[1] + "End"
+	if truncateFR4 && end == "FR4End" {
+		end = "FR4End(-1)"
+	}
+	return "{" + parts[0] + "Begin:" + end + "}"
 }
 
 self.body(func(inputs) {
@@ -38,6 +42,7 @@ self.body(func(inputs) {
 
 
 	fileExtension := inputs.fileExtension
+	truncateFR4 := inputs.truncateFR4
 	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
 	mixcrExportArgsLight := inputs.mixcrExportArgsLight
 
@@ -73,7 +78,7 @@ self.body(func(inputs) {
 			}
 			mixcrCmdBuilder.arg("--rna").
 			arg("--rigid-left-alignment-boundary").
-			arg("--rigid-right-alignment-boundary").arg("J")
+			arg("--rigid-right-alignment-boundary")
 
 		// attach per-chain custom reference if provided
 		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
@@ -85,7 +90,7 @@ self.body(func(inputs) {
 
 		mixcrCmdBuilder.
 			arg("--tag-pattern").arg(tagPattern).
-			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
+			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature, truncateFR4)).
 			arg("-Malign.tagUnstranded=true").
 			arg("-Malign.parameters.saveOriginalReads=true").
 			// arg("-Malign.parameters.jParameters.minSumScore=50").
@@ -187,7 +192,7 @@ self.body(func(inputs) {
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportClones").
-			arg("--export-productive-clones-only").
+			// arg("--export-productive-clones-only").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
 

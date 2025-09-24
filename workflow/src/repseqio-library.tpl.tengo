@@ -24,7 +24,9 @@ self.body(func(inputs) {
         arg("--name-index").arg("0").
         arg("vGene.fasta").addFile("vGene.fasta", vGeneFasta).
         arg("vGene.json").saveFile("vGene.json").
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioVgeneResult := repseqioVgeneCmd.run()
     referenceLibraryVgene := repseqioVgeneResult.getFile("vGene.json")
@@ -40,7 +42,9 @@ self.body(func(inputs) {
         arg("--name-index").arg("0").
         arg("jGene.fasta").addFile("jGene.fasta", jGeneFasta).
         arg("jGene.json").saveFile("jGene.json").
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioJgeneResult := repseqioJgeneCmd.run()
     referenceLibraryJgene := repseqioJgeneResult.getFile("jGene.json")
@@ -54,7 +58,9 @@ self.body(func(inputs) {
         arg("jGene.json").
         arg("referenceLibrary.json").
         saveFile("referenceLibrary.json").
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioMergeResult := repseqioMergeCmd.run()
     referenceLibrary := repseqioMergeResult.getFile("referenceLibrary.json")
@@ -71,7 +77,9 @@ self.body(func(inputs) {
         arg("referenceLibrary.json").
         saveFile("referenceLibrary.json").
         addFile("vGene.fasta", vGeneFasta).
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioInferPointsVResult := repseqioInferPointsVCmd.run()
     referenceLibraryV := repseqioInferPointsVResult.getFile("referenceLibrary.json")
@@ -88,7 +96,9 @@ self.body(func(inputs) {
         arg("referenceLibrary.json").
         saveFile("referenceLibrary.json").
         addFile("jGene.fasta", jGeneFasta).
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioInferPointsJResult := repseqioInferPointsJCmd.run()
     referenceLibraryJ := repseqioInferPointsJResult.getFile("referenceLibrary.json")
@@ -104,7 +114,9 @@ self.body(func(inputs) {
         saveFile("referenceLibrary.json").
         addFile("vGene.fasta", vGeneFasta).
         addFile("jGene.fasta", jGeneFasta).
-        cpu(1).mem("4GB")
+        cpu(1).
+        mem("4GB").
+        cacheHours(24)
 
     repseqioCompileResult := repseqioCompileCmd.run()
     referenceLibraryCompiled := repseqioCompileResult.getFile("referenceLibrary.json")

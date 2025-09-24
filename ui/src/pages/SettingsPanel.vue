@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlSectionSeparator, PlTextArea, PlTextField, PlAccordionSection } from '@platforma-sdk/ui-vue';
-import { useApp } from '../app';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
-import { validateLibrarySequence, validateSeparateChain, validateFullScFv } from '../utils/sequenceValidator';
+import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
+import { validateFullScFv, validateLibrarySequence, validateSeparateChain } from '../utils/sequenceValidator';
 
 const app = useApp();
 // no separate scFv hinge field; use general hinge in Analysis section
@@ -62,8 +62,8 @@ function parseNumber(v: string): number {
 }
 
 const orderOptions: ListOption[] = [
-  { label: 'Heavy-linker-light-hinge', value: 'hl' },
-  { label: 'Light-linker-heavy-hinge', value: 'lh' },
+  { label: 'Heavy-linker-light', value: 'hl' },
+  { label: 'Light-linker-heavy', value: 'lh' },
 ];
 
 const imputeOptions: ListOption[] = [
@@ -72,9 +72,9 @@ const imputeOptions: ListOption[] = [
 ];
 
 const customRefMode = computed<'builtin' | 'scFv' | 'separate'>({
-  get: () => ((app.model.args as Record<string, unknown>).customRefMode as 'builtin' | 'scFv' | 'separate' | undefined) ?? 'builtin',
+  get: () => app.model.args.customRefMode ?? 'builtin',
   set: (v: 'builtin' | 'scFv' | 'separate') => {
-    (app.model.args as Record<string, unknown>).customRefMode = v;
+    app.model.args.customRefMode = v;
   },
 });
 
@@ -95,59 +95,28 @@ watch(
   { immediate: false },
 );
 
-
-// Helpers to expose current DNA sequences per chain for validation display
-const currentHeavyDNA = computed<string | undefined>(() => {
-  if (customRefMode.value === 'builtin') return undefined;
-  if (customRefMode.value === 'separate') return app.model.args.heavyChainSequence?.trim();
-  const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
-  if (!raw || !linker) return undefined;
-  const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
-  if (records.length === 0) return undefined;
-  const seq = records[0].seq.toUpperCase().replace(/\s/g, '');
-  const parts = seq.split(linker);
-  if (parts.length !== 2) return undefined;
-  return order === 'hl' ? parts[0] : parts[1];
-});
-
-const currentLightDNA = computed<string | undefined>(() => {
-  if (customRefMode.value === 'builtin') return undefined;
-  if (customRefMode.value === 'separate') return app.model.args.lightChainSequence?.trim();
-  const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
-  if (!raw || !linker) return undefined;
-  const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
-  if (records.length === 0) return undefined;
-  const seq = records[0].seq.toUpperCase().replace(/\s/g, '');
-  const parts = seq.split(linker);
-  if (parts.length !== 2) return undefined;
-  return order === 'hl' ? parts[1] : parts[0];
-});
-
 const heavyValidation = computed(() => {
   if (customRefMode.value === 'separate') {
     const raw = (app.model.args.heavyChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
   if (customRefMode.value === 'builtin') return undefined;
+  
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
   const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
   const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
   const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
   const heavySeq = order === 'hl' ? parts[0] : parts[1];
   return validateLibrarySequence(heavySeq);
 });
@@ -156,7 +125,7 @@ const lightValidation = computed(() => {
   if (customRefMode.value === 'separate') {
     const raw = (app.model.args.lightChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
   if (customRefMode.value === 'builtin') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
@@ -165,14 +134,14 @@ const lightValidation = computed(() => {
   const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
   const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
   const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
   const lightSeq = order === 'hl' ? parts[1] : parts[0];
   return validateLibrarySequence(lightSeq);
 });
@@ -318,7 +287,18 @@ watch(
 </script>
 
 <template>
-  <PlSectionSeparator>Reference</PlSectionSeparator>
+  <PlDropdownRef
+    :options="app.model.outputs.inputOptions"
+    :model-value="app.model.args.input"
+    label="Select dataset"
+    clearable required
+    @update:model-value="setInput"
+  >
+    <template #tooltip>
+      Select input sequencing dataset (FASTA/FASTQ).
+    </template>
+  </PlDropdownRef>
+
   <PlBtnGroup
     v-model="customRefMode"
     :options="[
@@ -386,29 +366,43 @@ heavy-seq + linker + light-seq (or reverse)"
       </template>
     </PlTextArea>
   </template>
-  <PlSectionSeparator>Analysis settings</PlSectionSeparator>
-  <PlDropdownRef
-    :options="app.model.outputs.inputOptions"
-    :model-value="app.model.args.input"
-    label="Select dataset"
-    clearable @update:model-value="setInput"
-  >
-    <template #tooltip>
-      Select input sequencing dataset (FASTA/FASTQ).
-    </template>
-  </PlDropdownRef>
 
   <PlDropdown
     v-if="customRefMode === 'builtin'"
     v-model="app.model.args.species"
     :options="speciesOptions"
     label="Select species"
+    required
   />
+
+  <PlDropdown
+    v-model="app.model.args.order"
+    :options="orderOptions"
+    label="Construct building order"
+  >
+    <template #tooltip>
+      Chain order
+    </template>
+  </PlDropdown>
+
+  <PlTextArea
+    v-model="app.model.args.linker"
+    :rows="3"
+    label="Linker nucleotide sequence"
+    placeholder="GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT"
+    required
+  >
+    <template #tooltip>
+      Linker sequence between heavy and light.
+    </template>
+  </PlTextArea>
 
   <PlTextField
     v-model="app.model.args.heavyTagPattern"
     label="Heavy chain tag pattern"
     :clearable="() => undefined"
+    placeholder="^(R1:*)ggtggcggtggctct*\*"
+    required
   >
     <template #tooltip>
       Pattern for identifying heavy chain sequences.
@@ -429,6 +423,7 @@ heavy-seq + linker + light-seq (or reverse)"
     v-model="app.model.args.lightTagPattern"
     label="Light chain tag pattern"
     :clearable="() => undefined"
+    placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
   >
     <template #tooltip>
       Pattern for identifying light chain sequences.
@@ -446,36 +441,14 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlDropdown>
 
   <PlTextArea
-    v-model="app.model.args.linker"
-    :rows="3"
-    label="Linker nt sequence (including first nt of C gene)"
-    required
-  >
-    <template #tooltip>
-      Linker nucleotide sequence between heavy and light.
-    </template>
-  </PlTextArea>
-
-  <PlTextArea
     v-model="app.model.args.hinge"
     :rows="3"
     label="Hinge region nt sequence"
-    required
   >
     <template #tooltip>
       Hinge nucleotide sequence.
     </template>
   </PlTextArea>
-
-  <PlDropdown
-    v-model="app.model.args.order"
-    :options="orderOptions"
-    label="Construct building order"
-  >
-    <template #tooltip>
-      Chain order
-    </template>
-  </PlDropdown>
 
   <PlAccordionSection label="Advanced Settings">
     <PlTextField

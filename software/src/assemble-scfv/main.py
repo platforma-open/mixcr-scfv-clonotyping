@@ -32,7 +32,16 @@ hc_alignments_file = prefix + "hc.alignments.tsv"
 lc_alignments_file = prefix + "lc.alignments.tsv"
 
 hc_mixcr_clones = pd.read_csv(hc_clones_file, sep="\t")
+# Remove "InFrame" from all column names in hc_mixcr_clones DataFrame
+hc_mixcr_clones.columns = hc_mixcr_clones.columns.str.replace(
+    "InFrame", "", regex=False)
+
 lc_mixcr_clones = pd.read_csv(lc_clones_file, sep="\t")
+# Remove "InFrame" from all column names in lc_mixcr_clones DataFrame
+lc_mixcr_clones.columns = lc_mixcr_clones.columns.str.replace(
+    "InFrame", "", regex=False)
+
+print(hc_mixcr_clones)
 
 hc_mixcr_clones = hc_mixcr_clones.drop(
     ['readCount', 'readFraction'], axis=1, errors='ignore')
@@ -88,7 +97,8 @@ if "bestCGene-IGHeavy" in result:
 
 # Hash the clonotypeKey after potentially adding C-genes
 result['clonotypeKey'] = result['clonotypeKey'].apply(
-    lambda x: base64.b32encode(bytes.fromhex(hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8')
+    lambda x: base64.b32encode(bytes.fromhex(
+        hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8')
 )
 
 result["clonotypeLabel"] = "C-" + result["clonotypeKey"].str[:6]
@@ -109,21 +119,6 @@ elif (args.imputeLight == 'true' and "nSeqImputedVDJRegion-IGLight" in result) o
     lightVdj = "nSeqImputedVDJRegion-IGLight"
 else:
     raise ValueError("VDJ region - light not found")
-
-
-if args.imputeHeavy == 'false':
-    result = result[result["nSeqCDR3-IGHeavy"].notna()
-                    & result["nSeqFR4-IGHeavy"].notna()]
-    result[heavyVdj] = args.heavyImputeSequence + \
-        result["nSeqCDR3-IGHeavy"] + \
-        result["nSeqFR4-IGHeavy"]  # @TODO currently only CDR3:FR4 is supported here
-
-if args.imputeLight == 'false':
-    result = result[result["nSeqCDR3-IGLight"].notna()
-                    & result["nSeqFR4-IGLight"].notna()]
-    result[lightVdj] = args.lightImputeSequence + \
-        result["nSeqCDR3-IGLight"] + \
-        result["nSeqFR4-IGLight"]  # @TODO currently only CDR3:FR4 is supported here
 
 
 # Filter out rows where VDJ regions are empty/null or contain region_not_covered
@@ -194,7 +189,7 @@ def translate(seq):
 # Add amino acid sequence column
 result["construct-aa"] = result["construct-nt"].apply(translate)
 
-# Add isProductive column - false if construct-aa contains stop codon (*) or incomplete codon (_)
+# Add isProductive column - false if construct-aa contains stop codon(*) or incomplete codon(_)
 result["isProductive"] = ~result["construct-aa"].str.contains(
     "[*_]", regex=True, na=True)
 
@@ -211,8 +206,9 @@ for col in result.columns:
         agg_dict[col] = 'first'
 
 # Perform the groupby operation
-result = result.groupby('construct-aa', dropna=False).agg(agg_dict).reset_index(drop=True)
+result = result.groupby(
+    'construct-aa', dropna=False).agg(agg_dict).reset_index(drop=True)
 
 
-result["isProductive"] = result["isProductive"].astype(str).str.lower()
+# result["isProductive"] = result["isProductive"].astype(str).str.lower()
 result.to_csv("result.tsv", sep="\t", index=False)

@@ -26,7 +26,10 @@ wf.body(func(args) {
 	referenceLibraryHeavy := undefined
 	referenceLibraryLight := undefined
 
+	customLibrary := false
+
 	if !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+		customLibrary = true
 		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
 			writeFile("heavyJ.fasta", args.heavyJGenes).saveFile("heavyJ.fasta").
@@ -59,6 +62,7 @@ wf.body(func(args) {
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
 		inputData: input.getFutureInputField("data"),
+		customLibrary: customLibrary,
 		species: args.species,
 		linker: args.linker,
 		hinge: args.hinge,

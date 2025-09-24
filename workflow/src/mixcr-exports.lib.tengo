@@ -21,10 +21,38 @@ toCombinedDomainValue := func(spec) {
 }
 
 /**
+ * Maps FR4 to FR4InFrame or VDJRegion to VDJRegionInFrame, depending on truncateFR4
+ * @param seq - The sequence to map
+ * @return The mapped sequence
+ */
+mapFR4toFrame := func(seq) {
+	if seq == "FR4" {
+		return "FR4InFrame"
+	}
+	if seq == "VDJRegion" {
+		return "VDJRegionInFrame"
+	}
+	return seq
+}
+
+/**
+ * Removes InFrame suffix from a column name
+ * @param col - The column name to remove InFrame suffix from
+ * @return The column name without InFrame suffix
+*/
+removeInFrame := func(col) {
+	if text.has_suffix(col, "InFrame") {
+		return text.trim_suffix(col, "InFrame")
+	}
+	return col
+}
+
+/**
  * Given assembling feature, identifies its corresponding productive feature, core feature and
  * features to be exported by MiXCR as imputed and non-imputed.
  *
  * @param assemblingFeature - The input feature identifier in a format of "begin:end"
+ * @param truncateFR4 - Whether to truncate the FR4 1 nt from the end, used for built-in reference library
  * @return An object containing:
  *   - productiveFeature: formatted identifier for the productive feature
  *   - coreGeneFeatures: an object containing core features used for mutation analysis:
@@ -33,7 +61,7 @@ toCombinedDomainValue := func(spec) {
  *   - imputed: an array of features to be imputed in export
  *   - nonImputed: an array of features to be non-imputed in export
  */
-parseAssemblingFeature := func(assemblingFeature) {
+parseAssemblingFeature := func(assemblingFeature, truncateFR4) {
 	be := text.split(assemblingFeature, ":")
 	if len(be) != 2 {
 		ll.panic("assemblingFeature must be in the format of 'begin:end', got " + assemblingFeature)
@@ -97,11 +125,11 @@ parseAssemblingFeature := func(assemblingFeature) {
 	}
 
 	return {
-		imputed: imputed,
-		nonImputed: nonImputed,
+		imputed: truncateFR4 ? slices.map(imputed, mapFR4toFrame) : imputed,
+		nonImputed: truncateFR4 ? slices.map(nonImputed, mapFR4toFrame) : nonImputed,
 		coreGeneFeatures: {
-			V: coreVFeature,
-			J: coreJFeature
+			V: truncateFR4 ? mapFR4toFrame(coreVFeature) : coreVFeature,
+			J: truncateFR4 ? mapFR4toFrame(coreJFeature) : coreJFeature
 		}
 	}
 }
@@ -126,12 +154,13 @@ addSpec := func(columns, additionalSpec) {
  * @param chain - Either IGHeavy or IGLight
  * @param assemblingFeature - The assembling feature string in a format of "begin:end"
  * @param blockId - The block ID
+ * @param truncateFR4 - Whether to truncate the FR4 1 nt from the end, used for built-in reference library
  * @return An object containing:
  *   - exportArgs: an array of arrays of MiXCR arg groups
  *   - columnSpecs: an array of column specifications for clonotypes
  */
-
-cloneColumns := func(chain, assemblingFeature, blockId) {
+ 
+cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 	if chain != "IGHeavy" && chain != "IGLight" {
 		ll.panic("chain must be either IGHeavy or IGLight, got " + chain)
 	}
@@ -143,7 +172,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 
 	chainLabel := chainLabels[chain]
 
-	assemblingFeatureInfo := parseAssemblingFeature(assemblingFeature)
+	assemblingFeatureInfo := parseAssemblingFeature(assemblingFeature, truncateFR4)
 	coreGeneFeatures := assemblingFeatureInfo.coreGeneFeatures
 
 	// array of array of arg groups
@@ -217,7 +246,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 				alphabetShortMixcr := isAminoAcid ? "aa" : "n"
 				visibility := false // (featureU == "CDR3" || featureU == assemblingFeature) && isAminoAcid
 				columnsSpecPerClonotype += [ {
-					column: alphabetShortMixcr + "Seq" + imputedU + featureU + "-" + chain,
+					column: alphabetShortMixcr + "Seq" + imputedU + removeInFrame(featureU) + "-" + chain,
 					id: alphabetShortMixcr + "-seq-" + featureL + (isImputed ? "-imputed" : "") + "-" + chain,
 					naRegex: "region_not_covered",
 					spec: {
@@ -332,7 +361,7 @@ cloneColumns := func(chain, assemblingFeature, blockId) {
 
 			for variant in mutationColumnVariants {
 				columnsSpecPerClonotype += [ {
-					column: alphabetShortMixcr + variant.name + coreFeature + "-" + chain,
+					column: alphabetShortMixcr + variant.name + removeInFrame(coreFeature) + "-" + chain,
 					id: alphabetShortMixcr + variant.idPart + geneL + "-" + chain,
 					allowNA: true,
 					naRegex: "region_not_covered",
@@ -455,12 +484,6 @@ abundanceColumns := func(blockId) {
 	} ]
 
 	mainAbundanceColumn := "readFraction"
-
-	// // Creating a column map for fast search
-	// columnsByName := {}
-	// for columnSpec in columnsSpecs {
-	// 	columnsByName[columnSpec.column] = columnSpec
-	// }
 
 	// Axes
 
