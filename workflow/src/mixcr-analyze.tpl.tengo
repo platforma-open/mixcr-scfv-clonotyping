@@ -72,9 +72,9 @@ self.body(func(inputs) {
 			arg("analyze")
 
 		if hasUMIs {
-			mixcrCmdBuilder.arg("generic-amplicon")
-		} else {
 			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
+		} else {
+			mixcrCmdBuilder.arg("generic-amplicon")
 		}
 		
 		// Use custom species when custom libraries are provided OR species is not set (custom reference modes)

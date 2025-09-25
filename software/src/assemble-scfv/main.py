@@ -56,10 +56,17 @@ hl = pd.merge(
     suffixes=('-IGHeavy', '-IGLight')
 )
 
-hl = hl.groupby([
-    'cloneId-IGHeavy',
-    'cloneId-IGLight'
-]).size().reset_index(name='readCount')
+if 'tagValueUMI-IGHeavy' in hl.columns:
+    hl = hl.groupby(['cloneId-IGHeavy', 'cloneId-IGLight']).agg(
+        readCount=('descrR1', 'size'),
+        umiCount=('tagValueUMI-IGHeavy', 'nunique')
+    ).reset_index()
+    hl['umiFraction'] = hl['umiCount'] / hl['umiCount'].sum()
+else:
+    hl = hl.groupby([
+        'cloneId-IGHeavy',
+        'cloneId-IGLight'
+    ]).size().reset_index(name='readCount')
 
 hl['readFraction'] = hl['readCount'] / hl['readCount'].sum()
 
@@ -192,10 +199,14 @@ agg_dict = {
     'readCount': 'sum',
     'readFraction': 'sum'
 }
+if 'umiCount' in result.columns:
+    agg_dict['umiCount'] = 'sum'
+    agg_dict['umiFraction'] = 'sum'
+
 
 # Create a dictionary for all other columns to take the first value
 for col in result.columns:
-    if col not in ['readCount', 'readFraction']:
+    if col not in agg_dict:
         agg_dict[col] = 'first'
 
 # Perform the groupby operation

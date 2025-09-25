@@ -454,7 +454,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 		spec: {
 			name: "pl7.app/vdj/readCount",
 			valueType: "Long",
-			annotations: a(90000, true, {
+			annotations: a(90000, hasUMIs ? false : true, {
 				"pl7.app/min": "1",
 				"pl7.app/isAbundance": "true",
 				"pl7.app/abundance/unit": "reads",
@@ -471,7 +471,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 		spec: {
 			name: "pl7.app/vdj/readFraction",
 			valueType: "Double",
-			annotations: a(89000, true, {
+			annotations: a(89000, hasUMIs ? false : true, {
 				"pl7.app/min": "0",
 				"pl7.app/max": "1",
 				"pl7.app/isAbundance": "true",
