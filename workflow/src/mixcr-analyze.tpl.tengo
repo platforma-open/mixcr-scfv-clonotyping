@@ -45,6 +45,7 @@ self.body(func(inputs) {
 	truncateFR4 := inputs.truncateFR4
 	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
 	mixcrExportArgsLight := inputs.mixcrExportArgsLight
+	hasUMIs := inputs.hasUMIs
 
 	clnaFileName := "result.clna"
 	reports := [
@@ -68,15 +69,22 @@ self.body(func(inputs) {
 			cpu(16).
 			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
-			arg("analyze").
-			arg("generic-amplicon")
-			// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
-			if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
-				mixcrCmdBuilder.arg("--species").arg("custom")
-			} else {
-				mixcrCmdBuilder.arg("--species").arg(inputs.species)
-			}
-			mixcrCmdBuilder.arg("--rna").
+			arg("analyze")
+
+		if hasUMIs {
+			mixcrCmdBuilder.arg("generic-amplicon")
+		} else {
+			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
+		}
+		
+		// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
+		if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
+			mixcrCmdBuilder.arg("--species").arg("custom")
+		} else {
+			mixcrCmdBuilder.arg("--species").arg(inputs.species)
+		}
+
+		mixcrCmdBuilder = mixcrCmdBuilder.arg("--rna").
 			arg("--rigid-left-alignment-boundary").
 			arg("--rigid-right-alignment-boundary")
 
@@ -93,7 +101,8 @@ self.body(func(inputs) {
 			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature, truncateFR4)).
 			arg("-Malign.tagUnstranded=true").
 			arg("-Malign.parameters.saveOriginalReads=true").
-			// arg("-Malign.parameters.jParameters.minSumScore=50").
+			// force J alignment to the end of the read
+			arg("-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000").
 			arg("-Massemble.clnaOutput=true")
 
 		if !is_undefined(inputs.limitInput) {
@@ -164,7 +173,13 @@ self.body(func(inputs) {
 			mem("64GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
-			arg("exportAlignments").
+			arg("exportAlignments")
+			
+		if hasUMIs {
+			alignments = alignments.arg("-tags").arg("Molecule")
+		} 
+
+		alignments = alignments.
 			arg("-cloneId").
 			arg("-descrR1").
 			arg("--drop-default-fields")

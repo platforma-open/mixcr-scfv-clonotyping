@@ -436,12 +436,13 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
  * Calculates the export specifications for a specific chain (IGHeavy or IGLight).
  *
  * @param blockId - The block ID
+ * @param hasUMIs - Whether the data has UMIs
  * @return An object containing:
  *   - cloneKeyAxes: an array of axes specifications for clonotype key
  *   - columnSpecs: an array of column specifications for sample (abundance etc)
  *   - mainAbundanceColumn: the main abundance column
  */
-abundanceColumns := func(blockId) {
+abundanceColumns := func(blockId, hasUMIs) {
 
 	columnsSpecPerSample := []
 
@@ -458,8 +459,8 @@ abundanceColumns := func(blockId) {
 				"pl7.app/isAbundance": "true",
 				"pl7.app/abundance/unit": "reads",
 				"pl7.app/abundance/normalized": "false",
-				"pl7.app/abundance/isPrimary": "true",
-				"pl7.app/isAnchor": "true",
+				"pl7.app/abundance/isPrimary": hasUMIs ? "false" : "true",
+				"pl7.app/isAnchor": hasUMIs ? "false" : "true",
 				"pl7.app/label": "Number Of Reads"
 			})
 		}
@@ -476,7 +477,7 @@ abundanceColumns := func(blockId) {
 				"pl7.app/isAbundance": "true",
 				"pl7.app/abundance/unit": "reads",
 				"pl7.app/abundance/normalized": "true",
-				"pl7.app/abundance/isPrimary": "true",
+				"pl7.app/abundance/isPrimary": hasUMIs ? "false" : "true",
 				"pl7.app/label": "Fraction of reads",
 				"pl7.app/format": ".2p"
 			})
@@ -484,6 +485,48 @@ abundanceColumns := func(blockId) {
 	} ]
 
 	mainAbundanceColumn := "readFraction"
+
+	if hasUMIs {
+		
+		columnsSpecPerSample += [ {
+				column: "umiCount",
+				id: "umi-count",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/vdj/uniqueMoleculeCount",
+					valueType: "Long",
+					annotations: a(90000, true, {
+						"pl7.app/min": "1",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/abundance/unit": "molecules",
+						"pl7.app/abundance/normalized": "false",
+						"pl7.app/abundance/isPrimary": "true",
+						"pl7.app/isAnchor": "true",
+						"pl7.app/label": "Number Of UMIs"
+					})
+				}
+			}, {
+				column: "umiFraction",
+				id: "umi-fraction",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/vdj/uniqueMoleculeFraction",
+					valueType: "Double",
+					annotations: a(89000, true, {
+						"pl7.app/min": "0",
+						"pl7.app/max": "1",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/abundance/unit": "molecules",
+						"pl7.app/abundance/normalized": "true",
+						"pl7.app/abundance/isPrimary": "true",
+						"pl7.app/label": "Fraction of UMIs",
+						"pl7.app/format": ".2p"
+					})
+				}
+			} ]
+
+		mainAbundanceColumn = "umiFraction"
+	}
 
 	// Axes
 

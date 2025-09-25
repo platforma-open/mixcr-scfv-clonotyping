@@ -7,10 +7,17 @@ maps := import("@platforma-sdk/workflow-tengo:maps")
 smart := import("@platforma-sdk/workflow-tengo:smart")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 ll := import("@platforma-sdk/workflow-tengo:ll")
+text := import("text")
 
 processTpl := assets.importTemplate(":process")
 repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
+
+tagPatternHasUMIs := func(tagPattern) {
+	return text.contains(tagPattern, "UMI") ||
+		   text.contains(tagPattern, "Umi") ||
+		   text.contains(tagPattern, "umi")
+}
 
 wf.body(func(args) {
 	input := wf.resolve(args.input)
@@ -21,7 +28,12 @@ wf.body(func(args) {
 
 	customLibrary := false
 
-	if args.customRefMode != "builtin" && !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+	if args.customRefMode != "builtin" &&
+	   !is_undefined(args.heavyVGenes) &&
+	   !is_undefined(args.heavyJGenes) &&
+	   args.heavyVGenes != "" &&
+	   args.heavyJGenes != "" {
+
 		customLibrary = true
 		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
@@ -35,7 +47,12 @@ wf.body(func(args) {
 		referenceLibraryHeavy = referenceLibraryHeavyCmd.output("referenceLibrary")
 	}
 
-	if args.customRefMode != "builtin" && !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+	if args.customRefMode != "builtin" &&
+	  !is_undefined(args.lightVGenes) &&
+	  !is_undefined(args.lightJGenes) &&
+	  args.lightVGenes != "" &&
+	  args.lightJGenes != "" {
+
 		customLibrary = true
 		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
@@ -48,9 +65,14 @@ wf.body(func(args) {
 		})
 		referenceLibraryLight = referenceLibraryLightCmd.output("referenceLibrary")
 	}
-
-	
 	// keep separate heavy/light libraries; do not merge
+
+	hUmi := tagPatternHasUMIs(args.heavyTagPattern)
+	lUmi := tagPatternHasUMIs(args.lightTagPattern)
+	hasUMIs := hUmi || lUmi
+	if hasUMIs && (!hUmi || !lUmi){
+		ll.panic("UMI tag pattern is present in one chain but not the other")
+	}
 
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
@@ -60,6 +82,7 @@ wf.body(func(args) {
 		linker: args.linker,
 		hinge: args.hinge,
 		order: args.order,
+		hasUMIs: hasUMIs,
 		heavyTagPattern: args.heavyTagPattern,
   		heavyAssemblingFeature: args.heavyAssemblingFeature,
   		lightTagPattern: args.lightTagPattern,

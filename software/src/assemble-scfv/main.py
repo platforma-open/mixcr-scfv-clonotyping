@@ -35,12 +35,11 @@ lc_mixcr_clones = pd.read_csv(lc_clones_file, sep="\t")
 lc_mixcr_clones.columns = lc_mixcr_clones.columns.str.replace(
     "InFrame", "", regex=False)
 
-print(hc_mixcr_clones)
 
 hc_mixcr_clones = hc_mixcr_clones.drop(
-    ['readCount', 'readFraction'], axis=1, errors='ignore')
+    ['readCount', 'readFraction', 'uniqueMoleculeCount', 'uniqueMoleculeFraction'], axis=1, errors='ignore')
 lc_mixcr_clones = lc_mixcr_clones.drop(
-    ['readCount', 'readFraction'], axis=1, errors='ignore')
+    ['readCount', 'readFraction', 'uniqueMoleculeCount', 'uniqueMoleculeFraction'], axis=1, errors='ignore')
 
 hc_mixcr_alignments = pd.read_csv(hc_alignments_file, sep="\t")
 lc_mixcr_alignments = pd.read_csv(lc_alignments_file, sep="\t")

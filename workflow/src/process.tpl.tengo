@@ -106,6 +106,7 @@ self.body(func(inputs) {
 	fileExtension := inputSpec.domain["pl7.app/fileExtension"]
 
 	truncateFR4 := !inputs.customLibrary
+	hasUMIs := inputs.hasUMIs
 
 	// [clonotypeKey] -> heavy/light property columns
 	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
@@ -116,7 +117,7 @@ self.body(func(inputs) {
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
 	// [sample, clonotypeKey] -> abundance columns
-	abundanceColumns := mixcrExports.abundanceColumns(blockId)
+	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
 	cloneKeyAxes := abundanceColumns.cloneKeyAxes
 	abundanceColumnSpecs := abundanceColumns.columnSpecs
 	mainAbundanceColumn := abundanceColumns.mainAbundanceColumn
@@ -238,6 +239,7 @@ self.body(func(inputs) {
 				linker: inputs.linker,
 				hinge: inputs.hinge,
 				order: inputs.order,
+				hasUMIs: hasUMIs,
 				heavyTagPattern: inputs.heavyTagPattern,
 				heavyAssemblingFeature: inputs.heavyAssemblingFeature,
 				lightTagPattern: inputs.lightTagPattern,
