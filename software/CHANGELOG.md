@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 2.0.0
+
+### Major Changes
+
+- 1314fd0: Support of custom reference + fix for frame
+
 ## 1.6.0
 
 ### Minor Changes

@@ -1,5 +1,18 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.0.0
+
+### Major Changes
+
+- 1314fd0: Support of custom reference + fix for frame
+
+### Patch Changes
+
+- Updated dependencies [1314fd0]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.0.0
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.0.0
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.0.0
+
 ## 2.3.0
 
 ### Minor Changes
