@@ -280,7 +280,12 @@ watch(
     label="Reference type"
   >
     <template #tooltip>
-      Select reference type. Built-in reference is the default reference from the MiXCR. Full scFv sequence is a custom reference built from the scFv sequence. Separate chains is a custom reference built from the heavy and light chain sequences.
+      <p>This is the most important setting, as it determines the alignment strategy. You must choose the option that best describes the origin and nature of your scFv library.</p>
+      <ul>
+        <li><b>Built-in Reference:</b> Standard choice for scFv libraries from natural antibody repertoires (e.g., from immunized animals). Alignment is performed against MiXCR's built-in database of germline V, D, and J genes.</li>
+        <li><b>Full scFv Sequence:</b> For synthetic libraries (e.g., phage or yeast display) where sequences are variants of a single, known scFv construct. Paste the complete DNA sequence of your reference scFv.</li>
+        <li><b>Separate Chains:</b> Alternative for synthetic libraries where you have reference sequences for heavy and light variable regions, but not as a pre-joined construct.</li>
+      </ul>
     </template>
   </PlBtnGroup>
 
@@ -301,7 +306,7 @@ watch(
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Heavy chain sequence(s) in FASTA format. Should cover VDJRegion.
+        Paste the DNA sequence of the reference heavy chain V(D)J region. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
     <PlTextArea
@@ -312,7 +317,7 @@ ATCGATCGATCG..."
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Light chain sequence(s) in FASTA format. Should cover VDJRegion.
+        Paste the DNA sequence of the reference light chain V(J) region. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
   </template>
@@ -333,7 +338,7 @@ ATCGATCGATCG..."
 heavy-seq + linker + light-seq (or reverse)"
     >
       <template #tooltip>
-        Full scFv sequence in FASTA format. Should contain heavy chain and light chain sequences, separated by linker.
+        Paste the complete DNA sequence of your reference scFv construct (VH-Linker-VL or VL-Linker-VH). The aligner will use this sequence as a direct template to align all reads from your dataset. The provided sequence must be in-frame. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
   </template>
@@ -344,7 +349,11 @@ heavy-seq + linker + light-seq (or reverse)"
     :options="speciesOptions"
     label="Select species"
     required
-  />
+  >
+    <template #tooltip>
+      Choose the species from which the antibody repertoire was derived. This ensures the aligner uses the correct set of germline genes.
+    </template>
+  </PlDropdown>
 
   <PlDropdown
     v-model="app.model.args.order"
@@ -352,7 +361,11 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Construct building order"
   >
     <template #tooltip>
-      Chain order
+      <p>Defines the physical arrangement of the chains in your scFv construct.</p>
+      <ul>
+        <li><b>Heavy-linker-light:</b> The VH domain is upstream of the linker, followed by the VL domain.</li>
+        <li><b>Light-linker-heavy:</b> The VL domain is upstream of the linker, followed by the VH domain.</li>
+      </ul>
     </template>
   </PlDropdown>
 
@@ -364,7 +377,7 @@ heavy-seq + linker + light-seq (or reverse)"
     required
   >
     <template #tooltip>
-      Linker sequence between heavy and light.
+      Enter the exact DNA sequence of the linker used in your construct. The length of this sequence must be a multiple of three. A commonly used linker is (G₄S)₃ with the sequence GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT.
     </template>
   </PlTextArea>
 
@@ -376,7 +389,13 @@ heavy-seq + linker + light-seq (or reverse)"
     required
   >
     <template #tooltip>
-      Pattern for identifying heavy chain sequences.
+      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p><b>Examples:</b></p>
+      <ul>
+        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^(R1:*)linker*</code></li>
+        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+      </ul>
+      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
     </template>
   </PlTextField>
 
@@ -386,7 +405,7 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Heavy chain assembling feature"
   >
     <template #tooltip>
-      Region used to assemble heavy clonotypes.
+      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
     </template>
   </PlDropdown>
 
@@ -397,7 +416,13 @@ heavy-seq + linker + light-seq (or reverse)"
     placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
   >
     <template #tooltip>
-      Pattern for identifying light chain sequences.
+      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p><b>Examples:</b></p>
+      <ul>
+        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^*linker(R1:*)</code></li>
+        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+      </ul>
+      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
     </template>
   </PlTextField>
 
@@ -407,7 +432,7 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Light chain assembling feature"
   >
     <template #tooltip>
-      Region used to assemble light clonotypes.
+      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
     </template>
   </PlDropdown>
 
@@ -417,7 +442,7 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Hinge region nt sequence"
   >
     <template #tooltip>
-      Hinge nucleotide sequence.
+      If your construct includes a portion of the antibody hinge region, specify its nucleotide sequence here to improve alignment accuracy.
     </template>
   </PlTextArea>
 
