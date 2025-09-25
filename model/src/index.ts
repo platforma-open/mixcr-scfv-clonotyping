@@ -6,30 +6,25 @@ export type BlockArgs = {
   species?: string;
   linker?: string;
   hinge?: string;
-  order: string;
+  order: 'hl' | 'lh';
   heavyTagPattern?: string;
   heavyAssemblingFeature?: string;
   lightTagPattern?: string;
   lightAssemblingFeature?: string;
   limitInput?: number;
-  imputeHeavy: boolean;
-  heavyImputeSequence?: string;
-  imputeLight: boolean;
-  lightImputeSequence?: string;
+
+  customRefMode: 'builtin' | 'scFv' | 'separate';
+
+  scFvSequence?: string;
+  heavyChainSequence?: string;
+  lightChainSequence?: string;
+
   // Custom reference sequences (optional)
   // Derived FASTA strings for repseqio
   heavyVGenes?: string;
   heavyJGenes?: string;
   lightVGenes?: string;
   lightJGenes?: string;
-  // Optional inputs for deriving heavy/light sequences from full scFv or per-chain DNA
-  customRefMode?: 'builtin' | 'scFv' | 'separate';
-  scFvSequence?: string;
-  scFvLinker?: string;
-  scFvOrder?: 'hl' | 'lh';
-  scFvHinge?: string;
-  heavyChainSequence?: string;
-  lightChainSequence?: string;
 };
 
 export type UiState = {
@@ -48,8 +43,6 @@ export const model = BlockModel.create()
     lightAssemblingFeature: 'FR1:FR4',
     order: 'hl',
     hinge: '',
-    imputeHeavy: true,
-    imputeLight: true,
     customRefMode: 'builtin',
   })
   .withUiState<UiState>({

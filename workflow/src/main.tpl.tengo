@@ -13,13 +13,6 @@ repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
 
 wf.body(func(args) {
-	if !args.imputeHeavy && args.heavyAssemblingFeature != "CDR3:FR4" {
-		ll.panic("imputeHeavy is false, but heavyAssemblingFeature is not CDR3:FR4")
-	}
-	if !args.imputeLight && args.lightAssemblingFeature != "CDR3:FR4" {
-		ll.panic("imputeLight is false, but lightAssemblingFeature is not CDR3:FR4")
-	}
-
 	input := wf.resolve(args.input)
 
 	// Optional per-chain reference libraries (only if both V and J provided)
@@ -28,7 +21,7 @@ wf.body(func(args) {
 
 	customLibrary := false
 
-	if !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+	if args.customRefMode != "builtin" && !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
 		customLibrary = true
 		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
@@ -42,8 +35,8 @@ wf.body(func(args) {
 		referenceLibraryHeavy = referenceLibraryHeavyCmd.output("referenceLibrary")
 	}
 
-	ll.print("__THE_LOG__", referenceLibraryHeavy)
-	if !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+	if args.customRefMode != "builtin" && !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+		customLibrary = true
 		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
 			writeFile("lightJ.fasta", args.lightJGenes).saveFile("lightJ.fasta").
@@ -67,11 +60,7 @@ wf.body(func(args) {
 		linker: args.linker,
 		hinge: args.hinge,
 		order: args.order,
-		imputeHeavy: args.imputeHeavy,
-		heavyImputeSequence: args.heavyImputeSequence,
-		imputeLight: args.imputeLight,
-		lightImputeSequence: args.lightImputeSequence,
-  		heavyTagPattern: args.heavyTagPattern,
+		heavyTagPattern: args.heavyTagPattern,
   		heavyAssemblingFeature: args.heavyAssemblingFeature,
   		lightTagPattern: args.lightTagPattern,
   		lightAssemblingFeature: args.lightAssemblingFeature,

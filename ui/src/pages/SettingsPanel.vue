@@ -66,43 +66,14 @@ const orderOptions: ListOption[] = [
   { label: 'Light-linker-heavy', value: 'lh' },
 ];
 
-const imputeOptions: ListOption[] = [
-  { label: 'From germline', value: true },
-  { label: 'From fixed sequence', value: false },
-];
-
-const customRefMode = computed<'builtin' | 'scFv' | 'separate'>({
-  get: () => app.model.args.customRefMode ?? 'builtin',
-  set: (v: 'builtin' | 'scFv' | 'separate') => {
-    app.model.args.customRefMode = v;
-  },
-});
-
-// Reset reference input fields when switching modes
-watch(
-  () => customRefMode.value,
-  () => {
-    const args = app.model.args as Record<string, unknown>;
-    args.heavyChainSequence = '';
-    args.lightChainSequence = '';
-    args.scFvSequence = '';
-    // keep analysis 'order' as-is; no separate scFv order
-    args.heavyVGenes = undefined;
-    args.heavyJGenes = undefined;
-    args.lightVGenes = undefined;
-    args.lightJGenes = undefined;
-  },
-  { immediate: false },
-);
-
 const heavyValidation = computed(() => {
-  if (customRefMode.value === 'separate') {
+  if (app.model.args.customRefMode === 'separate') {
     const raw = (app.model.args.heavyChainSequence ?? '').trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (customRefMode.value === 'builtin') return undefined;
-  
+  if (app.model.args.customRefMode === 'builtin') return undefined;
+
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
@@ -122,12 +93,12 @@ const heavyValidation = computed(() => {
 });
 
 const lightValidation = computed(() => {
-  if (customRefMode.value === 'separate') {
+  if (app.model.args.customRefMode === 'separate') {
     const raw = (app.model.args.lightChainSequence ?? '').trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (customRefMode.value === 'builtin') return undefined;
+  if (app.model.args.customRefMode === 'builtin') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
@@ -148,7 +119,7 @@ const lightValidation = computed(() => {
 
 // Full scFv-level validation (format/linker/split) for scFv mode
 const scFvValidation = computed(() => {
-  if (customRefMode.value !== 'scFv') return undefined;
+  if (app.model.args.customRefMode !== 'scFv') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
@@ -157,7 +128,7 @@ const scFvValidation = computed(() => {
 // Derive per-chain V/J FASTA strings into args for workflow
 watch(
   () => ({
-    mode: customRefMode.value,
+    mode: app.model.args.customRefMode,
     heavy: app.model.args.heavyChainSequence,
     light: app.model.args.lightChainSequence,
     scfv: app.model.args.scFvSequence,
@@ -181,7 +152,7 @@ watch(
     setVJ('heavy', undefined, undefined);
     setVJ('light', undefined, undefined);
 
-    const mode = customRefMode.value;
+    const mode = app.model.args.customRefMode;
     if (mode === 'builtin') {
       setVJ('heavy', undefined, undefined);
       setVJ('light', undefined, undefined);
@@ -300,7 +271,7 @@ watch(
   </PlDropdownRef>
 
   <PlBtnGroup
-    v-model="customRefMode"
+    v-model="app.model.args.customRefMode"
     :options="[
       { label: 'Built-in reference', value: 'builtin' },
       { label: 'Full scFv sequence', value: 'scFv' },
@@ -313,7 +284,7 @@ watch(
     </template>
   </PlBtnGroup>
 
-  <template v-if="customRefMode === 'separate'">
+  <template v-if="app.model.args.customRefMode === 'separate'">
     <PlAlert
       v-if="(heavyValidation && !heavyValidation.isValid) || (lightValidation && !lightValidation.isValid)"
       type="error"
@@ -346,7 +317,7 @@ ATCGATCGATCG..."
     </PlTextArea>
   </template>
 
-  <template v-else-if="customRefMode === 'scFv'">
+  <template v-else-if="app.model.args.customRefMode === 'scFv'">
     <PlAlert
       v-if="scFvValidation && !scFvValidation.isValid"
       type="error"
@@ -368,7 +339,7 @@ heavy-seq + linker + light-seq (or reverse)"
   </template>
 
   <PlDropdown
-    v-if="customRefMode === 'builtin'"
+    v-if="app.model.args.customRefMode === 'builtin'"
     v-model="app.model.args.species"
     :options="speciesOptions"
     label="Select species"
@@ -455,53 +426,5 @@ heavy-seq + linker + light-seq (or reverse)"
       v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
       label="Take only this number of reads into analysis"
     />
-
-    <PlBtnGroup
-      v-if="app.model.args.heavyAssemblingFeature !== 'FR1:FR4'"
-      v-model="app.model.args.imputeHeavy"
-      :options="imputeOptions"
-      label="Reconstruct uncovered heavy regions"
-    >
-      <template #tooltip>
-        Impute uncovered heavy regions from germline or fixed sequence.
-      </template>
-    </PlBtnGroup>
-    <div v-if="!app.model.args.imputeHeavy && app.model.args.heavyAssemblingFeature !== 'CDR3:FR4'">
-      ERROR: only CDR3:FR4 assembling feature is supported for imputing heavy regions from fixed sequence
-    </div>
-    <PlTextArea
-      v-if="!app.model.args.imputeHeavy"
-      v-model="app.model.args.heavyImputeSequence"
-      label="Heavy nt sequence of V region (pre NGS)"
-      required
-    >
-      <template #tooltip>
-        Fixed heavy V-region nucleotides used when imputing.
-      </template>
-    </PlTextArea>
-
-    <PlBtnGroup
-      v-if="app.model.args.lightAssemblingFeature !== 'FR1:FR4'"
-      v-model="app.model.args.imputeLight"
-      :options="imputeOptions"
-      label="Reconstruct uncovered heavy regions"
-    >
-      <template #tooltip>
-        Impute uncovered light regions from germline or fixed sequence.
-      </template>
-    </PlBtnGroup>
-    <div v-if="!app.model.args.imputeLight && app.model.args.lightAssemblingFeature !== 'CDR3:FR4'">
-      ERROR: only CDR3:FR4 assembling feature is supported for imputing light regions from fixed sequence
-    </div>
-    <PlTextArea
-      v-if="!app.model.args.imputeLight"
-      v-model="app.model.args.lightImputeSequence"
-      label="Light nt sequence of V region (pre NGS)"
-      required
-    >
-      <template #tooltip>
-        Fixed light V-region nucleotides used when imputing.
-      </template>
-    </PlTextArea>
   </PlAccordionSection>
 </template>

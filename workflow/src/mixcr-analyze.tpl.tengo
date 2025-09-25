@@ -243,17 +243,6 @@ self.body(func(inputs) {
 
 	assembleScFv := exec.builder().
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
-		cpu(1).
-		mem("64GiB").
-		arg("--imputeHeavy").arg(string(inputs.imputeHeavy)).
-		arg("--imputeLight").arg(string(inputs.imputeLight))
-	if !is_undefined(inputs.heavyImputeSequence) {
-		assembleScFv = assembleScFv.arg("--heavyImputeSequence").arg(inputs.heavyImputeSequence)
-	}
-	if !is_undefined(inputs.lightImputeSequence) {	
-		assembleScFv = assembleScFv.arg("--lightImputeSequence").arg(inputs.lightImputeSequence)
-	}
-	assembleScFv = assembleScFv.
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
 		arg("--order").arg(inputs.order).
@@ -263,6 +252,8 @@ self.body(func(inputs) {
 		addFile("lc.alignments.tsv", light.alignments).
 		saveFile("result.tsv").
 		dontSaveStdoutOrStderr().
+		cpu(1).
+		mem("64GiB").
 		run()
 
 

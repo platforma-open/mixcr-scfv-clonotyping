@@ -8,12 +8,6 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--linker", help="linker nt sequence")
 parser.add_argument("--hinge", help="hinge nt sequence")
-parser.add_argument("--imputeHeavy", help="impute heavy VDJ region")
-parser.add_argument("--heavyImputeSequence",
-                    help="heavy VDJ region sequence to impute")
-parser.add_argument("--imputeLight", help="impute light VDJ region")
-parser.add_argument("--lightImputeSequence",
-                    help="light VDJ region sequence to impute")
 parser.add_argument(
     "--order",
     help="construct building order: hl for 'heavy-linker-light-hinge' or lh for 'light-linker-heavy-hinge'")
@@ -108,14 +102,14 @@ lightVdj = None
 
 if "nSeqVDJRegion-IGHeavy" in result:
     heavyVdj = "nSeqVDJRegion-IGHeavy"
-elif (args.imputeHeavy == 'true' and "nSeqImputedVDJRegion-IGHeavy" in result) or (args.imputeHeavy == 'false'):
+elif "nSeqImputedVDJRegion-IGHeavy" in result:
     heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
 else:
     raise ValueError("VDJ region - heavy not found")
 
 if "nSeqVDJRegion-IGLight" in result:
     lightVdj = "nSeqVDJRegion-IGLight"
-elif (args.imputeLight == 'true' and "nSeqImputedVDJRegion-IGLight" in result) or (args.imputeLight == 'false'):
+elif "nSeqImputedVDJRegion-IGLight" in result:
     lightVdj = "nSeqImputedVDJRegion-IGLight"
 else:
     raise ValueError("VDJ region - light not found")
