@@ -125,6 +125,20 @@ const scFvValidation = computed(() => {
   return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
 });
 
+const umiMismatchWarning = computed(() => {
+  const heavyPattern = app.model.args.heavyTagPattern ?? '';
+  const lightPattern = app.model.args.lightTagPattern ?? '';
+  const heavyHasUmi = /umi/i.test(heavyPattern);
+  const lightHasUmi = /umi/i.test(lightPattern);
+  if (heavyHasUmi && !lightHasUmi) {
+    return 'Heavy chain tag pattern contains "UMI", but light chain pattern does not. If UMIs are used, they should be present in both tag patterns to match reads after alignment.';
+  }
+  if (!heavyHasUmi && lightHasUmi) {
+    return 'Light chain tag pattern contains "UMI", but heavy chain pattern does not. If UMIs are used, they should be present in both tag patterns to match reads after alignment.';
+  }
+  return undefined;
+});
+
 // Derive per-chain V/J FASTA strings into args for workflow
 watch(
   () => ({
@@ -380,6 +394,14 @@ heavy-seq + linker + light-seq (or reverse)"
       Enter the exact DNA sequence of the linker used in your construct. The length of this sequence must be a multiple of three. A commonly used linker is (G₄S)₃ with the sequence GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT.
     </template>
   </PlTextArea>
+
+  <PlAlert
+    v-if="umiMismatchWarning"
+    type="warn"
+    :title="'UMI tag pattern mismatch'"
+  >
+    {{ umiMismatchWarning }}
+  </PlAlert>
 
   <PlTextField
     v-model="app.model.args.heavyTagPattern"
