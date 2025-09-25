@@ -121,7 +121,7 @@ const columnDefs: ColDef<ScFvResult>[] = [
   }),
 
   createAgGridColDef<ScFvResult, string>({
-    colId: 'alignmentStats',
+    colId: 'alignmentStatsH',
     headerName: 'Alignments (Heavy)',
     headerComponentParams: { type: 'Text' } satisfies PlAgHeaderComponentParams,
     flex: 1,
@@ -138,7 +138,7 @@ const columnDefs: ColDef<ScFvResult>[] = [
   }),
 
   createAgGridColDef<ScFvResult, string>({
-    colId: 'alignmentStats',
+    colId: 'alignmentStatsL',
     headerName: 'Alignments (Light)',
     headerComponentParams: { type: 'Text' } satisfies PlAgHeaderComponentParams,
     flex: 1,
