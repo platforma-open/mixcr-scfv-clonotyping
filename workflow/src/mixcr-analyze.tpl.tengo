@@ -66,8 +66,8 @@ self.body(func(inputs) {
 			printErrStreamToStdout().
 			env("MI_PROGRESS_PREFIX", progressPrefix).
 			software(mixcrSw).
-			cpu(16).
-			mem("64GiB").
+			cpu(inputs.mixcrCpu).
+			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("analyze")
 
@@ -169,8 +169,8 @@ self.body(func(inputs) {
 		alignments := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(8).
-			mem("64GiB").
+			cpu(2).
+			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportAlignments")
@@ -202,8 +202,8 @@ self.body(func(inputs) {
 		clones := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(8).
-			mem("64GiB").
+			cpu(2).
+			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportClones").
@@ -267,8 +267,8 @@ self.body(func(inputs) {
 		addFile("lc.alignments.tsv", light.alignments).
 		saveFile("result.tsv").
 		dontSaveStdoutOrStderr().
-		cpu(1).
-		mem("64GiB").
+		cpu(inputs.assembleScfvCpu).
+		mem(string(inputs.assembleScfvMem) + "GiB").
 		run()
 
 

@@ -90,7 +90,11 @@ wf.body(func(args) {
 		blockId: wf.blockId().getDataAsJson(),
 		limitInput: args.limitInput,
 		referenceLibraryHeavy: referenceLibraryHeavy,
-		referenceLibraryLight: referenceLibraryLight
+		referenceLibraryLight: referenceLibraryLight,
+		mixcrCpu: args.mixcrCpu,
+		mixcrMem: args.mixcrMem,
+		assembleScfvCpu: args.assembleScfvCpu,
+		assembleScfvMem: args.assembleScfvMem
 	})
 
 	exports := {

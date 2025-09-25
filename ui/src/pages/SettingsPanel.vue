@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlNumberField, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
@@ -473,5 +473,49 @@ heavy-seq + linker + light-seq (or reverse)"
       v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
       label="Take only this number of reads into analysis"
     />
+    <PlNumberField
+      v-model="app.model.args.mixcrCpu"
+      label="MiXCR CPU (cores)"
+      :min-value="1"
+      :step="1"
+      :max-value="128"
+    >
+      <template #tooltip>
+        Sets the number of CPU cores to use for the MiXCR alignment.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.mixcrMem"
+      label="MiXCR Memory (GiB)"
+      :min-value="1"
+      :step="1"
+      :max-value="1012"
+    >
+      <template #tooltip>
+        Sets the amount of memory to use for the MiXCR alignment.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.assembleScfvCpu"
+      label="Assemble scFv CPU (cores)"
+      :min-value="1"
+      :step="1"
+      :max-value="128"
+    >
+      <template #tooltip>
+        Sets the number of CPU cores to use for the scFv assembly.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.assembleScfvMem"
+      label="Assemble scFv Memory (GiB)"
+      :min-value="1"
+      :step="1"
+      :max-value="1012"
+    >
+      <template #tooltip>
+        Sets the amount of memory to use for the scFv assembly.
+      </template>
+    </PlNumberField>
   </PlAccordionSection>
 </template>

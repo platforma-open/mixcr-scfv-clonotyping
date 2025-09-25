@@ -25,6 +25,11 @@ export type BlockArgs = {
   heavyJGenes?: string;
   lightVGenes?: string;
   lightJGenes?: string;
+
+  mixcrMem?: number;
+  mixcrCpu?: number;
+  assembleScfvMem?: number;
+  assembleScfvCpu?: number;
 };
 
 export type UiState = {
@@ -44,6 +49,10 @@ export const model = BlockModel.create()
     order: 'hl',
     hinge: '',
     customRefMode: 'builtin',
+    mixcrMem: 32,
+    mixcrCpu: 8,
+    assembleScfvMem: 64,
+    assembleScfvCpu: 4,
   })
   .withUiState<UiState>({
     title: 'MiXCR scFv Alignment',

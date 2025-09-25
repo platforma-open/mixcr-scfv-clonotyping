@@ -249,7 +249,11 @@ self.body(func(inputs) {
 				mixcrExportArgsLight: mixcrExportArgsLight,
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
 				referenceLibraryLight: inputs.referenceLibraryLight,
-				truncateFR4: truncateFR4
+				truncateFR4: truncateFR4,
+				mixcrCpu: inputs.mixcrCpu,
+				mixcrMem: inputs.mixcrMem,
+				assembleScfvCpu: inputs.assembleScfvCpu,
+				assembleScfvMem: inputs.assembleScfvMem
 			}
 		}
 	)
