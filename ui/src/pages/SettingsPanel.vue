@@ -46,7 +46,7 @@ function plRefsEqual(ref1: PlRef, ref2: PlRef) {
 function setInput(inputRef?: PlRef) {
   app.model.args.input = inputRef;
   if (inputRef)
-    app.model.ui.title = 'MiXCR scFv - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
+    app.model.ui.title = 'MiXCR scFv Alignment - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
   else
     app.model.ui.title = undefined;
 }
