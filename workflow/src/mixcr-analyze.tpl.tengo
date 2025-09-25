@@ -23,12 +23,16 @@ mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:
 progressPrefix := "[==PROGRESS==]"
 
 /** Formats the assembling feature for MiXCR. */
-formatAssemblingFeature := func(assemblingFeature) {
+formatAssemblingFeature := func(assemblingFeature, truncateFR4) {
 	parts := text.split(assemblingFeature, ":")
 	if len(parts) != 2 {
 		ll.panic("malformed assembling feature: %v", assemblingFeature)
 	}
-	return "{" + parts[0] + "Begin:" + parts[1] + "End}"
+	end := parts[1] + "End"
+	if truncateFR4 && end == "FR4End" {
+		end = "FR4End(-1)"
+	}
+	return "{" + parts[0] + "Begin:" + end + "}"
 }
 
 self.body(func(inputs) {
@@ -38,8 +42,10 @@ self.body(func(inputs) {
 
 
 	fileExtension := inputs.fileExtension
+	truncateFR4 := inputs.truncateFR4
 	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
 	mixcrExportArgsLight := inputs.mixcrExportArgsLight
+	hasUMIs := inputs.hasUMIs
 
 	clnaFileName := "result.clna"
 	reports := [
@@ -60,20 +66,27 @@ self.body(func(inputs) {
 			printErrStreamToStdout().
 			env("MI_PROGRESS_PREFIX", progressPrefix).
 			software(mixcrSw).
-			cpu(16).
-			mem("64GiB").
+			cpu(inputs.mixcrCpu).
+			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
-			arg("analyze").
-			arg("generic-amplicon")
-			// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
-			if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
-				mixcrCmdBuilder.arg("--species").arg("custom")
-			} else {
-				mixcrCmdBuilder.arg("--species").arg(inputs.species)
-			}
-			mixcrCmdBuilder.arg("--rna").
+			arg("analyze")
+
+		if hasUMIs {
+			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
+		} else {
+			mixcrCmdBuilder.arg("generic-amplicon")
+		}
+		
+		// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
+		if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
+			mixcrCmdBuilder.arg("--species").arg("custom")
+		} else {
+			mixcrCmdBuilder.arg("--species").arg(inputs.species)
+		}
+
+		mixcrCmdBuilder = mixcrCmdBuilder.arg("--rna").
 			arg("--rigid-left-alignment-boundary").
-			arg("--rigid-right-alignment-boundary").arg("J")
+			arg("--rigid-right-alignment-boundary")
 
 		// attach per-chain custom reference if provided
 		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
@@ -85,10 +98,11 @@ self.body(func(inputs) {
 
 		mixcrCmdBuilder.
 			arg("--tag-pattern").arg(tagPattern).
-			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature)).
+			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature, truncateFR4)).
 			arg("-Malign.tagUnstranded=true").
 			arg("-Malign.parameters.saveOriginalReads=true").
-			// arg("-Malign.parameters.jParameters.minSumScore=50").
+			// force J alignment to the end of the read
+			arg("-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000").
 			arg("-Massemble.clnaOutput=true")
 
 		if !is_undefined(inputs.limitInput) {
@@ -155,11 +169,17 @@ self.body(func(inputs) {
 		alignments := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(8).
-			mem("64GiB").
+			cpu(2).
+			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
-			arg("exportAlignments").
+			arg("exportAlignments")
+			
+		if hasUMIs {
+			alignments = alignments.arg("-tags").arg("Molecule")
+		} 
+
+		alignments = alignments.
 			arg("-cloneId").
 			arg("-descrR1").
 			arg("--drop-default-fields")
@@ -182,12 +202,12 @@ self.body(func(inputs) {
 		clones := exec.builder().
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(8).
-			mem("64GiB").
+			cpu(2).
+			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			dontSaveStdoutOrStderr().
 			arg("exportClones").
-			arg("--export-productive-clones-only").
+			// arg("--export-productive-clones-only").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
 
@@ -238,17 +258,6 @@ self.body(func(inputs) {
 
 	assembleScFv := exec.builder().
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
-		cpu(1).
-		mem("64GiB").
-		arg("--imputeHeavy").arg(string(inputs.imputeHeavy)).
-		arg("--imputeLight").arg(string(inputs.imputeLight))
-	if !is_undefined(inputs.heavyImputeSequence) {
-		assembleScFv = assembleScFv.arg("--heavyImputeSequence").arg(inputs.heavyImputeSequence)
-	}
-	if !is_undefined(inputs.lightImputeSequence) {	
-		assembleScFv = assembleScFv.arg("--lightImputeSequence").arg(inputs.lightImputeSequence)
-	}
-	assembleScFv = assembleScFv.
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
 		arg("--order").arg(inputs.order).
@@ -258,6 +267,8 @@ self.body(func(inputs) {
 		addFile("lc.alignments.tsv", light.alignments).
 		saveFile("result.tsv").
 		dontSaveStdoutOrStderr().
+		cpu(inputs.assembleScfvCpu).
+		mem(string(inputs.assembleScfvMem) + "GiB").
 		run()
 
 

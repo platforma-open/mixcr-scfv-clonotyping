@@ -37,7 +37,7 @@ const data = reactive<{
   sampleReportOpen: boolean;
   selectedSample: string | undefined;
 }>({
-  settingsOpen: false,
+  settingsOpen: app.model.outputs.logsIGHeavy === undefined,
   sampleReportOpen: false,
   selectedSample: undefined,
 });
@@ -170,7 +170,7 @@ const gridOptions: GridOptions<ScFvResult> = {
 
 <template>
   <PlBlockPage>
-    <template #title>MiXCR scFv Clonotyping</template>
+    <template #title>{{ app.model.ui.title }}</template>
     <template #append>
       <PlBtnGhost @click.stop="() => (data.settingsOpen = true)">
         Settings

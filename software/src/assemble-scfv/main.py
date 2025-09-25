@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import argparse
 import hashlib
 import base64
@@ -8,12 +8,6 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--linker", help="linker nt sequence")
 parser.add_argument("--hinge", help="hinge nt sequence")
-parser.add_argument("--imputeHeavy", help="impute heavy VDJ region")
-parser.add_argument("--heavyImputeSequence",
-                    help="heavy VDJ region sequence to impute")
-parser.add_argument("--imputeLight", help="impute light VDJ region")
-parser.add_argument("--lightImputeSequence",
-                    help="light VDJ region sequence to impute")
 parser.add_argument(
     "--order",
     help="construct building order: hl for 'heavy-linker-light-hinge' or lh for 'light-linker-heavy-hinge'")
@@ -31,118 +25,151 @@ lc_clones_file = prefix + "lc.clones.tsv"
 hc_alignments_file = prefix + "hc.alignments.tsv"
 lc_alignments_file = prefix + "lc.alignments.tsv"
 
-hc_mixcr_clones = pd.read_csv(hc_clones_file, sep="\t")
-lc_mixcr_clones = pd.read_csv(lc_clones_file, sep="\t")
+schema_overrides = {
+    "nLengthCDR3": pl.String,
+    "aaLengthCDR3": pl.String
+}
 
+hc_mixcr_clones = pl.read_csv(
+    hc_clones_file, separator="\t", infer_schema_length=0)
+hc_mixcr_clones = hc_mixcr_clones.with_columns(
+    pl.col("cloneId").cast(pl.Int64))
+# Remove "InFrame" from all column names in hc_mixcr_clones DataFrame
+hc_mixcr_clones = hc_mixcr_clones.rename(
+    {col: col.replace("InFrame", "") for col in hc_mixcr_clones.columns})
+
+lc_mixcr_clones = pl.read_csv(
+    lc_clones_file, separator="\t", infer_schema_length=0)
+lc_mixcr_clones = lc_mixcr_clones.with_columns(
+    pl.col("cloneId").cast(pl.Int64))
+# Remove "InFrame" from all column names in lc_mixcr_clones DataFrame
+lc_mixcr_clones = lc_mixcr_clones.rename(
+    {col: col.replace("InFrame", "") for col in lc_mixcr_clones.columns})
+
+
+cols_to_drop = ['readCount', 'readFraction',
+                'uniqueMoleculeCount', 'uniqueMoleculeFraction']
 hc_mixcr_clones = hc_mixcr_clones.drop(
-    ['readCount', 'readFraction'], axis=1, errors='ignore')
+    [col for col in cols_to_drop if col in hc_mixcr_clones.columns])
 lc_mixcr_clones = lc_mixcr_clones.drop(
-    ['readCount', 'readFraction'], axis=1, errors='ignore')
+    [col for col in cols_to_drop if col in lc_mixcr_clones.columns])
 
-hc_mixcr_alignments = pd.read_csv(hc_alignments_file, sep="\t")
-lc_mixcr_alignments = pd.read_csv(lc_alignments_file, sep="\t")
+hc_mixcr_alignments = pl.read_csv(
+    hc_alignments_file, separator="\t", infer_schema_length=0)
+hc_mixcr_alignments = hc_mixcr_alignments.with_columns(
+    pl.col("cloneId").cast(pl.Int64))
+lc_mixcr_alignments = pl.read_csv(
+    lc_alignments_file, separator="\t", infer_schema_length=0)
+lc_mixcr_alignments = lc_mixcr_alignments.with_columns(
+    pl.col("cloneId").cast(pl.Int64))
 
-hc_mixcr_alignments = hc_mixcr_alignments[hc_mixcr_alignments['cloneId'] != -1]
-lc_mixcr_alignments = lc_mixcr_alignments[lc_mixcr_alignments['cloneId'] != -1]
+hc_mixcr_alignments = hc_mixcr_alignments.filter(pl.col('cloneId') != -1)
+lc_mixcr_alignments = lc_mixcr_alignments.filter(pl.col('cloneId') != -1)
 
 
-hl = pd.merge(
-    hc_mixcr_alignments,
-    lc_mixcr_alignments,
+hc_cols = {
+    col: f"{col}-IGHeavy" for col in hc_mixcr_alignments.columns if col != "descrR1"}
+lc_cols = {
+    col: f"{col}-IGLight" for col in lc_mixcr_alignments.columns if col != "descrR1"}
+hl = hc_mixcr_alignments.rename(hc_cols).join(
+    lc_mixcr_alignments.rename(lc_cols),
     on="descrR1",
-    how="inner",
-    suffixes=('-IGHeavy', '-IGLight')
+    how="inner"
 )
 
-hl = hl.groupby([
-    'cloneId-IGHeavy',
-    'cloneId-IGLight'
-]).size().reset_index(name='readCount')
+if 'tagValueUMI-IGHeavy' in hl.columns:
+    hl = hl.group_by(['cloneId-IGHeavy', 'cloneId-IGLight']).agg(
+        readCount=pl.col('descrR1').count(),
+        umiCount=pl.col('tagValueUMI-IGHeavy').n_unique()
+    )
+    hl = hl.with_columns(
+        (pl.col('umiCount') / pl.col('umiCount').sum()).alias('umiFraction'))
+else:
+    hl = hl.group_by([
+        'cloneId-IGHeavy',
+        'cloneId-IGLight'
+    ]).agg(readCount=pl.count())
 
-hl['readFraction'] = hl['readCount'] / hl['readCount'].sum()
+hl = hl.with_columns(
+    (pl.col('readCount') / pl.col('readCount').sum()).alias('readFraction'))
 
 # heavy
-hc_mixcr_clones = hc_mixcr_clones.add_suffix('-IGHeavy')
-result = pd.merge(hl, hc_mixcr_clones,
-                  left_on='cloneId-IGHeavy',
-                  right_on='cloneId-IGHeavy',
-                  how='left')
+hc_mixcr_clones = hc_mixcr_clones.rename(
+    {col: f"{col}-IGHeavy" for col in hc_mixcr_clones.columns})
+result = hl.join(hc_mixcr_clones,
+                 on='cloneId-IGHeavy',
+                 how='left')
 
 # light
-lc_mixcr_clones = lc_mixcr_clones.add_suffix('-IGLight')
-result = pd.merge(result, lc_mixcr_clones,
-                  left_on='cloneId-IGLight',
-                  right_on='cloneId-IGLight',
-                  how='left')
+lc_mixcr_clones = lc_mixcr_clones.rename(
+    {col: f"{col}-IGLight" for col in lc_mixcr_clones.columns})
+result = result.join(lc_mixcr_clones,
+                     on='cloneId-IGLight',
+                     how='left')
 
-result["clonotypeKey"] = result["targetSequences-IGHeavy"] + "-" + result["targetSequences-IGLight"] + "-" + \
-    result["bestVGene-IGHeavy"] + "-" + result["bestVGene-IGLight"] + \
-    result["bestJGene-IGHeavy"] + "-" + result["bestJGene-IGLight"]
-
-result = result[result['clonotypeKey'].notna()]
-
-
-if "bestCGene-IGHeavy" in result:
-    result["clonotypeKey"] = result["clonotypeKey"] + "-" + \
-        result["bestCGene-IGHeavy"] + "-" + result["bestCGene-IGLight"]
-
-# Hash the clonotypeKey after potentially adding C-genes
-result['clonotypeKey'] = result['clonotypeKey'].apply(
-    lambda x: base64.b32encode(bytes.fromhex(hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8')
+result = result.with_columns(
+    clonotypeKey=pl.format("{}-{}-{}-{}-{}-{}",
+                           "targetSequences-IGHeavy", "targetSequences-IGLight",
+                           "bestVGene-IGHeavy", "bestVGene-IGLight",
+                           "bestJGene-IGHeavy", "bestJGene-IGLight")
 )
 
-result["clonotypeLabel"] = "C-" + result["clonotypeKey"].str[:6]
+result = result.filter(pl.col('clonotypeKey').is_not_null())
+
+
+if "bestCGene-IGHeavy" in result.columns and "bestCGene-IGLight" in result.columns:
+    result = result.with_columns(
+        clonotypeKey=pl.col("clonotypeKey") + "-" +
+        result["bestCGene-IGHeavy"] + "-" + result["bestCGene-IGLight"]
+    )
+
+# Hash the clonotypeKey after potentially adding C-genes
+result = result.with_columns(
+    clonotypeKey=pl.col('clonotypeKey').map_elements(
+        lambda x: base64.b32encode(bytes.fromhex(
+            hashlib.sha256(x.encode()).hexdigest()[:24])).decode('utf-8'),
+        return_dtype=pl.String
+    )
+)
+
+result = result.with_columns(
+    clonotypeLabel="C-" + pl.col("clonotypeKey").str.slice(0, 6))
 
 heavyVdj = None
 lightVdj = None
 
-if "nSeqVDJRegion-IGHeavy" in result:
+if "nSeqVDJRegion-IGHeavy" in result.columns:
     heavyVdj = "nSeqVDJRegion-IGHeavy"
-elif (args.imputeHeavy == 'true' and "nSeqImputedVDJRegion-IGHeavy" in result) or (args.imputeHeavy == 'false'):
+elif "nSeqImputedVDJRegion-IGHeavy" in result.columns:
     heavyVdj = "nSeqImputedVDJRegion-IGHeavy"
 else:
     raise ValueError("VDJ region - heavy not found")
 
-if "nSeqVDJRegion-IGLight" in result:
+if "nSeqVDJRegion-IGLight" in result.columns:
     lightVdj = "nSeqVDJRegion-IGLight"
-elif (args.imputeLight == 'true' and "nSeqImputedVDJRegion-IGLight" in result) or (args.imputeLight == 'false'):
+elif "nSeqImputedVDJRegion-IGLight" in result.columns:
     lightVdj = "nSeqImputedVDJRegion-IGLight"
 else:
     raise ValueError("VDJ region - light not found")
 
 
-if args.imputeHeavy == 'false':
-    result = result[result["nSeqCDR3-IGHeavy"].notna()
-                    & result["nSeqFR4-IGHeavy"].notna()]
-    result[heavyVdj] = args.heavyImputeSequence + \
-        result["nSeqCDR3-IGHeavy"] + \
-        result["nSeqFR4-IGHeavy"]  # @TODO currently only CDR3:FR4 is supported here
-
-if args.imputeLight == 'false':
-    result = result[result["nSeqCDR3-IGLight"].notna()
-                    & result["nSeqFR4-IGLight"].notna()]
-    result[lightVdj] = args.lightImputeSequence + \
-        result["nSeqCDR3-IGLight"] + \
-        result["nSeqFR4-IGLight"]  # @TODO currently only CDR3:FR4 is supported here
-
-
 # Filter out rows where VDJ regions are empty/null or contain region_not_covered
-result = result[
-    (result[heavyVdj].notna()) &
-    (result[heavyVdj].str.len() > 0) &
-    (~result[heavyVdj].str.contains('region_not_covered', na=False)) &
-    (result[lightVdj].notna()) &
-    (result[lightVdj].str.len() > 0) &
-    (~result[lightVdj].str.contains('region_not_covered', na=False))
-].copy()
+result = result.filter(
+    (pl.col(heavyVdj).is_not_null()) &
+    (pl.col(heavyVdj).str.len_chars() > 0) &
+    (~pl.col(heavyVdj).str.contains('region_not_covered')) &
+    (pl.col(lightVdj).is_not_null()) &
+    (pl.col(lightVdj).str.len_chars() > 0) &
+    (~pl.col(lightVdj).str.contains('region_not_covered'))
+)
 
 # Create construct-nt column
 if args.order == "hl":
-    result["construct-nt"] = result[heavyVdj] + \
-        linker + result[lightVdj] + hinge
+    result = result.with_columns(
+        (pl.col(heavyVdj) + linker + pl.col(lightVdj) + hinge).alias("construct-nt"))
 elif args.order == "lh":
-    result["construct-nt"] = result[lightVdj] + \
-        linker + result[heavyVdj] + hinge
+    result = result.with_columns(
+        (pl.col(lightVdj) + linker + pl.col(heavyVdj) + hinge).alias("construct-nt"))
 else:
     raise ValueError("Invalid order: " + args.order)
 
@@ -150,7 +177,7 @@ else:
 
 
 def translate(seq):
-    if pd.isna(seq):
+    if seq is None:
         return None
 
     # Standard genetic code
@@ -192,27 +219,32 @@ def translate(seq):
 
 
 # Add amino acid sequence column
-result["construct-aa"] = result["construct-nt"].apply(translate)
+result = result.with_columns(pl.col("construct-nt").map_elements(
+    translate, return_dtype=pl.String).alias("construct-aa"))
 
-# Add isProductive column - false if construct-aa contains stop codon (*) or incomplete codon (_)
-result["isProductive"] = ~result["construct-aa"].str.contains(
-    "[*_]", regex=True, na=True)
+# Add isProductive column - false if construct-aa contains stop codon(*) or incomplete codon(_)
+result = result.with_columns(
+    isProductive=~pl.col("construct-aa").str.contains(r"[*_]", strict=False))
 
 # Group by 'construct-aa' and aggregate
 # Sum readCount and readFraction, take first value for all other columns
-agg_dict = {
-    'readCount': 'sum',
-    'readFraction': 'sum'
-}
+agg_expressions = [
+    pl.sum('readCount'),
+    pl.sum('readFraction')
+]
+if 'umiCount' in result.columns:
+    agg_expressions.append(pl.sum('umiCount'))
+    agg_expressions.append(pl.sum('umiFraction'))
 
-# Create a dictionary for all other columns to take the first value
-for col in result.columns:
-    if col not in ['readCount', 'readFraction']:
-        agg_dict[col] = 'first'
+
+# Create a list of expressions for all other columns to take the first value
+other_cols = [col for col in result.columns if col not in [
+    'construct-aa', 'readCount', 'readFraction', 'umiCount', 'umiFraction']]
+agg_expressions.extend([pl.first(col) for col in other_cols])
 
 # Perform the groupby operation
-result = result.groupby('construct-aa', dropna=False).agg(agg_dict).reset_index(drop=True)
+result = result.group_by('construct-aa').agg(agg_expressions)
 
 
-result["isProductive"] = result["isProductive"].astype(str).str.lower()
-result.to_csv("result.tsv", sep="\t", index=False)
+# result["isProductive"] = result["isProductive"].astype(str).str.lower()
+result.write_csv("result.tsv", separator="\t")

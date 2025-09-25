@@ -61,14 +61,11 @@ export const resultMap = computed(() => {
       progress = app.model.outputs.progressIGLight;
     }
 
-    let done = false;
     if (logs) {
       for (const logData of logs.data) {
         const sampleId = logData.key[0] as string;
         const r = resultMap.get(sampleId);
         if (!r) continue;
-
-        done = !isLiveLog(logData.value);
 
         if (c == 'h') r.heavy.logHandle = logData.value;
         else r.light.logHandle = logData.value;
@@ -113,6 +110,9 @@ export const resultMap = computed(() => {
         const r = resultMap.get(sampleId);
         if (!r) continue;
 
+        const logHandle = c == 'h' ? r.heavy.logHandle : r.light.logHandle;
+
+        const done = logHandle && !isLiveLog(logHandle);
         const p = done ? 'Done' : progressData.value?.replace(ProgressPrefix, '') ?? 'Not started';
 
         if (c == 'h') r.heavy.progress = p;

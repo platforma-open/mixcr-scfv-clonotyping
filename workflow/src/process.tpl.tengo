@@ -105,16 +105,19 @@ self.body(func(inputs) {
 
 	fileExtension := inputSpec.domain["pl7.app/fileExtension"]
 
+	truncateFR4 := !inputs.customLibrary
+	hasUMIs := inputs.hasUMIs
+
 	// [clonotypeKey] -> heavy/light property columns
-	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId)
-	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId)
+	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
+	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
 
 	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
 	// [sample, clonotypeKey] -> abundance columns
-	abundanceColumns := mixcrExports.abundanceColumns(blockId)
+	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
 	cloneKeyAxes := abundanceColumns.cloneKeyAxes
 	abundanceColumnSpecs := abundanceColumns.columnSpecs
 	mainAbundanceColumn := abundanceColumns.mainAbundanceColumn
@@ -236,10 +239,7 @@ self.body(func(inputs) {
 				linker: inputs.linker,
 				hinge: inputs.hinge,
 				order: inputs.order,
-				imputeHeavy: inputs.imputeHeavy,
-				heavyImputeSequence: inputs.heavyImputeSequence,
-				imputeLight: inputs.imputeLight,
-				lightImputeSequence: inputs.lightImputeSequence,
+				hasUMIs: hasUMIs,
 				heavyTagPattern: inputs.heavyTagPattern,
 				heavyAssemblingFeature: inputs.heavyAssemblingFeature,
 				lightTagPattern: inputs.lightTagPattern,
@@ -248,7 +248,12 @@ self.body(func(inputs) {
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
 				mixcrExportArgsLight: mixcrExportArgsLight,
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
-				referenceLibraryLight: inputs.referenceLibraryLight
+				referenceLibraryLight: inputs.referenceLibraryLight,
+				truncateFR4: truncateFR4,
+				mixcrCpu: inputs.mixcrCpu,
+				mixcrMem: inputs.mixcrMem,
+				assembleScfvCpu: inputs.assembleScfvCpu,
+				assembleScfvMem: inputs.assembleScfvMem
 			}
 		}
 	)

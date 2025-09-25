@@ -7,26 +7,34 @@ maps := import("@platforma-sdk/workflow-tengo:maps")
 smart := import("@platforma-sdk/workflow-tengo:smart")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 ll := import("@platforma-sdk/workflow-tengo:ll")
+text := import("text")
 
 processTpl := assets.importTemplate(":process")
 repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
 
-wf.body(func(args) {
-	if !args.imputeHeavy && args.heavyAssemblingFeature != "CDR3:FR4" {
-		ll.panic("imputeHeavy is false, but heavyAssemblingFeature is not CDR3:FR4")
-	}
-	if !args.imputeLight && args.lightAssemblingFeature != "CDR3:FR4" {
-		ll.panic("imputeLight is false, but lightAssemblingFeature is not CDR3:FR4")
-	}
+tagPatternHasUMIs := func(tagPattern) {
+	return text.contains(tagPattern, "UMI") ||
+		   text.contains(tagPattern, "Umi") ||
+		   text.contains(tagPattern, "umi")
+}
 
+wf.body(func(args) {
 	input := wf.resolve(args.input)
 
 	// Optional per-chain reference libraries (only if both V and J provided)
 	referenceLibraryHeavy := undefined
 	referenceLibraryLight := undefined
 
-	if !is_undefined(args.heavyVGenes) && !is_undefined(args.heavyJGenes) && args.heavyVGenes != "" && args.heavyJGenes != "" {
+	customLibrary := false
+
+	if args.customRefMode != "builtin" &&
+	   !is_undefined(args.heavyVGenes) &&
+	   !is_undefined(args.heavyJGenes) &&
+	   args.heavyVGenes != "" &&
+	   args.heavyJGenes != "" {
+
+		customLibrary = true
 		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
 			writeFile("heavyJ.fasta", args.heavyJGenes).saveFile("heavyJ.fasta").
@@ -39,8 +47,13 @@ wf.body(func(args) {
 		referenceLibraryHeavy = referenceLibraryHeavyCmd.output("referenceLibrary")
 	}
 
-	ll.print("__THE_LOG__", referenceLibraryHeavy)
-	if !is_undefined(args.lightVGenes) && !is_undefined(args.lightJGenes) && args.lightVGenes != "" && args.lightJGenes != "" {
+	if args.customRefMode != "builtin" &&
+	  !is_undefined(args.lightVGenes) &&
+	  !is_undefined(args.lightJGenes) &&
+	  args.lightVGenes != "" &&
+	  args.lightJGenes != "" {
+
+		customLibrary = true
 		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
 			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
 			writeFile("lightJ.fasta", args.lightJGenes).saveFile("lightJ.fasta").
@@ -52,29 +65,36 @@ wf.body(func(args) {
 		})
 		referenceLibraryLight = referenceLibraryLightCmd.output("referenceLibrary")
 	}
-
-	
 	// keep separate heavy/light libraries; do not merge
+
+	hUmi := tagPatternHasUMIs(args.heavyTagPattern)
+	lUmi := tagPatternHasUMIs(args.lightTagPattern)
+	hasUMIs := hUmi || lUmi
+	if hasUMIs && (!hUmi || !lUmi){
+		ll.panic("UMI tag pattern is present in one chain but not the other")
+	}
 
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
 		inputData: input.getFutureInputField("data"),
+		customLibrary: customLibrary,
 		species: args.species,
 		linker: args.linker,
 		hinge: args.hinge,
 		order: args.order,
-		imputeHeavy: args.imputeHeavy,
-		heavyImputeSequence: args.heavyImputeSequence,
-		imputeLight: args.imputeLight,
-		lightImputeSequence: args.lightImputeSequence,
-  		heavyTagPattern: args.heavyTagPattern,
+		hasUMIs: hasUMIs,
+		heavyTagPattern: args.heavyTagPattern,
   		heavyAssemblingFeature: args.heavyAssemblingFeature,
   		lightTagPattern: args.lightTagPattern,
   		lightAssemblingFeature: args.lightAssemblingFeature,
 		blockId: wf.blockId().getDataAsJson(),
 		limitInput: args.limitInput,
 		referenceLibraryHeavy: referenceLibraryHeavy,
-		referenceLibraryLight: referenceLibraryLight
+		referenceLibraryLight: referenceLibraryLight,
+		mixcrCpu: args.mixcrCpu,
+		mixcrMem: args.mixcrMem,
+		assembleScfvCpu: args.assembleScfvCpu,
+		assembleScfvMem: args.assembleScfvMem
 	})
 
 	exports := {

@@ -6,30 +6,30 @@ export type BlockArgs = {
   species?: string;
   linker?: string;
   hinge?: string;
-  order: string;
+  order: 'hl' | 'lh';
   heavyTagPattern?: string;
   heavyAssemblingFeature?: string;
   lightTagPattern?: string;
   lightAssemblingFeature?: string;
   limitInput?: number;
-  imputeHeavy: boolean;
-  heavyImputeSequence?: string;
-  imputeLight: boolean;
-  lightImputeSequence?: string;
+
+  customRefMode: 'builtin' | 'scFv' | 'separate';
+
+  scFvSequence?: string;
+  heavyChainSequence?: string;
+  lightChainSequence?: string;
+
   // Custom reference sequences (optional)
   // Derived FASTA strings for repseqio
   heavyVGenes?: string;
   heavyJGenes?: string;
   lightVGenes?: string;
   lightJGenes?: string;
-  // Optional inputs for deriving heavy/light sequences from full scFv or per-chain DNA
-  customRefMode?: 'builtin' | 'scFv' | 'separate';
-  scFvSequence?: string;
-  scFvLinker?: string;
-  scFvOrder?: 'hl' | 'lh';
-  scFvHinge?: string;
-  heavyChainSequence?: string;
-  lightChainSequence?: string;
+
+  mixcrMem?: number;
+  mixcrCpu?: number;
+  assembleScfvMem?: number;
+  assembleScfvCpu?: number;
 };
 
 export type UiState = {
@@ -44,15 +44,18 @@ export const ProgressPattern
 export const model = BlockModel.create()
 
   .withArgs<BlockArgs>({
-    heavyAssemblingFeature: 'CDR3:CDR3',
-    lightAssemblingFeature: 'CDR3:CDR3',
+    heavyAssemblingFeature: 'FR1:FR4',
+    lightAssemblingFeature: 'FR1:FR4',
     order: 'hl',
-    imputeHeavy: true,
-    imputeLight: true,
+    hinge: '',
     customRefMode: 'builtin',
+    mixcrMem: 32,
+    mixcrCpu: 8,
+    assembleScfvMem: 64,
+    assembleScfvCpu: 4,
   })
   .withUiState<UiState>({
-    title: 'MiXCR ScFv',
+    title: 'MiXCR scFv Alignment',
   })
 
   .argsValid((ctx) => {
@@ -130,7 +133,7 @@ export const model = BlockModel.create()
 
   .sections((_) => [{ type: 'link', href: '/', label: 'Main' }])
 
-  .title((ctx) => ctx.uiState.title ?? 'MiXCR ScFv')
+  .title((ctx) => ctx.uiState.title ?? 'MiXCR scFv Alignment')
 
   .done(2);
 

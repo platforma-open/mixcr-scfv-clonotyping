@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlSectionSeparator, PlTextArea, PlTextField, PlAccordionSection } from '@platforma-sdk/ui-vue';
-import { useApp } from '../app';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlNumberField, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
-import { validateLibrarySequence, validateSeparateChain, validateFullScFv } from '../utils/sequenceValidator';
+import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
+import { validateFullScFv, validateLibrarySequence, validateSeparateChain } from '../utils/sequenceValidator';
 
 const app = useApp();
 // no separate scFv hinge field; use general hinge in Analysis section
@@ -46,7 +46,7 @@ function plRefsEqual(ref1: PlRef, ref2: PlRef) {
 function setInput(inputRef?: PlRef) {
   app.model.args.input = inputRef;
   if (inputRef)
-    app.model.ui.title = 'MiXCR scFv - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
+    app.model.ui.title = 'MiXCR scFv Alignment - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
   else
     app.model.ui.title = undefined;
 }
@@ -62,133 +62,87 @@ function parseNumber(v: string): number {
 }
 
 const orderOptions: ListOption[] = [
-  { label: 'Heavy-linker-light-hinge', value: 'hl' },
-  { label: 'Light-linker-heavy-hinge', value: 'lh' },
+  { label: 'Heavy-linker-light', value: 'hl' },
+  { label: 'Light-linker-heavy', value: 'lh' },
 ];
-
-const imputeOptions: ListOption[] = [
-  { label: 'From germline', value: true },
-  { label: 'From fixed sequence', value: false },
-];
-
-const customRefMode = computed<'builtin' | 'scFv' | 'separate'>({
-  get: () => ((app.model.args as Record<string, unknown>).customRefMode as 'builtin' | 'scFv' | 'separate' | undefined) ?? 'builtin',
-  set: (v: 'builtin' | 'scFv' | 'separate') => {
-    (app.model.args as Record<string, unknown>).customRefMode = v;
-  },
-});
-
-// Reset reference input fields when switching modes
-watch(
-  () => customRefMode.value,
-  () => {
-    const args = app.model.args as Record<string, unknown>;
-    args.heavyChainSequence = '';
-    args.lightChainSequence = '';
-    args.scFvSequence = '';
-    // keep analysis 'order' as-is; no separate scFv order
-    args.heavyVGenes = undefined;
-    args.heavyJGenes = undefined;
-    args.lightVGenes = undefined;
-    args.lightJGenes = undefined;
-  },
-  { immediate: false },
-);
-
-
-// Helpers to expose current DNA sequences per chain for validation display
-const currentHeavyDNA = computed<string | undefined>(() => {
-  if (customRefMode.value === 'builtin') return undefined;
-  if (customRefMode.value === 'separate') return app.model.args.heavyChainSequence?.trim();
-  const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
-  if (!raw || !linker) return undefined;
-  const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
-  if (records.length === 0) return undefined;
-  const seq = records[0].seq.toUpperCase().replace(/\s/g, '');
-  const parts = seq.split(linker);
-  if (parts.length !== 2) return undefined;
-  return order === 'hl' ? parts[0] : parts[1];
-});
-
-const currentLightDNA = computed<string | undefined>(() => {
-  if (customRefMode.value === 'builtin') return undefined;
-  if (customRefMode.value === 'separate') return app.model.args.lightChainSequence?.trim();
-  const raw = (app.model.args.scFvSequence ?? '').trim();
-  const linker = ((app.model.args.linker ?? '').toUpperCase().replace(/\s/g, ''));
-  const order = app.model.args.order ?? 'hl';
-  if (!raw || !linker) return undefined;
-  const records = raw.startsWith('>') ? parseFasta(raw) : [{ header: 'scFv', seq: raw }];
-  if (records.length === 0) return undefined;
-  const seq = records[0].seq.toUpperCase().replace(/\s/g, '');
-  const parts = seq.split(linker);
-  if (parts.length !== 2) return undefined;
-  return order === 'hl' ? parts[1] : parts[0];
-});
 
 const heavyValidation = computed(() => {
-  if (customRefMode.value === 'separate') {
+  if (app.model.args.customRefMode === 'separate') {
     const raw = (app.model.args.heavyChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
-  if (customRefMode.value === 'builtin') return undefined;
+  if (app.model.args.customRefMode === 'builtin') return undefined;
+
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
   const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
   const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
   const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
   const heavySeq = order === 'hl' ? parts[0] : parts[1];
   return validateLibrarySequence(heavySeq);
 });
 
 const lightValidation = computed(() => {
-  if (customRefMode.value === 'separate') {
+  if (app.model.args.customRefMode === 'separate') {
     const raw = (app.model.args.lightChainSequence ?? '').trim();
     if (!raw) return undefined;
-    return validateSeparateChain(raw) as any;
+    return validateSeparateChain(raw);
   }
-  if (customRefMode.value === 'builtin') return undefined;
+  if (app.model.args.customRefMode === 'builtin') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
   const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
   const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
   const order = app.model.args.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' } as any;
+  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' } as any;
+  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
   const lightSeq = order === 'hl' ? parts[1] : parts[0];
   return validateLibrarySequence(lightSeq);
 });
 
 // Full scFv-level validation (format/linker/split) for scFv mode
 const scFvValidation = computed(() => {
-  if (customRefMode.value !== 'scFv') return undefined;
+  if (app.model.args.customRefMode !== 'scFv') return undefined;
   const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
 });
 
+const umiMismatchWarning = computed(() => {
+  const heavyPattern = app.model.args.heavyTagPattern ?? '';
+  const lightPattern = app.model.args.lightTagPattern ?? '';
+  const heavyHasUmi = /umi/i.test(heavyPattern);
+  const lightHasUmi = /umi/i.test(lightPattern);
+  if (heavyHasUmi && !lightHasUmi) {
+    return 'Heavy chain tag pattern contains "UMI", but light chain pattern does not. If UMIs are used, they should be present in both tag patterns to match reads after alignment.';
+  }
+  if (!heavyHasUmi && lightHasUmi) {
+    return 'Light chain tag pattern contains "UMI", but heavy chain pattern does not. If UMIs are used, they should be present in both tag patterns to match reads after alignment.';
+  }
+  return undefined;
+});
+
 // Derive per-chain V/J FASTA strings into args for workflow
 watch(
   () => ({
-    mode: customRefMode.value,
+    mode: app.model.args.customRefMode,
     heavy: app.model.args.heavyChainSequence,
     light: app.model.args.lightChainSequence,
     scfv: app.model.args.scFvSequence,
@@ -212,7 +166,7 @@ watch(
     setVJ('heavy', undefined, undefined);
     setVJ('light', undefined, undefined);
 
-    const mode = customRefMode.value;
+    const mode = app.model.args.customRefMode;
     if (mode === 'builtin') {
       setVJ('heavy', undefined, undefined);
       setVJ('light', undefined, undefined);
@@ -318,9 +272,20 @@ watch(
 </script>
 
 <template>
-  <PlSectionSeparator>Reference</PlSectionSeparator>
+  <PlDropdownRef
+    :options="app.model.outputs.inputOptions"
+    :model-value="app.model.args.input"
+    label="Select dataset"
+    clearable required
+    @update:model-value="setInput"
+  >
+    <template #tooltip>
+      Select input sequencing dataset (FASTA/FASTQ).
+    </template>
+  </PlDropdownRef>
+
   <PlBtnGroup
-    v-model="customRefMode"
+    v-model="app.model.args.customRefMode"
     :options="[
       { label: 'Built-in reference', value: 'builtin' },
       { label: 'Full scFv sequence', value: 'scFv' },
@@ -329,11 +294,16 @@ watch(
     label="Reference type"
   >
     <template #tooltip>
-      Select reference type. Built-in reference is the default reference from the MiXCR. Full scFv sequence is a custom reference built from the scFv sequence. Separate chains is a custom reference built from the heavy and light chain sequences.
+      <p>This is the most important setting, as it determines the alignment strategy. You must choose the option that best describes the origin and nature of your scFv library.</p>
+      <ul>
+        <li><b>Built-in Reference:</b> Standard choice for scFv libraries from natural antibody repertoires (e.g., from immunized animals). Alignment is performed against MiXCR's built-in database of germline V, D, and J genes.</li>
+        <li><b>Full scFv Sequence:</b> For synthetic libraries (e.g., phage or yeast display) where sequences are variants of a single, known scFv construct. Paste the complete DNA sequence of your reference scFv.</li>
+        <li><b>Separate Chains:</b> Alternative for synthetic libraries where you have reference sequences for heavy and light variable regions, but not as a pre-joined construct.</li>
+      </ul>
     </template>
   </PlBtnGroup>
 
-  <template v-if="customRefMode === 'separate'">
+  <template v-if="app.model.args.customRefMode === 'separate'">
     <PlAlert
       v-if="(heavyValidation && !heavyValidation.isValid) || (lightValidation && !lightValidation.isValid)"
       type="error"
@@ -350,7 +320,7 @@ watch(
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Heavy chain sequence(s) in FASTA format. Should cover VDJRegion.
+        Paste the DNA sequence of the reference heavy chain V(D)J region. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
     <PlTextArea
@@ -361,12 +331,12 @@ ATCGATCGATCG..."
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Light chain sequence(s) in FASTA format. Should cover VDJRegion.
+        Paste the DNA sequence of the reference light chain V(J) region. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
   </template>
 
-  <template v-else-if="customRefMode === 'scFv'">
+  <template v-else-if="app.model.args.customRefMode === 'scFv'">
     <PlAlert
       v-if="scFvValidation && !scFvValidation.isValid"
       type="error"
@@ -382,36 +352,72 @@ ATCGATCGATCG..."
 heavy-seq + linker + light-seq (or reverse)"
     >
       <template #tooltip>
-        Full scFv sequence in FASTA format. Should contain heavy chain and light chain sequences, separated by linker.
+        Paste the complete DNA sequence of your reference scFv construct (VH-Linker-VL or VL-Linker-VH). The aligner will use this sequence as a direct template to align all reads from your dataset. The provided sequence must be in-frame. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
   </template>
-  <PlSectionSeparator>Analysis settings</PlSectionSeparator>
-  <PlDropdownRef
-    :options="app.model.outputs.inputOptions"
-    :model-value="app.model.args.input"
-    label="Select dataset"
-    clearable @update:model-value="setInput"
-  >
-    <template #tooltip>
-      Select input sequencing dataset (FASTA/FASTQ).
-    </template>
-  </PlDropdownRef>
 
   <PlDropdown
-    v-if="customRefMode === 'builtin'"
+    v-if="app.model.args.customRefMode === 'builtin'"
     v-model="app.model.args.species"
     :options="speciesOptions"
     label="Select species"
-  />
+    required
+  >
+    <template #tooltip>
+      Choose the species from which the antibody repertoire was derived. This ensures the aligner uses the correct set of germline genes.
+    </template>
+  </PlDropdown>
+
+  <PlDropdown
+    v-model="app.model.args.order"
+    :options="orderOptions"
+    label="Construct building order"
+  >
+    <template #tooltip>
+      <p>Defines the physical arrangement of the chains in your scFv construct.</p>
+      <ul>
+        <li><b>Heavy-linker-light:</b> The VH domain is upstream of the linker, followed by the VL domain.</li>
+        <li><b>Light-linker-heavy:</b> The VL domain is upstream of the linker, followed by the VH domain.</li>
+      </ul>
+    </template>
+  </PlDropdown>
+
+  <PlTextArea
+    v-model="app.model.args.linker"
+    :rows="3"
+    label="Linker nucleotide sequence"
+    placeholder="GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT"
+    required
+  >
+    <template #tooltip>
+      Enter the exact DNA sequence of the linker used in your construct. The length of this sequence must be a multiple of three. A commonly used linker is (G₄S)₃ with the sequence GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT.
+    </template>
+  </PlTextArea>
+
+  <PlAlert
+    v-if="umiMismatchWarning"
+    type="warn"
+    :title="'UMI tag pattern mismatch'"
+  >
+    {{ umiMismatchWarning }}
+  </PlAlert>
 
   <PlTextField
     v-model="app.model.args.heavyTagPattern"
     label="Heavy chain tag pattern"
     :clearable="() => undefined"
+    placeholder="^(R1:*)ggtggcggtggctct*\*"
+    required
   >
     <template #tooltip>
-      Pattern for identifying heavy chain sequences.
+      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p><b>Examples:</b></p>
+      <ul>
+        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^(R1:*)linker*</code></li>
+        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+      </ul>
+      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
     </template>
   </PlTextField>
 
@@ -421,7 +427,7 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Heavy chain assembling feature"
   >
     <template #tooltip>
-      Region used to assemble heavy clonotypes.
+      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
     </template>
   </PlDropdown>
 
@@ -429,9 +435,16 @@ heavy-seq + linker + light-seq (or reverse)"
     v-model="app.model.args.lightTagPattern"
     label="Light chain tag pattern"
     :clearable="() => undefined"
+    placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
   >
     <template #tooltip>
-      Pattern for identifying light chain sequences.
+      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p><b>Examples:</b></p>
+      <ul>
+        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^*linker(R1:*)</code></li>
+        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+      </ul>
+      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
     </template>
   </PlTextField>
 
@@ -441,94 +454,68 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Light chain assembling feature"
   >
     <template #tooltip>
-      Region used to assemble light clonotypes.
+      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
     </template>
   </PlDropdown>
-
-  <PlTextArea
-    v-model="app.model.args.linker"
-    :rows="3"
-    label="Linker nt sequence (including first nt of C gene)"
-    required
-  >
-    <template #tooltip>
-      Linker nucleotide sequence between heavy and light.
-    </template>
-  </PlTextArea>
 
   <PlTextArea
     v-model="app.model.args.hinge"
     :rows="3"
     label="Hinge region nt sequence"
-    required
   >
     <template #tooltip>
-      Hinge nucleotide sequence.
+      If your construct includes a portion of the antibody hinge region, specify its nucleotide sequence here to improve alignment accuracy.
     </template>
   </PlTextArea>
-
-  <PlDropdown
-    v-model="app.model.args.order"
-    :options="orderOptions"
-    label="Construct building order"
-  >
-    <template #tooltip>
-      Chain order
-    </template>
-  </PlDropdown>
 
   <PlAccordionSection label="Advanced Settings">
     <PlTextField
       v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
       label="Take only this number of reads into analysis"
     />
-
-    <PlBtnGroup
-      v-if="app.model.args.heavyAssemblingFeature !== 'FR1:FR4'"
-      v-model="app.model.args.imputeHeavy"
-      :options="imputeOptions"
-      label="Reconstruct uncovered heavy regions"
+    <PlNumberField
+      v-model="app.model.args.mixcrCpu"
+      label="MiXCR CPU (cores)"
+      :min-value="1"
+      :step="1"
+      :max-value="128"
     >
       <template #tooltip>
-        Impute uncovered heavy regions from germline or fixed sequence.
+        Sets the number of CPU cores to use for the MiXCR alignment.
       </template>
-    </PlBtnGroup>
-    <div v-if="!app.model.args.imputeHeavy && app.model.args.heavyAssemblingFeature !== 'CDR3:FR4'">
-      ERROR: only CDR3:FR4 assembling feature is supported for imputing heavy regions from fixed sequence
-    </div>
-    <PlTextArea
-      v-if="!app.model.args.imputeHeavy"
-      v-model="app.model.args.heavyImputeSequence"
-      label="Heavy nt sequence of V region (pre NGS)"
-      required
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.mixcrMem"
+      label="MiXCR Memory (GiB)"
+      :min-value="1"
+      :step="1"
+      :max-value="1012"
     >
       <template #tooltip>
-        Fixed heavy V-region nucleotides used when imputing.
+        Sets the amount of memory to use for the MiXCR alignment.
       </template>
-    </PlTextArea>
-
-    <PlBtnGroup
-      v-if="app.model.args.lightAssemblingFeature !== 'FR1:FR4'"
-      v-model="app.model.args.imputeLight"
-      :options="imputeOptions"
-      label="Reconstruct uncovered heavy regions"
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.assembleScfvCpu"
+      label="Assemble scFv CPU (cores)"
+      :min-value="1"
+      :step="1"
+      :max-value="128"
     >
       <template #tooltip>
-        Impute uncovered light regions from germline or fixed sequence.
+        Sets the number of CPU cores to use for the scFv assembly.
       </template>
-    </PlBtnGroup>
-    <div v-if="!app.model.args.imputeLight && app.model.args.lightAssemblingFeature !== 'CDR3:FR4'">
-      ERROR: only CDR3:FR4 assembling feature is supported for imputing light regions from fixed sequence
-    </div>
-    <PlTextArea
-      v-if="!app.model.args.imputeLight"
-      v-model="app.model.args.lightImputeSequence"
-      label="Light nt sequence of V region (pre NGS)"
-      required
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.args.assembleScfvMem"
+      label="Assemble scFv Memory (GiB)"
+      :min-value="1"
+      :step="1"
+      :max-value="1012"
     >
       <template #tooltip>
-        Fixed light V-region nucleotides used when imputing.
+        Sets the amount of memory to use for the scFv assembly.
       </template>
-    </PlTextArea>
+    </PlNumberField>
   </PlAccordionSection>
 </template>
