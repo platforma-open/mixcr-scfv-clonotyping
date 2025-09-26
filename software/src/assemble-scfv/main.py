@@ -245,6 +245,8 @@ agg_expressions.extend([pl.first(col) for col in other_cols])
 # Perform the groupby operation
 result = result.group_by('construct-aa').agg(agg_expressions)
 
+result = result.sort("construct-nt")
+
 
 # result["isProductive"] = result["isProductive"].astype(str).str.lower()
 result.write_csv("result.tsv", separator="\t")
