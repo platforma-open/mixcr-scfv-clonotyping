@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 2.0.1
+
+### Patch Changes
+
+- 3358e40: Fix CID conflict
+
 ## 2.0.0
 
 ### Major Changes
