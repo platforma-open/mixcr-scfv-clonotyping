@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 2.0.2
+
+### Patch Changes
+
+- 2567616: fix polars version
+
 ## 2.0.1
 
 ### Patch Changes
