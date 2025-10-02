@@ -108,7 +108,7 @@ export function validateSeparateChain(raw: string): SimpleValidation {
   return errors.length ? { isValid: false, error: errors.join('\n') } : { isValid: true };
 }
 
-export function validateFullScFv(scfvRaw: string, linker: string, hinge: string | undefined, order: 'hl' | 'lh'): SimpleValidation {
+export function validateFullScFv(scfvRaw: string, linker: string, hinge: string | undefined, _order: 'hl' | 'lh'): SimpleValidation {
   const s = (scfvRaw ?? '').trim();
   if (!s) return { isValid: true };
   if (!s.startsWith('>')) return { isValid: false, error: 'FASTA header is required. Start with ">" and a record name.' };
