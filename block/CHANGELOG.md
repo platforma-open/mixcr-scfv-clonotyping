@@ -1,5 +1,15 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.0.3
+
+### Patch Changes
+
+- 1c55433: [sdk/ui] Broken error propagation: block errors are not showing anymore
+- Updated dependencies [1c55433]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.0.1
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.0.1
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.0.3
+
 ## 3.0.2
 
 ### Patch Changes
