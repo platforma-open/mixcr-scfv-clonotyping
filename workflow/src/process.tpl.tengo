@@ -108,9 +108,15 @@ self.body(func(inputs) {
 	truncateFR4 := !inputs.customLibrary
 	hasUMIs := inputs.hasUMIs
 
-	// [clonotypeKey] -> heavy/light property columns
-	cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
-	cloneColumnsLight := mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
+    // [clonotypeKey] -> heavy/light property columns
+    cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
+    lightSuppressed := !is_undefined(inputs.lightImputeSequence)
+    cloneColumnsLight := undefined
+    if lightSuppressed {
+        cloneColumnsLight = { exportArgs: [], columnSpecs: [] }
+    } else {
+        cloneColumnsLight = mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
+    }
 
 	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
@@ -244,6 +250,7 @@ self.body(func(inputs) {
 				heavyAssemblingFeature: inputs.heavyAssemblingFeature,
 				lightTagPattern: inputs.lightTagPattern,
 				lightAssemblingFeature: inputs.lightAssemblingFeature,
+				lightImputeSequence: inputs.lightImputeSequence,
 				fileExtension: fileExtension,
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
 				mixcrExportArgsLight: mixcrExportArgsLight,

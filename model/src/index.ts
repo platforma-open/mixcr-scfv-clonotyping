@@ -18,6 +18,10 @@ export type BlockArgs = {
   scFvSequence?: string;
   heavyChainSequence?: string;
   lightChainSequence?: string;
+  lightImputeSequence?: string;
+
+  // If true in scFv mode, use the reference to impute light chain and ignore light chain read extraction options
+  imputeLight?: boolean;
 
   // Custom reference sequences (optional)
   // Derived FASTA strings for repseqio
@@ -49,6 +53,7 @@ export const model = BlockModel.create()
     order: 'hl',
     hinge: '',
     customRefMode: 'builtin',
+    imputeLight: false,
     mixcrMem: 32,
     mixcrCpu: 8,
     assembleScfvMem: 64,
@@ -61,13 +66,15 @@ export const model = BlockModel.create()
   .argsValid((ctx) => {
     const mode = ctx.args.customRefMode ?? 'builtin';
     const speciesOk = mode === 'builtin' ? ctx.args.species !== undefined : true;
+    const skipLightTagPattern = (mode === 'scFv' && ctx.args.imputeLight === true)
+      || (mode === 'separate' && ctx.args.imputeLight === true);
     return (
       ctx.args.input !== undefined
       && speciesOk
       && ctx.args.linker !== undefined
       && ctx.args.hinge !== undefined
       && ctx.args.heavyTagPattern !== undefined
-      && ctx.args.lightTagPattern !== undefined
+      && (skipLightTagPattern ? true : ctx.args.lightTagPattern !== undefined)
     );
   })
 
