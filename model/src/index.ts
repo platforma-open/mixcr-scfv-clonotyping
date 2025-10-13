@@ -66,8 +66,12 @@ export const model = BlockModel.create()
   .argsValid((ctx) => {
     const mode = ctx.args.customRefMode ?? 'builtin';
     const speciesOk = mode === 'builtin' ? ctx.args.species !== undefined : true;
-    const skipLightTagPattern = (mode === 'scFv' && ctx.args.imputeLight === true)
-      || (mode === 'separate' && ctx.args.imputeLight === true);
+    const skipLightTagPattern = (
+      (mode === 'scFv' || mode === 'separate') && (ctx.args.imputeLight === true)
+    ) || (
+      // also skip if a light impute sequence is already present (avoids transient race)
+      (mode === 'scFv' || mode === 'separate') && typeof ctx.args.lightImputeSequence === 'string' && ctx.args.lightImputeSequence.length > 0
+    );
     return (
       ctx.args.input !== undefined
       && speciesOk
