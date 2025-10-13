@@ -14,6 +14,9 @@ repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
 
 tagPatternHasUMIs := func(tagPattern) {
+	if is_undefined(tagPattern) {
+		return false
+	}
 	return text.contains(tagPattern, "UMI") ||
 		   text.contains(tagPattern, "Umi") ||
 		   text.contains(tagPattern, "umi")
@@ -67,12 +70,15 @@ wf.body(func(args) {
 	}
 	// keep separate heavy/light libraries; do not merge
 
-	hUmi := tagPatternHasUMIs(args.heavyTagPattern)
-	lUmi := tagPatternHasUMIs(args.lightTagPattern)
-	hasUMIs := hUmi || lUmi
+hUmi := tagPatternHasUMIs(args.heavyTagPattern)
+lUmi := tagPatternHasUMIs(args.lightTagPattern)
+hasUMIs := hUmi || lUmi
+// Only enforce mismatch when both tag patterns are provided
+if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 	if hasUMIs && (!hUmi || !lUmi){
 		ll.panic("UMI tag pattern is present in one chain but not the other")
 	}
+}
 
 	runMixcr := render.createEphemeral(processTpl, {
 		inputSpec: input.getFutureInputField("spec"),
@@ -94,7 +100,8 @@ wf.body(func(args) {
 		mixcrCpu: args.mixcrCpu,
 		mixcrMem: args.mixcrMem,
 		assembleScfvCpu: args.assembleScfvCpu,
-		assembleScfvMem: args.assembleScfvMem
+		assembleScfvMem: args.assembleScfvMem,
+		lightImputeSequence: args.lightImputeSequence
 	})
 
 	exports := {
