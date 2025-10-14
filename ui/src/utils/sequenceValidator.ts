@@ -61,7 +61,7 @@ export function validateLibrarySequence(sequence: string): SequenceValidationRes
   if (translatedSequence.includes('X')) warnings.push('Translation contains unknown amino acids (X) due to invalid codons');
 
   const validationRegex = /C[ACDEFGHIKLMNPQRSTVWY]{4,50}[FWYLI][ACDEFGHIKLMNPQRSTVWY]{0,5}G[ACDEFGHIKLMNPQRSTVWY]G/;
-  const searchStartPosition = 80;
+  const searchStartPosition = 40;
   const sequenceToSearch = translatedSequence.substring(searchStartPosition);
   const match = validationRegex.exec(sequenceToSearch);
   if (!match) {
@@ -131,5 +131,24 @@ export function validateFullScFv(scfvRaw: string, linker: string, hinge: string 
     // if (!hRes.isValid) return { isValid: false, error: `Heavy chain: ${hRes.error ?? 'invalid sequence'}` };
     // if (!lRes.isValid) return { isValid: false, error: `Light chain: ${lRes.error ?? 'invalid sequence'}` };
   }
+  return { isValid: true };
+}
+
+// Plain nucleotide validators (no FASTA headers, only A/C/G/T). Empty values are treated as undefined (no error shown).
+export function validateLinker(raw: string): SimpleValidation | undefined {
+  const s = (raw ?? '').trim();
+  if (!s) return undefined;
+  if (/^>/m.test(s)) return { isValid: false, error: 'FASTA format is not allowed for linker' };
+  const clean = s.toUpperCase().replace(/\s/g, '');
+  if (!/^[ACGT]+$/.test(clean)) return { isValid: false, error: 'Linker must contain only A/C/G/T characters' };
+  return { isValid: true };
+}
+
+export function validateHinge(raw: string): SimpleValidation | undefined {
+  const s = (raw ?? '').trim();
+  if (!s) return undefined; // optional field
+  if (/^>/m.test(s)) return { isValid: false, error: 'FASTA format is not allowed for hinge' };
+  const clean = s.toUpperCase().replace(/\s/g, '');
+  if (!/^[ACGT]+$/.test(clean)) return { isValid: false, error: 'Hinge must contain only A/C/G/T characters' };
   return { isValid: true };
 }

@@ -5,7 +5,7 @@ import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDrop
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
-import { validateFullScFv, validateLibrarySequence, validateSeparateChain } from '../utils/sequenceValidator';
+import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
 
 const app = useApp();
 type ArgsExt = typeof app.model.args & { imputeLight?: boolean; lightImputeSequence?: string };
@@ -131,6 +131,10 @@ const scFvValidation = computed(() => {
   return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
 });
 
+// Validate linker and hinge as plain nt sequences (no FASTA, only A/C/G/T, multiple of 3)
+const linkerValidation = computed(() => validateLinker(app.model.args.linker ?? ''));
+const hingeValidation = computed(() => validateHinge(app.model.args.hinge ?? ''));
+
 const umiMismatchWarning = computed(() => {
   const heavyPattern = app.model.args.heavyTagPattern ?? '';
   const lightPattern = app.model.args.lightTagPattern ?? '';
@@ -247,31 +251,22 @@ watch(
       const parts = seq.split(linker);
       if (parts.length !== 2) continue;
 
-      // Try both orders and pick the one that yields valid V/J for both chains; fall back to selected order
-      const tryOrder = (ord: 'hl' | 'lh') => {
-        const hs = ord === 'hl' ? parts[0] : parts[1];
-        const ls = ord === 'hl' ? parts[1] : parts[0];
-        const hRes = validateLibrarySequence(hs);
-        const lRes = validateLibrarySequence(ls);
-        const bothValid = Boolean(hRes.isValid && hRes.vGene && hRes.jGene && lRes.isValid && lRes.vGene && lRes.jGene);
-        return { ord, hs, ls, hRes, lRes, bothValid };
-      };
+      const hs = order === 'hl' ? parts[0] : parts[1];
+      const ls = order === 'hl' ? parts[1] : parts[0];
+      const hRes = validateLibrarySequence(hs);
+      const lRes = validateLibrarySequence(ls);
 
-      const cand1 = tryOrder('hl');
-      const cand2 = tryOrder('lh');
-      const chosen = cand1.bothValid ? cand1 : (cand2.bothValid ? cand2 : (order === 'hl' ? cand1 : cand2));
-
-      if (chosen.hRes.isValid && chosen.hRes.vGene && chosen.hRes.jGene) {
+      if (hRes.isValid && hRes.vGene && hRes.jGene) {
         const base = r.header.replace(/\s+/g, '_');
-        heavyVParts.push(chosen.hRes.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
-        heavyJParts.push(chosen.hRes.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
+        heavyVParts.push(hRes.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
+        heavyJParts.push(hRes.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
       }
 
-      if (chosen.lRes.isValid && chosen.lRes.vGene && chosen.lRes.jGene) {
+      if (lRes.isValid && lRes.vGene && lRes.jGene) {
         const base = r.header.replace(/\s+/g, '_');
-        lightVParts.push(chosen.lRes.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
-        lightJParts.push(chosen.lRes.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
-        if (firstValidLightSeq === undefined) firstValidLightSeq = chosen.ls;
+        lightVParts.push(lRes.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
+        lightJParts.push(lRes.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
+        if (firstValidLightSeq === undefined) firstValidLightSeq = ls;
       }
     }
 
@@ -404,6 +399,14 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlDropdown>
 
+  <PlAlert
+    v-if="linkerValidation && !linkerValidation.isValid"
+    type="error"
+    :title="'Linker input issues detected'"
+  >
+    {{ linkerValidation.error }}
+  </PlAlert>
+
   <PlTextArea
     v-model="app.model.args.linker"
     :rows="3"
@@ -489,6 +492,13 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlDropdown>
 
+  <PlAlert
+    v-if="hingeValidation && !hingeValidation.isValid"
+    type="error"
+    :title="'Hinge input issues detected'"
+  >
+    {{ hingeValidation.error }}
+  </PlAlert>
   <PlTextArea
     v-model="app.model.args.hinge"
     :rows="3"
