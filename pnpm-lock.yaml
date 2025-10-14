@@ -22,8 +22,8 @@ catalogs:
       specifier: 4.7.0-233-develop
       version: 4.7.0-233-develop
     '@platforma-open/milaboratories.software-ptransform':
-      specifier: ^1.3.1
-      version: 1.6.5
+      specifier: ^1.6.6
+      version: 1.6.6
     '@platforma-open/milaboratories.software-repseqio':
       specifier: ^2.5.0-13-master
       version: 2.5.0-23-master
@@ -221,7 +221,7 @@ importers:
         version: 4.7.0-233-develop
       '@platforma-open/milaboratories.software-ptransform':
         specifier: 'catalog:'
-        version: 1.6.5
+        version: 1.6.6
       '@platforma-open/milaboratories.software-small-binaries':
         specifier: 'catalog:'
         version: 1.15.22
@@ -1265,8 +1265,8 @@ packages:
   '@platforma-open/milaboratories.software-ptexter@1.1.1':
     resolution: {integrity: sha512-nTKuFoDm+IhlD3uCktYrpjJ1pJ8TUrGOGAACbLoPwu65iRPOjohmrBZxFux+7eill+aJmqEsy+xF41Dw4mfnkg==}
 
-  '@platforma-open/milaboratories.software-ptransform@1.6.5':
-    resolution: {integrity: sha512-1eLCAKAr5HQChVFtF4U/jfR6wJgLr0rte9fLJuLR1jOABsMZhtsXX2HUXCV066Otr1WMLJeDd6Q0C7/+OyOlGw==}
+  '@platforma-open/milaboratories.software-ptransform@1.6.6':
+    resolution: {integrity: sha512-J43RsEiEo98Hwb+ze1UO42gXa3VTDCqMdBLbkTZiEs5nOtnqetMKfFRcGcSn/uHlUAdkBLAQ6WmEtEIfAgaUcA==}
 
   '@platforma-open/milaboratories.software-repseqio@2.5.0-23-master':
     resolution: {integrity: sha512-98hxyb/LSkQwyk8+VU8UP6yNwIoSeaBJgKj2f/b7xH9XWZJ+n3xO7AvqneYQsiSoK9PAfdDWVbZ+5CiGRw1pEA==}
@@ -7256,7 +7256,7 @@ snapshots:
 
   '@platforma-open/milaboratories.software-ptexter@1.1.1': {}
 
-  '@platforma-open/milaboratories.software-ptransform@1.6.5': {}
+  '@platforma-open/milaboratories.software-ptransform@1.6.6': {}
 
   '@platforma-open/milaboratories.software-repseqio@2.5.0-23-master': {}
 
