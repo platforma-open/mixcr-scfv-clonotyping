@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.2.0
+
+### Minor Changes
+
+- f69364b: Validation added for linker and hinge and bug fix
+
 ## 2.1.1
 
 ### Patch Changes
