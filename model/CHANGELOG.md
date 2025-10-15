@@ -1,5 +1,15 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.model
 
+## 2.1.1
+
+### Patch Changes
+
+- 3f0b597: technical release
+- 8021367: technical release
+- 81048a1: technical release
+- cdccac7: technical release
+- 85b1596: technical release
+
 ## 2.1.0
 
 ### Minor Changes
