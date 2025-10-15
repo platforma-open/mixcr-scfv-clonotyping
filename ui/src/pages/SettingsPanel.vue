@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlAlert, PlBtnGroup, PlDropdown, PlDropdownRef, PlNumberField, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownRef, PlNumberField, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain } from '../utils/sequenceValidator';
 
 const app = useApp();
+type ArgsExt = typeof app.model.args & { imputeLight?: boolean; lightImputeSequence?: string };
+const argsExt = app.model.args as ArgsExt;
+const imputeLight = computed<boolean>({
+  get: () => argsExt.imputeLight === true,
+  set: (v: boolean) => { argsExt.imputeLight = v; },
+});
 // no separate scFv hinge field; use general hinge in Analysis section
 
 const speciesOptions: ListOption[] = [
@@ -149,6 +155,7 @@ watch(
     linker: app.model.args.linker,
     hinge: app.model.args.hinge,
     order: app.model.args.order,
+    imputeLight: argsExt.imputeLight,
   }),
   () => {
     const setVJ = (chain: 'heavy' | 'light', v?: string, j?: string) => {
@@ -165,6 +172,8 @@ watch(
     // reset by default
     setVJ('heavy', undefined, undefined);
     setVJ('light', undefined, undefined);
+    // reset derived impute sequence by default
+    argsExt.lightImputeSequence = undefined;
 
     const mode = app.model.args.customRefMode;
     if (mode === 'builtin') {
@@ -202,6 +211,11 @@ watch(
           }
         }
         setVJ('light', lvVParts.length ? lvVParts.join('\n') : undefined, lvJParts.length ? lvJParts.join('\n') : undefined);
+        // if imputing in separate mode, use provided light chain reference as impute sequence
+        if (argsExt.imputeLight === true) {
+          const seq = (lvRecs[0]?.seq ?? '').toUpperCase().replace(/\s/g, '');
+          argsExt.lightImputeSequence = seq || undefined;
+        }
       }
       return;
     }
@@ -221,6 +235,7 @@ watch(
     const lightVParts: string[] = [];
     const lightJParts: string[] = [];
 
+    let firstValidLightSeq: string | undefined = undefined;
     for (const r of records) {
       let seq = r.seq.toUpperCase().replace(/\s/g, '');
       if (hingeRaw) {
@@ -256,6 +271,7 @@ watch(
         const base = r.header.replace(/\s+/g, '_');
         lightVParts.push(chosen.lRes.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
         lightJParts.push(chosen.lRes.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
+        if (firstValidLightSeq === undefined) firstValidLightSeq = chosen.ls;
       }
     }
 
@@ -266,6 +282,11 @@ watch(
 
     setVJ('heavy', hv, hj);
     setVJ('light', lv, lj);
+
+    // when imputing light from scFv reference, store the derived nt sequence for workflow
+    if (argsExt.imputeLight === true) {
+      argsExt.lightImputeSequence = firstValidLightSeq;
+    }
   },
   { immediate: true, deep: true },
 );
@@ -431,11 +452,20 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlDropdown>
 
+  <template v-if="app.model.args.customRefMode === 'scFv' || app.model.args.customRefMode === 'separate'">
+    <PlCheckbox
+      v-model="imputeLight"
+    >
+      Impute light chain from reference
+    </PlCheckbox>
+  </template>
+
   <PlTextField
     v-model="app.model.args.lightTagPattern"
     label="Light chain tag pattern"
     :clearable="() => undefined"
     placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
+    :disabled="app.model.args.customRefMode === 'scFv' && imputeLight === true || app.model.args.customRefMode === 'separate' && imputeLight === true"
   >
     <template #tooltip>
       <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
@@ -452,6 +482,7 @@ heavy-seq + linker + light-seq (or reverse)"
     v-model="app.model.args.lightAssemblingFeature"
     :options="assemblingFeatureOptions"
     label="Light chain assembling feature"
+    :disabled="app.model.args.customRefMode === 'scFv' && imputeLight === true || app.model.args.customRefMode === 'separate' && imputeLight === true"
   >
     <template #tooltip>
       Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).

@@ -254,19 +254,33 @@ self.body(func(inputs) {
 
 
 	heavy := runMixcr("IGHeavy", inputs.heavyAssemblingFeature, inputs.heavyTagPattern, mixcrExportArgsHeavy)
-	light := runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
+	// Suppress light chain analyze if we have an imputed sequence
+	lightSuppressed := !is_undefined(inputs.lightImputeSequence)
+	light := undefined
+	if lightSuppressed {
+		// create a placeholder structure for outputs; no clones/alignments
+		light = { qc: heavy.qc, log: heavy.log, reports: heavy.reports }
+	} else {
+		light = runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
+	}
 
 
-	assembleScFv := exec.builder().
+    assembleScFv := exec.builder().
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
-		arg("--order").arg(inputs.order).
-		addFile("hc.clones.tsv", heavy.clones).
-		addFile("lc.clones.tsv", light.clones).
-		addFile("hc.alignments.tsv", heavy.alignments).
-		addFile("lc.alignments.tsv", light.alignments).
-		saveFile("result.tsv").
+        arg("--order").arg(inputs.order)
+	if !is_undefined(inputs.lightImputeSequence) {
+		assembleScFv = assembleScFv.arg("--light-impute").arg(inputs.lightImputeSequence).arg("--no-light")
+	}
+    assembleScFv = assembleScFv.addFile("hc.clones.tsv", heavy.clones).
+        addFile("hc.alignments.tsv", heavy.alignments)
+    if is_undefined(inputs.lightImputeSequence) {
+        assembleScFv = assembleScFv.
+            addFile("lc.clones.tsv", light.clones).
+            addFile("lc.alignments.tsv", light.alignments)
+    }
+	assembleScFv = assembleScFv.saveFile("result.tsv").
 		dontSaveStdoutOrStderr().
 		cpu(inputs.assembleScfvCpu).
 		mem(string(inputs.assembleScfvMem) + "GiB").

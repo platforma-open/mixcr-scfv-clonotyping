@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.1.0
+
+### Minor Changes
+
+- c5df56e: support absence of light chain in data in case of using custom reference
+
+### Patch Changes
+
+- Updated dependencies [c5df56e]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@2.1.0
+
 ## 3.0.3
 
 ### Patch Changes

@@ -11,6 +11,16 @@ parser.add_argument("--hinge", help="hinge nt sequence")
 parser.add_argument(
     "--order",
     help="construct building order: hl for 'heavy-linker-light-hinge' or lh for 'light-linker-heavy-hinge'")
+parser.add_argument(
+    "--light-impute",
+    dest="light_impute",
+    help="optional light chain VDJ sequence to use when light is missing"
+)
+parser.add_argument(
+    "--no-light",
+    action="store_true",
+    help="do not expect light chain mixcr inputs; use --light-impute"
+)
 args = parser.parse_args()
 
 
@@ -38,44 +48,57 @@ hc_mixcr_clones = hc_mixcr_clones.with_columns(
 hc_mixcr_clones = hc_mixcr_clones.rename(
     {col: col.replace("InFrame", "") for col in hc_mixcr_clones.columns})
 
-lc_mixcr_clones = pl.read_csv(
-    lc_clones_file, separator="\t", infer_schema_length=0)
-lc_mixcr_clones = lc_mixcr_clones.with_columns(
-    pl.col("cloneId").cast(pl.Int64))
-# Remove "InFrame" from all column names in lc_mixcr_clones DataFrame
-lc_mixcr_clones = lc_mixcr_clones.rename(
-    {col: col.replace("InFrame", "") for col in lc_mixcr_clones.columns})
+if not args.no_light:
+    lc_mixcr_clones = pl.read_csv(
+        lc_clones_file, separator="\t", infer_schema_length=0)
+    lc_mixcr_clones = lc_mixcr_clones.with_columns(
+        pl.col("cloneId").cast(pl.Int64))
+    # Remove "InFrame" from all column names in lc_mixcr_clones DataFrame
+    lc_mixcr_clones = lc_mixcr_clones.rename(
+        {col: col.replace("InFrame", "") for col in lc_mixcr_clones.columns})
 
 
 cols_to_drop = ['readCount', 'readFraction',
                 'uniqueMoleculeCount', 'uniqueMoleculeFraction']
 hc_mixcr_clones = hc_mixcr_clones.drop(
     [col for col in cols_to_drop if col in hc_mixcr_clones.columns])
-lc_mixcr_clones = lc_mixcr_clones.drop(
-    [col for col in cols_to_drop if col in lc_mixcr_clones.columns])
+if not args.no_light:
+    lc_mixcr_clones = lc_mixcr_clones.drop(
+        [col for col in cols_to_drop if col in lc_mixcr_clones.columns])
 
 hc_mixcr_alignments = pl.read_csv(
     hc_alignments_file, separator="\t", infer_schema_length=0)
 hc_mixcr_alignments = hc_mixcr_alignments.with_columns(
     pl.col("cloneId").cast(pl.Int64))
-lc_mixcr_alignments = pl.read_csv(
-    lc_alignments_file, separator="\t", infer_schema_length=0)
-lc_mixcr_alignments = lc_mixcr_alignments.with_columns(
-    pl.col("cloneId").cast(pl.Int64))
+if not args.no_light:
+    lc_mixcr_alignments = pl.read_csv(
+        lc_alignments_file, separator="\t", infer_schema_length=0)
+    lc_mixcr_alignments = lc_mixcr_alignments.with_columns(
+        pl.col("cloneId").cast(pl.Int64))
 
 hc_mixcr_alignments = hc_mixcr_alignments.filter(pl.col('cloneId') != -1)
-lc_mixcr_alignments = lc_mixcr_alignments.filter(pl.col('cloneId') != -1)
+if not args.no_light:
+    lc_mixcr_alignments = lc_mixcr_alignments.filter(pl.col('cloneId') != -1)
 
 
 hc_cols = {
     col: f"{col}-IGHeavy" for col in hc_mixcr_alignments.columns if col != "descrR1"}
-lc_cols = {
-    col: f"{col}-IGLight" for col in lc_mixcr_alignments.columns if col != "descrR1"}
-hl = hc_mixcr_alignments.rename(hc_cols).join(
-    lc_mixcr_alignments.rename(lc_cols),
-    on="descrR1",
-    how="inner"
-)
+if not args.no_light:
+    lc_cols = {
+        col: f"{col}-IGLight" for col in lc_mixcr_alignments.columns if col != "descrR1"}
+else:
+    lc_cols = {}
+if not args.no_light:
+    hl = hc_mixcr_alignments.rename(hc_cols).join(
+        lc_mixcr_alignments.rename(lc_cols),
+        on="descrR1",
+        how="inner"
+    )
+else:
+    # fabricate a single synthetic light cloneId to cross with heavy cloneId and preserve heavy aggregation
+    hl = hc_mixcr_alignments.rename(hc_cols).with_columns(
+        **{"cloneId-IGLight": pl.lit(0)}
+    )
 
 if 'tagValueUMI-IGHeavy' in hl.columns:
     hl = hl.group_by(['cloneId-IGHeavy', 'cloneId-IGLight']).agg(
@@ -100,19 +123,29 @@ result = hl.join(hc_mixcr_clones,
                  on='cloneId-IGHeavy',
                  how='left')
 
-# light
-lc_mixcr_clones = lc_mixcr_clones.rename(
-    {col: f"{col}-IGLight" for col in lc_mixcr_clones.columns})
-result = result.join(lc_mixcr_clones,
-                     on='cloneId-IGLight',
-                     how='left')
+if not args.no_light:
+    # light
+    lc_mixcr_clones = lc_mixcr_clones.rename(
+        {col: f"{col}-IGLight" for col in lc_mixcr_clones.columns})
+    result = result.join(lc_mixcr_clones,
+                        on='cloneId-IGLight',
+                        how='left')
 
-result = result.with_columns(
-    clonotypeKey=pl.format("{}-{}-{}-{}-{}-{}",
-                           "targetSequences-IGHeavy", "targetSequences-IGLight",
-                           "bestVGene-IGHeavy", "bestVGene-IGLight",
-                           "bestJGene-IGHeavy", "bestJGene-IGLight")
-)
+if not args.no_light:
+    result = result.with_columns(
+        clonotypeKey=pl.format("{}-{}-{}-{}-{}-{}",
+                               "targetSequences-IGHeavy", "targetSequences-IGLight",
+                               "bestVGene-IGHeavy", "bestVGene-IGLight",
+                               "bestJGene-IGHeavy", "bestJGene-IGLight")
+    )
+else:
+    # no light info; construct key using only heavy-side fields and a sentinel light part
+    result = result.with_columns(
+        clonotypeKey=pl.format("{}-{}-{}",
+                               "targetSequences-IGHeavy",
+                               "bestVGene-IGHeavy",
+                               "bestJGene-IGHeavy")
+    )
 
 result = result.filter(pl.col('clonotypeKey').is_not_null())
 
@@ -149,8 +182,14 @@ if "nSeqVDJRegion-IGLight" in result.columns:
     lightVdj = "nSeqVDJRegion-IGLight"
 elif "nSeqImputedVDJRegion-IGLight" in result.columns:
     lightVdj = "nSeqImputedVDJRegion-IGLight"
+elif args.light_impute is not None:
+    # Create a synthetic light VDJ column from provided impute sequence
+    result = result.with_columns(
+        **{"nSeqImputedVDJRegion-IGLight": pl.lit(args.light_impute)}
+    )
+    lightVdj = "nSeqImputedVDJRegion-IGLight"
 else:
-    raise ValueError("VDJ region - light not found")
+    raise ValueError("VDJ region - light not found and no --light-impute provided")
 
 
 # Filter out rows where VDJ regions are empty/null or contain region_not_covered
