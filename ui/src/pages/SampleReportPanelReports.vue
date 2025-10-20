@@ -24,6 +24,8 @@ const data = reactive<{
 
 const app = useApp();
 
+const reactiveFileContent = ReactiveFileContent.useGlobal();
+
 const chainOptions = [
   { value: 'heavy', label: 'Heavy chain' },
   { value: 'light', label: 'Light chain' },
@@ -47,7 +49,7 @@ const reportHandle = computed(() => {
 });
 
 const reportContent = computed(
-  () => ReactiveFileContent.getContentString(reportHandle.value)?.value,
+  () => reactiveFileContent.getContentString(reportHandle.value)?.value,
 );
 
 </script>
