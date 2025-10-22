@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.2.1
+
+### Patch Changes
+
+- 99ea6c9: Support parquet format (update SDK)
+
 ## 2.2.0
 
 ### Minor Changes

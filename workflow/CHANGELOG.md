@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.1.2
+
+### Patch Changes
+
+- 99ea6c9: Support parquet format (update SDK)
+
 ## 3.1.1
 
 ### Patch Changes
