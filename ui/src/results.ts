@@ -22,6 +22,8 @@ export type MiXCRResult = {
   assembleReport?: AssembleReport;
 };
 
+const reactiveFileContent = ReactiveFileContent.useGlobal();
+
 /** Relatively rarely changing part of the results */
 export const resultMap = computed(() => {
   const app = useApp();
@@ -88,14 +90,14 @@ export const resultMap = computed(() => {
           switch (reportId) {
             case 'align':
               // globally cached
-              chainResult.alignReport = ReactiveFileContent.getContentJson(
+              chainResult.alignReport = reactiveFileContent.getContentJson(
                 report.value.handle,
                 AlignReport,
               )?.value;
               break;
             case 'assemble':
               // globally cached
-              chainResult.assembleReport = ReactiveFileContent.getContentJson(
+              chainResult.assembleReport = reactiveFileContent.getContentJson(
                 report.value.handle,
                 AssembleReport,
               )?.value;

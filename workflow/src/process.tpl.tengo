@@ -212,7 +212,7 @@ self.body(func(inputs) {
 			settings: {
 				axes: cloneKeyAxes,
 				columns: abundanceColumnSpecs,
-				storageFormat: "Binary",
+				storageFormat: "Parquet",
 				partitionKeyLength: 0
 			},
 			name: "abundance",
@@ -271,7 +271,7 @@ self.body(func(inputs) {
 		settings: {
 			axes: cloneKeyAxes,
 			columns: cloneColumnSpecs,
-			storageFormat: "Binary",
+			storageFormat: "Parquet",
 			partitionKeyLength: 0
 		},
 		name: "cloneProps",
