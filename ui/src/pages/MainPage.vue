@@ -26,6 +26,7 @@ import { parseProgressString } from '../parseProgress';
 import { resultMap, type ScFvResult } from '../results';
 import SampleReportPanel from './SampleReportPanel.vue';
 import SettingsPanel from './SettingsPanel.vue';
+import { ExportRawBtn } from '../ExportRawBtn';
 // import SampleReportPanel from './SampleReportPanel.vue';
 // import SettingsPanel from './SettingsPanel.vue';
 
@@ -180,6 +181,7 @@ const gridOptions: GridOptions<ScFvResult> = {
   <PlBlockPage>
     <template #title>{{ app.model.ui.title }}</template>
     <template #append>
+      <ExportRawBtn />
       <PlBtnGhost @click.stop="() => (data.settingsOpen = true)">
         Settings
         <template #append>

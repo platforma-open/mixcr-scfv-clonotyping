@@ -115,6 +115,9 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 		outputs["reports" + chain ] = pframes.exportColumnData(runMixcr.output("reports" + chain + ".data"))
 	}
 
+	// Expose combined clonotype tables frame for UI raw exports (same shape as amplicon alignment)
+	outputs["clonotypeTables"] = pframes.exportFrame(runMixcr.output("clonotypeTables"))
+
 	return {
 		outputs: outputs,
 		exports: exports
