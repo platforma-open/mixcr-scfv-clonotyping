@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.3.0
+
+### Minor Changes
+
+- 96faad3: added raw tables export button
+
+### Patch Changes
+
+- Updated dependencies [96faad3]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.2.0
+
 ## 2.2.1
 
 ### Patch Changes
