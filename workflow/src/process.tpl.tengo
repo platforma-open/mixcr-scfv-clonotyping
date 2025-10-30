@@ -131,6 +131,8 @@ self.body(func(inputs) {
 
 	targetOutputs := []
 
+	clonotypeTablesOutputs := pframes.pFrameBuilder()
+
 	for chain in ["IGHeavy", "IGLight"] {
 		targetOutputs += [
 			/////////////////////// QC ///////////////////////
@@ -265,6 +267,10 @@ self.body(func(inputs) {
 		}
 	)
 
+	clonotypeTablesOutputs.add("clonotypeTable", mixcrResults.outputSpec("clonotypeTable"), mixcrResults.outputData("clonotypeTable"))
+
+
+
 	aggregationOutputs := [ {
 		type: "Xsv",
 		xsvType: "tsv",
@@ -298,6 +304,7 @@ self.body(func(inputs) {
 	aggByCloneKey.addXsvOutputToBuilder(clonotypes, "cloneProps", "cloneProps/")
 	clonotypes = clonotypes.build()
 
+
 	result := {}
 	for chain in ["IGHeavy", "IGLight"] {
 		result["qc" + chain + ".spec"] = mixcrResults.outputSpec("qc" + chain)
@@ -310,6 +317,7 @@ self.body(func(inputs) {
 		result["reports" + chain + ".data"] = mixcrResults.outputData("reports" + chain)
 	}
 	result["clonotypes"] = clonotypes
+	result["clonotypeTables"] = clonotypeTablesOutputs.build()
 
 	return result
 })

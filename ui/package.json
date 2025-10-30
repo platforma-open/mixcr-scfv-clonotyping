@@ -12,6 +12,7 @@
   "dependencies": {
     "ag-grid-enterprise": "catalog:",
     "ag-grid-vue3": "catalog:",
+    "@milaboratories/helpers": "catalog:",
     "@platforma-open/milaboratories.mixcr-clonotyping-2.model": "catalog:",
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model": "workspace:*",
     "@platforma-sdk/ui-vue": "catalog:",
@@ -23,6 +24,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vue-tsc": "catalog:",
-    "@platforma-sdk/eslint-config": "catalog:"
+    "@platforma-sdk/eslint-config": "catalog:",
+    "@types/wicg-file-system-access": "catalog:",
+    "@zip.js/zip.js": "catalog:"
   }
 }
