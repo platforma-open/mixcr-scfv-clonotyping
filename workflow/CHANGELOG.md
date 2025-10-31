@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.3.0
+
+### Minor Changes
+
+- 253e280: isProductive column values changed to true or false, sdk update
+
+### Patch Changes
+
+- Updated dependencies [253e280]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@2.2.0
+
 ## 3.2.0
 
 ### Minor Changes
