@@ -286,6 +286,8 @@ result = result.group_by('construct-aa').agg(agg_expressions)
 
 result = result.sort("construct-nt")
 
-
-# result["isProductive"] = result["isProductive"].astype(str).str.lower()
+# Normalize isProductive to lowercase string values "true"/"false"
+result = result.with_columns(
+    pl.col("isProductive").cast(pl.Utf8).str.to_lowercase().alias("isProductive")
+)
 result.write_csv("result.tsv", separator="\t")
