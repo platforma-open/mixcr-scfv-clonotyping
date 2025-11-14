@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.0.11
+
+### Patch Changes
+
+- a64eca5: Updated metadata
+
 ## 3.0.10
 
 ### Patch Changes
