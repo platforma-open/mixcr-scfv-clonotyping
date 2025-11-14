@@ -26,9 +26,9 @@
       "title": "MiXCR scFv Alignment",
       "logo": "file:../logos/block-logo.png",
       "url": "https://github.com/platforma-open/mixcr-scfv-clonotyping",
-      "docs": "https://github.com/platforma-open/mixcr-scfv-clonotyping/docs",
+      "docs": "https://docs.platforma.bio/guides/antibody-discovery/scFv-clonotyping/",
       "support": "mailto:support@milaboratories.com",
-      "description": "Align single-chain variable fragment (scFv) sequences using MiXCR.",
+      "description": "Aligns and processes single-chain variable fragment (scFv) sequences using MiXCR.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
       "tags": [
