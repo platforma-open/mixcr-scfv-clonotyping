@@ -18,7 +18,7 @@ catalog:
   "@platforma-sdk/blocks-deps-updater": ^2.0.0
 
 
-  "@platforma-open/milaboratories.runenv-python-3": 1.4.16
+  "@platforma-open/milaboratories.runenv-python-3": ^1.7.4
   "@milaboratories/software-pframes-conv": ^2.2.9
   "@platforma-open/milaboratories.software-small-binaries": ^1.15.23
   "@platforma-open/milaboratories.software-mixcr": 4.7.0-235-develop
