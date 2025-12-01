@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.test
 
+## 1.1.3
+
+### Patch Changes
+
+- b21113d: dependencies updates including MiXCR
+- 0656c01: depnendencies updating including MiXCR
+
 ## 1.1.2
 
 ### Patch Changes
