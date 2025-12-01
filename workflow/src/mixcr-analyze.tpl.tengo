@@ -163,7 +163,7 @@ self.body(func(inputs) {
 		}
 
 		mixcrCmdBuilder = mixcrCmdBuilder.cache(48 * times.hour).
-		saveStdoutStream()
+			saveStdoutStream()
 		mixcrCmd := mixcrCmdBuilder.run()
 
 		// run export alignments
