@@ -7,21 +7,21 @@ packages:
   - test
 
 catalog:
-  "@platforma-sdk/model": ^1.45.0
-  "@platforma-sdk/ui-vue": ^1.45.5
-  "@platforma-sdk/workflow-tengo": ^5.5.9
-  "@platforma-sdk/block-tools": ^2.6.21
-  "@platforma-sdk/test": ^1.45.11
-  "@platforma-sdk/tengo-builder": ^2.3.3
-  "@platforma-sdk/package-builder": ^3.10.6
+  "@platforma-sdk/model": ^1.46.0
+  "@platforma-sdk/ui-vue": ^1.46.1
+  "@platforma-sdk/workflow-tengo": ^5.6.3
+  "@platforma-sdk/block-tools": ^2.6.25
+  "@platforma-sdk/test": ^1.46.2
+  "@platforma-sdk/tengo-builder": ^2.3.14
+  "@platforma-sdk/package-builder": ^3.10.7
   "@platforma-sdk/eslint-config": ^1.1.0
   "@platforma-sdk/blocks-deps-updater": ^2.0.0
 
 
   "@platforma-open/milaboratories.runenv-python-3": 1.4.16
   "@milaboratories/software-pframes-conv": ^2.2.9
-  "@platforma-open/milaboratories.software-small-binaries": ^1.15.23
-  "@platforma-open/milaboratories.software-mixcr": 4.7.0-235-develop
+  "@platforma-open/milaboratories.software-small-binaries": ^1.15.25
+  "@platforma-open/milaboratories.software-mixcr": 4.7.0-254-develop
   "@platforma-open/milaboratories.software-ptransform": ^1.6.6
   '@platforma-open/milaboratories.software-repseqio': ^2.5.0-13-master
 
@@ -36,7 +36,7 @@ catalog:
   "tsup": ~8.3.5
   "turbo": ^2.5.4
 
-  'ag-grid-enterprise': &ag-grid ^34.0.2
+  'ag-grid-enterprise': &ag-grid ~34.1.2
   'ag-grid-vue3': *ag-grid
 
 
