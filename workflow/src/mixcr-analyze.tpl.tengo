@@ -162,7 +162,8 @@ self.body(func(inputs) {
 			mixcrCmdBuilder.saveFile(report.fileTxt)
 		}
 
-		mixcrCmdBuilder = mixcrCmdBuilder.cache(48 * times.hour)
+		mixcrCmdBuilder = mixcrCmdBuilder.cache(48 * times.hour).
+		saveStdoutStream()
 		mixcrCmd := mixcrCmdBuilder.run()
 
 		// run export alignments
@@ -172,7 +173,6 @@ self.body(func(inputs) {
 			cpu(2).
 			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
-			dontSaveStdoutOrStderr().
 			arg("exportAlignments")
 			
 		if hasUMIs {
@@ -205,7 +205,6 @@ self.body(func(inputs) {
 			cpu(2).
 			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
-			dontSaveStdoutOrStderr().
 			arg("exportClones").
 			// arg("--export-productive-clones-only").
 			arg("--dont-split-files").
@@ -281,7 +280,6 @@ self.body(func(inputs) {
             addFile("lc.alignments.tsv", light.alignments)
     }
 	assembleScFv = assembleScFv.saveFile("result.tsv").
-		dontSaveStdoutOrStderr().
 		cpu(inputs.assembleScfvCpu).
 		mem(string(inputs.assembleScfvMem) + "GiB").
 		cache(48 * times.hour).
