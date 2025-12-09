@@ -92,7 +92,8 @@ clonotypeKeyLabelColumns := func(blockId) {
 			},
 			annotations: {
 				"pl7.app/label": "scFv label",
-				"pl7.app/table/orderPriority": "40000"
+				"pl7.app/table/visibility": "default"
+				//"pl7.app/table/orderPriority": "200000"
 			}
 		}
 	}]
@@ -121,6 +122,8 @@ self.body(func(inputs) {
 	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
+
+	ll.print("__THE_LOG__ cloneColumnSpecs: " + json.encode(cloneColumnSpecs))
 
 	// [sample, clonotypeKey] -> abundance columns
 	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
