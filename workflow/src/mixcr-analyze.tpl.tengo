@@ -105,6 +105,14 @@ self.body(func(inputs) {
 			arg("-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000").
 			arg("-Massemble.clnaOutput=true")
 
+		// Clone clustering tuning
+		cloneClusteringMode := inputs.cloneClusteringMode
+		if cloneClusteringMode == "relaxed" {
+			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters.searchParameters=oneMismatchOrIndel")
+		} else if cloneClusteringMode == "off" {
+			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters=null")
+		}
+
 		if !is_undefined(inputs.limitInput) {
 			mixcrCmdBuilder.arg("--limit-input").arg(string(inputs.limitInput))
 		}

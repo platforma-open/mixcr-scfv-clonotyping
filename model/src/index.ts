@@ -1,6 +1,8 @@
 import type { InferOutputsType, PlRef } from '@platforma-sdk/model';
 import { BlockModel, isPColumnSpec, parseResourceMap } from '@platforma-sdk/model';
 
+export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
+
 export type BlockArgs = {
   input?: PlRef;
   species?: string;
@@ -34,6 +36,7 @@ export type BlockArgs = {
   mixcrCpu?: number;
   assembleScfvMem?: number;
   assembleScfvCpu?: number;
+  cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
 };
 
 export type UiState = {
@@ -58,6 +61,7 @@ export const model = BlockModel.create()
     mixcrCpu: 8,
     assembleScfvMem: 64,
     assembleScfvCpu: 4,
+    cloneClusteringMode: 'relaxed',
   })
   .withUiState<UiState>({
     title: 'MiXCR scFv Alignment',

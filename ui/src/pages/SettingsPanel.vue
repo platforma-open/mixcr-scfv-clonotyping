@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownRef, PlNumberField, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
@@ -71,6 +71,12 @@ const orderOptions: ListOption[] = [
   { label: 'Heavy-linker-light', value: 'hl' },
   { label: 'Light-linker-heavy', value: 'lh' },
 ];
+
+const clusteringOptions: ListOption[] = [
+  { value: 'relaxed', label: 'Relaxed error correction, faster assembly' },
+  { value: 'default', label: 'Default MiXCR error correction, slower assembly' },
+  { value: 'off', label: 'No error correction, fastest assembly' },
+] as const;
 
 const heavyValidation = computed(() => {
   if (app.model.args.customRefMode === 'separate') {
@@ -510,10 +516,25 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlTextArea>
 
   <PlAccordionSection label="Advanced Settings">
+    <PlSectionSeparator>MiXCR Settings</PlSectionSeparator>
+    <PlDropdown
+      v-model="app.model.args.cloneClusteringMode"
+      :options="clusteringOptions"
+      label="Error correction"
+    >
+      <template #tooltip>
+        <ul>
+          <li><b>Default assembly:</b> The standard MiXCR clustering mode.</li>
+          <li><b>Faster assembly:</b> Relaxes fuzzy matching criteria, speeding up assembly.</li>
+          <li><b>Fastest assembly:</b> Further accelerates the process but disables error correction.</li>
+        </ul>
+      </template>
+    </PlDropdown>
     <PlTextField
       v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
       label="Take only this number of reads into analysis"
     />
+    <PlSectionSeparator>Resource Allocation</PlSectionSeparator>
     <PlNumberField
       v-model="app.model.args.mixcrCpu"
       label="MiXCR CPU (cores)"
