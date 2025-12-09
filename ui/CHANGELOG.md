@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.4.0
+
+### Minor Changes
+
+- c50b273: mixcr assemble options addded
+
+### Patch Changes
+
+- Updated dependencies [c50b273]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.3.0
+
 ## 2.3.1
 
 ### Patch Changes
