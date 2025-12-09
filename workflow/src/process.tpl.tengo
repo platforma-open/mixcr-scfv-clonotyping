@@ -262,7 +262,8 @@ self.body(func(inputs) {
 				mixcrCpu: inputs.mixcrCpu,
 				mixcrMem: inputs.mixcrMem,
 				assembleScfvCpu: inputs.assembleScfvCpu,
-				assembleScfvMem: inputs.assembleScfvMem
+				assembleScfvMem: inputs.assembleScfvMem,
+				cloneClusteringMode: inputs.cloneClusteringMode
 			}
 		}
 	)

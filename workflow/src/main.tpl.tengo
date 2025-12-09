@@ -101,7 +101,8 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 		mixcrMem: args.mixcrMem,
 		assembleScfvCpu: args.assembleScfvCpu,
 		assembleScfvMem: args.assembleScfvMem,
-		lightImputeSequence: args.lightImputeSequence
+		lightImputeSequence: args.lightImputeSequence,
+		cloneClusteringMode: args.cloneClusteringMode
 	})
 
 	exports := {
