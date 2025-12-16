@@ -1,0 +1,331 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+pcolumn := import("@platforma-sdk/workflow-tengo:pframes.pcolumn")
+times := import("times")
+text := import("text")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+slices := import("@platforma-sdk/workflow-tengo:slices")
+pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+pt := import("@platforma-sdk/workflow-tengo:pt")
+qcReportColumns := import(":qc-report-columns")
+
+json := import("json")
+
+self.defineOutputs("qcReportTable")
+
+mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
+
+
+self.body(func(inputs) {
+    clnsDataHeavy := inputs.clnsDataHeavy
+    clnsDataLight := inputs.clnsDataLight
+    sampleIdAxisSpec := inputs.sampleIdAxisSpec
+    chains := inputs.chains
+    clonotypeTablesData := inputs.clonotypeTablesData
+    hasUmi := inputs.hasUmi
+
+    // Get all clna files from both chains
+    clnaFilesHeavy := clnsDataHeavy.inputs()
+    clnaFilesLight := clnsDataLight.inputs()
+    
+    // Generate raw TSV files for each chain separately
+    heavyRawTsv := undefined
+    if len(clnaFilesHeavy) > 0 {
+        exportReportCmdHeavy := exec.builder().
+            software(mixcrSw).
+            env("MI_USE_SYSTEM_CA", "true").
+            secret("MI_LICENSE", "MI_LICENSE").
+            arg("exportReportsTable")
+        
+        for i, clnaFile in clnaFilesHeavy {
+            fileName := json.decode(i)[0] + "_heavy.clna"
+            exportReportCmdHeavy.addFile(fileName, clnaFile)
+            exportReportCmdHeavy.arg(fileName)
+        }
+        
+        exportReportCmdHeavy.arg("qc-report-heavy.tsv").saveFile("qc-report-heavy.tsv")
+        resultHeavy := exportReportCmdHeavy.run()
+        heavyRawTsv = resultHeavy.getFile("qc-report-heavy.tsv")
+    }
+    
+    lightRawTsv := undefined
+    if len(clnaFilesLight) > 0 {
+        exportReportCmdLight := exec.builder().
+            software(mixcrSw).
+            env("MI_USE_SYSTEM_CA", "true").
+            secret("MI_LICENSE", "MI_LICENSE").
+            arg("exportReportsTable")
+        
+        for i, clnaFile in clnaFilesLight {
+            fileName := json.decode(i)[0] + "_light.clna"
+            exportReportCmdLight.addFile(fileName, clnaFile)
+            exportReportCmdLight.arg(fileName)
+        }
+        
+        exportReportCmdLight.arg("qc-report-light.tsv").saveFile("qc-report-light.tsv")
+        resultLight := exportReportCmdLight.run()
+        lightRawTsv = resultLight.getFile("qc-report-light.tsv")
+    }
+    
+    // Use pt to process the TSV files
+    wf := pt.workflow().
+        inMediumQueue().
+        mem("8GiB").
+        cpu(2)
+    
+    // Process heavy chain separately
+    processChain := func(rawTsvFile, suffix) {
+        if is_undefined(rawTsvFile) {
+            return undefined
+        }
+        
+        // Load the raw TSV file as a DataFrame
+        df := wf.frame(rawTsvFile, {
+            xsvType: "tsv",
+            inferSchema: false
+        })
+        
+        // Extract sampleId from fileName (remove suffix)
+        suffixLen := len(suffix)
+        processedDf := df.withColumns(
+            pt.col("fileName").strSlice(0, pt.col("fileName").strLenChars().minus(suffixLen)).alias("sampleId")
+        )
+        
+        // Cast numeric columns before aggregation
+        processedDfWithTypes := processedDf.withColumns(
+            pt.col("totalReads").cast("Long").alias("totalReads"),
+            pt.col("totalClonotypes").cast("Long").alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").cast("Long").alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").cast("Long").alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").cast("Long").alias("align.alignmentsFailed")
+        )
+        
+        // Group by sampleId and aggregate
+        aggregatedDf := processedDfWithTypes.groupBy("sampleId").agg(
+            pt.col("totalReads").sum().alias("totalReads"),
+            pt.col("totalClonotypes").sum().alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").sum().alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").sum().alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").sum().alias("align.alignmentsFailed"),
+            pt.col("MiXCRVersion").first().alias("MiXCRVersion")
+        )
+        
+        // Don't calculate percentages here - will be done after merging chains
+        return aggregatedDf
+    }
+    
+    // Process each chain separately
+    heavyDf := processChain(heavyRawTsv, "_heavy.clna")
+    lightDf := processChain(lightRawTsv, "_light.clna")
+    
+    // Save processed DataFrames for each chain
+    if !is_undefined(heavyDf) {
+        heavyDf.save("qc-report-processed-heavy.tsv", { xsvType: "tsv" })
+    }
+    if !is_undefined(lightDf) {
+        lightDf.save("qc-report-processed-light.tsv", { xsvType: "tsv" })
+    }
+    
+    // Join heavy and light DataFrames instead of concatenating
+    mergedDf := undefined
+    if !is_undefined(heavyDf) && !is_undefined(lightDf) {
+        // Both chains exist - join on sampleId and sum values
+        // Cast to Long first to ensure proper types
+        heavySelected := heavyDf.withColumns(
+            pt.col("totalReads").cast("Long").alias("totalReads"),
+            pt.col("totalClonotypes").cast("Long").alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").cast("Long").alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").cast("Long").alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").cast("Long").alias("align.alignmentsFailed")
+        ).select(
+            pt.col("sampleId"),
+            pt.col("totalReads").alias("totalReads_heavy"),
+            pt.col("totalClonotypes").alias("totalClonotypes_heavy"),
+            pt.col("readsUsedInClonotypes").alias("readsUsedInClonotypes_heavy"),
+            pt.col("align.successAligned").alias("align.successAligned_heavy"),
+            pt.col("align.alignmentsFailed").alias("align.alignmentsFailed_heavy"),
+            pt.col("MiXCRVersion").alias("MiXCRVersion_heavy")
+        )
+        lightSelected := lightDf.withColumns(
+            pt.col("totalReads").cast("Long").alias("totalReads"),
+            pt.col("totalClonotypes").cast("Long").alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").cast("Long").alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").cast("Long").alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").cast("Long").alias("align.alignmentsFailed")
+        ).select(
+            pt.col("sampleId"),
+            pt.col("totalReads").alias("totalReads_light"),
+            pt.col("totalClonotypes").alias("totalClonotypes_light"),
+            pt.col("readsUsedInClonotypes").alias("readsUsedInClonotypes_light"),
+            pt.col("align.successAligned").alias("align.successAligned_light"),
+            pt.col("align.alignmentsFailed").alias("align.alignmentsFailed_light"),
+            pt.col("MiXCRVersion").alias("MiXCRVersion_light")
+        )
+        
+        // Full outer join to include samples from both chains - keep all columns from both sides
+        joined := heavySelected.join(lightSelected, { how: "full", on: ["sampleId"] })
+        
+        // Cast all numeric columns to Long and keep all columns (don't sum)
+        mergedDf = joined.withColumns(
+            pt.col("totalReads_heavy").cast("Long").alias("totalReads_heavy"),
+            pt.col("totalClonotypes_heavy").cast("Long").alias("totalClonotypes_heavy"),
+            pt.col("readsUsedInClonotypes_heavy").cast("Long").alias("readsUsedInClonotypes_heavy"),
+            pt.col("align.successAligned_heavy").cast("Long").alias("align.successAligned_heavy"),
+            pt.col("align.alignmentsFailed_heavy").cast("Long").alias("align.alignmentsFailed_heavy"),
+            pt.col("totalReads_light").cast("Long").alias("totalReads_light"),
+            pt.col("totalClonotypes_light").cast("Long").alias("totalClonotypes_light"),
+            pt.col("readsUsedInClonotypes_light").cast("Long").alias("readsUsedInClonotypes_light"),
+            pt.col("align.successAligned_light").cast("Long").alias("align.successAligned_light"),
+            pt.col("align.alignmentsFailed_light").cast("Long").alias("align.alignmentsFailed_light")
+        )
+    } else if !is_undefined(heavyDf) {
+        // Only heavy chain exists - use _heavy suffix for consistency
+        mergedDf = heavyDf.withColumns(
+            pt.col("totalReads").cast("Long").alias("totalReads"),
+            pt.col("totalClonotypes").cast("Long").alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").cast("Long").alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").cast("Long").alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").cast("Long").alias("align.alignmentsFailed")
+        ).select(
+            pt.col("sampleId"),
+            pt.col("totalReads").alias("totalReads_heavy"),
+            pt.col("totalClonotypes").alias("totalClonotypes_heavy"),
+            pt.col("readsUsedInClonotypes").alias("readsUsedInClonotypes_heavy"),
+            pt.col("align.successAligned").alias("align.successAligned_heavy"),
+            pt.col("align.alignmentsFailed").alias("align.alignmentsFailed_heavy"),
+            pt.col("MiXCRVersion").alias("MiXCRVersion_heavy")
+        )
+    } else if !is_undefined(lightDf) {
+        // Only light chain exists - use _light suffix for consistency
+        mergedDf = lightDf.withColumns(
+            pt.col("totalReads").cast("Long").alias("totalReads"),
+            pt.col("totalClonotypes").cast("Long").alias("totalClonotypes"),
+            pt.col("readsUsedInClonotypes").cast("Long").alias("readsUsedInClonotypes"),
+            pt.col("align.successAligned").cast("Long").alias("align.successAligned"),
+            pt.col("align.alignmentsFailed").cast("Long").alias("align.alignmentsFailed")
+        ).select(
+            pt.col("sampleId"),
+            pt.col("totalReads").alias("totalReads_light"),
+            pt.col("totalClonotypes").alias("totalClonotypes_light"),
+            pt.col("readsUsedInClonotypes").alias("readsUsedInClonotypes_light"),
+            pt.col("align.successAligned").alias("align.successAligned_light"),
+            pt.col("align.alignmentsFailed").alias("align.alignmentsFailed_light"),
+            pt.col("MiXCRVersion").alias("MiXCRVersion_light")
+        )
+    } else {
+        ll.panic("No chain data to process")
+    }
+    
+    if is_undefined(mergedDf) {
+        ll.panic("mergedDf is undefined")
+    }
+    
+    aggregatedDf := mergedDf
+    
+    // Calculate percentages for each chain separately
+    finalDf := aggregatedDf
+    if is_undefined(finalDf) {
+        ll.panic("finalDf is undefined after assignment from aggregatedDf")
+    }
+    
+    if !is_undefined(heavyDf) {
+        // Heavy chain exists - calculate percentages
+        if is_undefined(finalDf) {
+            ll.panic("finalDf is undefined before heavy chain percentage calculation")
+        }
+        finalDf = finalDf.withColumns(
+            (pt.col("align.successAligned_heavy").cast("Double").truediv(pt.col("totalReads_heavy").fillNull(1).cast("Double")).multiply(100)).alias("align.successAlignedPercents_heavy"),
+            (pt.col("align.alignmentsFailed_heavy").cast("Double").truediv(pt.col("totalReads_heavy").fillNull(1).cast("Double")).multiply(100)).alias("align.alignmentsFailedPercents_heavy")
+        )
+    }
+    if !is_undefined(lightDf) {
+        // Light chain exists - calculate percentages
+        if is_undefined(finalDf) {
+            ll.panic("finalDf is undefined before light chain percentage calculation")
+        }
+        finalDf = finalDf.withColumns(
+            (pt.col("align.successAligned_light").cast("Double").truediv(pt.col("totalReads_light").fillNull(1).cast("Double")).multiply(100)).alias("align.successAlignedPercents_light"),
+            (pt.col("align.alignmentsFailed_light").cast("Double").truediv(pt.col("totalReads_light").fillNull(1).cast("Double")).multiply(100)).alias("align.alignmentsFailedPercents_light")
+        )
+    }
+
+    // Calculate real number of exported (productive) clonotypes per sample from clonotype tables
+    countDfs := []
+    if !is_undefined(clonotypeTablesData) {
+        for key, clonesFile in clonotypeTablesData.inputs() {
+            sampleId := json.decode(key)[0]
+            dfCountSource := wf.frame(clonesFile, { xsvType: "tsv", inferSchema: false, schema: [ { column: "readCount", type: "Double" } ] })
+            dfCount := dfCountSource.select(
+                pt.lit(sampleId).alias("sampleId"),
+                pt.col("clonotypeKey").count().alias("exportedClonotypes"),
+                pt.col("readCount").round().cast("Long").sum().alias("readsUsedInClonotypes")
+            )
+            countDfs = append(countDfs, dfCount)
+        }
+    }
+
+    aggregatedCounts := undefined
+    if len(countDfs) > 0 {
+        countsDf := len(countDfs) > 1 ? pt.concat(countDfs) : countDfs[0]
+        aggregatedCounts = countsDf.groupBy("sampleId").agg(
+            pt.col("exportedClonotypes").sum().alias("exportedClonotypes"),
+            pt.col("readsUsedInClonotypes").sum().alias("readsUsedInClonotypesNew")
+        )
+    }
+
+    // Join counts and overwrite totalClonotypes
+    joinedDf := finalDf
+    if !is_undefined(aggregatedCounts) {
+        joinedDf = finalDf.join(aggregatedCounts, { how: "left", on: ["sampleId"] })
+    }
+
+    // Per-chain clonotype counts
+    perChainJoined := joinedDf
+    for chain in chains {
+        chainCol := "clonotypesByChain." + chain
+        // For scFv, we don't have per-chain clonotype tables in the same way
+        // Set to 0 for now or calculate from clna if needed
+        perChainJoined = perChainJoined.withColumns(pt.lit(0).alias(chainCol))
+    }
+
+    // Finalize: cast/fill totals
+    // Set totalClonotypes from exportedClonotypes (readsUsedInClonotypes columns remain separate for heavy/light)
+    finalProcessedDf := perChainJoined.withColumns(
+        pt.col("exportedClonotypes").fillNull(0).cast("Long").alias("totalClonotypes")
+    )
+    for chain in chains {
+        col := "clonotypesByChain." + chain
+        finalProcessedDf = finalProcessedDf.withColumns(pt.col(col).fillNull(0).cast("Long").alias(col))
+    }
+    
+    // Save the final DataFrame back to TSV
+    finalProcessedDf.save("qc-report-processed.tsv", {
+        xsvType: "tsv"
+    })
+    
+    // Run the pt workflow
+    wfResult := wf.run()
+    
+    tsvFile := wfResult.getFile("qc-report-processed.tsv")
+
+    qcReportColumnsResult := qcReportColumns(hasUmi, sampleIdAxisSpec, chains)
+    reportColumnsSpec := qcReportColumnsResult.reportColumnsSpec
+
+    qcReportTable := xsv.importFile(
+		tsvFile,
+		"tsv",
+		reportColumnsSpec,
+		{ cpu: 1, mem: "16GiB" }
+	)
+
+    
+    return {
+        qcReportTable: qcReportTable
+    }
+})
+
+

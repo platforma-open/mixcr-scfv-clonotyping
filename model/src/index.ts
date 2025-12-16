@@ -1,5 +1,11 @@
-import type { InferOutputsType, PlRef } from '@platforma-sdk/model';
-import { BlockModel, isPColumnSpec, parseResourceMap } from '@platforma-sdk/model';
+import type { InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
+import {
+  BlockModel,
+  createPlDataTableV2,
+  createPlDataTableStateV2,
+  isPColumnSpec,
+  parseResourceMap,
+} from '@platforma-sdk/model';
 
 export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
 
@@ -41,6 +47,7 @@ export type BlockArgs = {
 
 export type UiState = {
   title?: string;
+  tableState: PlDataTableStateV2;
 };
 
 export const ProgressPrefix = '[==PROGRESS==]';
@@ -65,6 +72,7 @@ export const model = BlockModel.create()
   })
   .withUiState<UiState>({
     title: 'MiXCR scFv Alignment',
+    tableState: createPlDataTableStateV2(),
   })
 
   .argsValid((ctx) => {
@@ -167,7 +175,18 @@ export const model = BlockModel.create()
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
-  .sections((_) => [{ type: 'link', href: '/', label: 'Main' }])
+  .output('pt', (ctx) => {
+    const pCols = ctx.outputs?.resolve({ field: 'qcReportTable', assertFieldType: 'Input', allowPermanentAbsence: true })?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+    return createPlDataTableV2(ctx, pCols, ctx.uiState.tableState);
+  })
+
+  .sections((_) => [
+    { type: 'link', href: '/', label: 'Main' },
+    { type: 'link', href: '/qc-report-table', label: 'QC Report Table' },
+  ])
 
   .title((ctx) => ctx.uiState.title ?? 'MiXCR scFv Alignment')
 
