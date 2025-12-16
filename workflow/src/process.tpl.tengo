@@ -18,9 +18,11 @@ mixcrExports := import(":mixcr-exports")
 
 json := import("json")
 text := import("text")
+render := import("@platforma-sdk/workflow-tengo:render")
 
 mixcrAnalyzeTpl := assets.importTemplate(":mixcr-analyze")
 aggClonesTpl := assets.importTemplate(":agg-clones")
+exportReportTpl := assets.importTemplate(":export-report")
 
 self.awaitState("InputsLocked")
 self.awaitState("inputSpec", "ResourceReady")
@@ -195,6 +197,20 @@ self.body(func(inputs) {
 						}
 					} ]
 				}
+			},
+			/////////////////////// CLNS ///////////////////////
+			{
+				type: "Resource",
+				spec: {
+					kind: "PColumn",
+					valueType: "File",
+					name: "mixcr.com/clns",
+					domain: {
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"mixcr.com/scFv/chain": chain
+					}
+				},
+				name: "clns" + chain
 			} ]
 	}
 
@@ -308,6 +324,19 @@ self.body(func(inputs) {
 	aggByCloneKey.addXsvOutputToBuilder(clonotypes, "cloneProps", "cloneProps/")
 	clonotypes = clonotypes.build()
 
+	// Create QC report table
+	sampleIdAxisSpec := inputSpec.axesSpec[0]
+	hasUmi := inputs.hasUMIs
+	chains := ["IGHeavy", "IGLight"]
+	
+	qcReportTable := render.create(exportReportTpl, {
+		clnsDataHeavy: mixcrResults.outputData("clnsIGHeavy"),
+		clnsDataLight: mixcrResults.outputData("clnsIGLight"),
+		sampleIdAxisSpec: sampleIdAxisSpec,
+		chains: chains,
+		clonotypeTablesData: mixcrResults.outputData("clonotypeTable"),
+		hasUmi: hasUmi
+	})
 
 	result := {}
 	for chain in ["IGHeavy", "IGLight"] {
@@ -322,6 +351,7 @@ self.body(func(inputs) {
 	}
 	result["clonotypes"] = clonotypes
 	result["clonotypeTables"] = clonotypeTablesOutputs.build()
+	result["qcReportTable"] = qcReportTable.output("qcReportTable")
 
 	return result
 })

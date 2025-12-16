@@ -1,0 +1,196 @@
+// QC Report Columns Library
+// Defines column specifications for the mixcr exportReportsTable command output
+
+ll := import("@platforma-sdk/workflow-tengo:ll")
+pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+
+// QC Report column specifications function
+getQcReportColumns := func(hasUmi, sampleIdAxisSpec, chains) {
+    baseColumns := []
+    
+    // Map chain names to suffixes
+    chainSuffixes := {}
+    for chain in chains {
+        if chain == "IGHeavy" {
+            chainSuffixes[chain] = "heavy"
+        } else if chain == "IGLight" {
+            chainSuffixes[chain] = "light"
+        }
+    }
+    
+    // Common columns (not chain-specific)
+    baseColumns = baseColumns + [
+    {
+        column: "totalClonotypes",
+        id: "total-clonotypes",
+        allowNA: true,
+        naRegex: "NaN",
+        spec: {
+            name: "mixcr.com/reports/totalClonotypes",
+            valueType: "Long",
+            annotations: {
+                "pl7.app/min": "0",
+                "pl7.app/table/orderPriority": "109000",
+                "pl7.app/table/visibility": "default",
+                "pl7.app/label": "Total Number of scFv Sequences"
+            }
+        }
+    },
+    {
+        column: "exportedClonotypes",
+        id: "exported-clonotypes",
+        allowNA: true,
+        naRegex: "NaN",
+        spec: {
+            name: "mixcr.com/reports/exportedClonotypes",
+            valueType: "Long",
+            annotations: {
+                "pl7.app/min": "0",
+                "pl7.app/table/orderPriority": "108500",
+                "pl7.app/table/visibility": "optional",
+                "pl7.app/label": "Exported Clonotypes"
+            }
+        }
+    },
+    {
+        column: "readsUsedInClonotypesNew",
+        id: "reads-used-in-clonotypes-new",
+        allowNA: true,
+        naRegex: "NaN",
+        spec: {
+            name: "mixcr.com/reports/readsUsedInClonotypesNew",
+            valueType: "Long",
+            annotations: {
+                "pl7.app/min": "0",
+                "pl7.app/table/orderPriority": "108200",
+                "pl7.app/table/visibility": "optional",
+                "pl7.app/label": "Reads Used in Clonotypes (from tables)"
+            }
+        }
+    }]
+    
+    // Per-chain columns (for each chain: heavy and/or light)
+    for chain in chains {
+        suffix := chainSuffixes[chain]
+        if is_undefined(suffix) { continue }
+        
+        chainLabel := chain == "IGHeavy" ? "Heavy" : "Light"
+        baseOrder := chain == "IGHeavy" ? 100000 : 95000
+        
+        baseColumns = baseColumns + [
+        {
+            column: "MiXCRVersion_" + suffix,
+            id: "mixcr-version-" + suffix,
+            allowNA: true,
+            naRegex: "",
+            spec: {
+                name: "mixcr.com/reports/MiXCRVersion/" + suffix,
+                valueType: "String",
+                annotations: {
+                    "pl7.app/table/orderPriority": string(baseOrder + 1000),
+                    "pl7.app/table/visibility": "optional",
+                    "pl7.app/label": "MiXCR Version (" + chainLabel + ")"
+                }
+            }
+        },
+        {
+            column: "totalReads_" + suffix,
+            id: "total-reads-" + suffix,
+            allowNA: true,
+            naRegex: "NaN",
+            spec: {
+                name: "mixcr.com/reports/totalReads/" + suffix,
+                valueType: "Long",
+                annotations: {
+                    "pl7.app/min": "0",
+                    "pl7.app/table/orderPriority": string(baseOrder + 900),
+                    "pl7.app/table/visibility": "default",
+                    "pl7.app/label": "Total Reads (" + chainLabel + ")"
+                }
+            }
+        },
+        {
+            column: "totalClonotypes_" + suffix,
+            id: "total-clonotypes-" + suffix,
+            allowNA: true,
+            naRegex: "NaN",
+            spec: {
+                name: "mixcr.com/reports/totalClonotypes/" + suffix,
+                valueType: "Long",
+                annotations: {
+                    "pl7.app/min": "0",
+                    "pl7.app/table/orderPriority": string(baseOrder + 800),
+                    "pl7.app/table/visibility": "optional",
+                    "pl7.app/label": "Total Clonotypes (" + chainLabel + ")"
+                }
+            }
+        },
+        {
+            column: "readsUsedInClonotypes_" + suffix,
+            id: "reads-used-in-clonotypes-" + suffix,
+            allowNA: true,
+            naRegex: "NaN",
+            spec: {
+                name: "mixcr.com/reports/readsUsedInClonotypes/" + suffix,
+                valueType: "Long",
+                annotations: {
+                    "pl7.app/min": "0",
+                    "pl7.app/table/orderPriority": string(baseOrder + 700),
+                    "pl7.app/table/visibility": "optional",
+                    "pl7.app/label": "Reads Used in Clonotypes (" + chainLabel + ")"
+                }
+            }
+        },
+        {
+            column: "align.successAligned_" + suffix,
+            id: "align-success-aligned-" + suffix,
+            allowNA: true,
+            naRegex: "NaN",
+            spec: {
+                name: "mixcr.com/reports/align/successAligned/" + suffix,
+                valueType: "Long",
+                annotations: {
+                    "pl7.app/min": "0",
+                    "pl7.app/table/orderPriority": string(baseOrder + 600),
+                    "pl7.app/table/visibility": "default",
+                    "pl7.app/label": "Successfully Aligned (" + chainLabel + ")"
+                }
+            }
+        },
+        {
+            column: "align.successAlignedPercents_" + suffix,
+            id: "align-success-aligned-percents-" + suffix,
+            allowNA: true,
+            naRegex: "NaN",
+            spec: {
+                name: "mixcr.com/reports/align/successAlignedPercents/" + suffix,
+                valueType: "Double",
+                annotations: {
+                    "pl7.app/min": "0",
+                    "pl7.app/max": "100",
+                    "pl7.app/table/orderPriority": string(baseOrder + 500),
+                    "pl7.app/table/visibility": "default",
+                    "pl7.app/label": "Successfully Aligned (%) (" + chainLabel + ")"
+                }
+            }
+        }]
+    }
+
+
+    axes := [{
+		column: "sampleId",
+		spec: sampleIdAxisSpec
+	}]
+
+    return {
+        reportColumnsSpec: {
+            axes: axes,
+            columns: baseColumns,
+            storageFormat: "Parquet",
+            partitionKeyLength: 0
+        }
+    }   
+}
+
+export getQcReportColumns
+
