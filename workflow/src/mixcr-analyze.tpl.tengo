@@ -267,7 +267,7 @@ self.body(func(inputs) {
 	light := undefined
 	if lightSuppressed {
 		// create a placeholder structure for outputs; no clones/alignments/clns
-		light = { qc: heavy.qc, log: heavy.log, reports: heavy.reports, clns: heavy.clns }
+		light = { qc: heavy.qc, log: heavy.log, reports: heavy.reports, clns: smart.createNullResource() }
 	} else {
 		light = runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
 	}

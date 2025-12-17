@@ -335,7 +335,10 @@ self.body(func(inputs) {
 		sampleIdAxisSpec: sampleIdAxisSpec,
 		chains: chains,
 		clonotypeTablesData: mixcrResults.outputData("clonotypeTable"),
-		hasUmi: hasUmi
+		hasUmi: hasUmi,
+		suppressLight: lightSuppressed, 
+		lightLibrary: inputs.referenceLibraryLight,
+		heavyLibrary: inputs.referenceLibraryHeavy
 	})
 
 	result := {}

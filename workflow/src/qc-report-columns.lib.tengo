@@ -79,21 +79,6 @@ getQcReportColumns := func(hasUmi, sampleIdAxisSpec, chains) {
         
         baseColumns = baseColumns + [
         {
-            column: "MiXCRVersion_" + suffix,
-            id: "mixcr-version-" + suffix,
-            allowNA: true,
-            naRegex: "",
-            spec: {
-                name: "mixcr.com/reports/MiXCRVersion/" + suffix,
-                valueType: "String",
-                annotations: {
-                    "pl7.app/table/orderPriority": string(baseOrder + 1000),
-                    "pl7.app/table/visibility": "optional",
-                    "pl7.app/label": "MiXCR Version (" + chainLabel + ")"
-                }
-            }
-        },
-        {
             column: "totalReads_" + suffix,
             id: "total-reads-" + suffix,
             allowNA: true,
@@ -108,39 +93,39 @@ getQcReportColumns := func(hasUmi, sampleIdAxisSpec, chains) {
                     "pl7.app/label": "Total Reads (" + chainLabel + ")"
                 }
             }
-        },
-        {
-            column: "totalClonotypes_" + suffix,
-            id: "total-clonotypes-" + suffix,
-            allowNA: true,
-            naRegex: "NaN",
-            spec: {
-                name: "mixcr.com/reports/totalClonotypes/" + suffix,
-                valueType: "Long",
-                annotations: {
-                    "pl7.app/min": "0",
-                    "pl7.app/table/orderPriority": string(baseOrder + 800),
-                    "pl7.app/table/visibility": "optional",
-                    "pl7.app/label": "Total Clonotypes (" + chainLabel + ")"
-                }
-            }
-        },
-        {
-            column: "readsUsedInClonotypes_" + suffix,
-            id: "reads-used-in-clonotypes-" + suffix,
-            allowNA: true,
-            naRegex: "NaN",
-            spec: {
-                name: "mixcr.com/reports/readsUsedInClonotypes/" + suffix,
-                valueType: "Long",
-                annotations: {
-                    "pl7.app/min": "0",
-                    "pl7.app/table/orderPriority": string(baseOrder + 700),
-                    "pl7.app/table/visibility": "optional",
-                    "pl7.app/label": "Reads Used in Clonotypes (" + chainLabel + ")"
-                }
-            }
-        },
+         },
+        // {
+        //     column: "totalClonotypes_" + suffix,
+        //     id: "total-clonotypes-" + suffix,
+        //     allowNA: true,
+        //     naRegex: "NaN",
+        //     spec: {
+        //         name: "mixcr.com/reports/totalClonotypes/" + suffix,
+        //         valueType: "Long",
+        //         annotations: {
+        //             "pl7.app/min": "0",
+        //             "pl7.app/table/orderPriority": string(baseOrder + 800),
+        //             "pl7.app/table/visibility": "optional",
+        //             "pl7.app/label": "Total Clonotypes (" + chainLabel + ")"
+        //         }
+        //     }
+        // },
+        // {
+        //     column: "readsUsedInClonotypes_" + suffix,
+        //     id: "reads-used-in-clonotypes-" + suffix,
+        //     allowNA: true,
+        //     naRegex: "NaN",
+        //     spec: {
+        //         name: "mixcr.com/reports/readsUsedInClonotypes/" + suffix,
+        //         valueType: "Long",
+        //         annotations: {
+        //             "pl7.app/min": "0",
+        //             "pl7.app/table/orderPriority": string(baseOrder + 700),
+        //             "pl7.app/table/visibility": "optional",
+        //             "pl7.app/label": "Reads Used in Clonotypes (" + chainLabel + ")"
+        //         }
+        //     }
+        // },
         {
             column: "align.successAligned_" + suffix,
             id: "align-success-aligned-" + suffix,

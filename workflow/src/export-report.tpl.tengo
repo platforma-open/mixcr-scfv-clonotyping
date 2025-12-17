@@ -48,12 +48,15 @@ self.body(func(inputs) {
         }
         
         exportReportCmdHeavy.arg("qc-report-heavy.tsv").saveFile("qc-report-heavy.tsv")
+        if !is_undefined(inputs.heavyLibrary) {
+            exportReportCmdHeavy.addFile("heavyLibrary.json", inputs.heavyLibrary)
+        }
         resultHeavy := exportReportCmdHeavy.run()
         heavyRawTsv = resultHeavy.getFile("qc-report-heavy.tsv")
     }
     
     lightRawTsv := undefined
-    if len(clnaFilesLight) > 0 {
+    if !inputs.suppressLight {
         exportReportCmdLight := exec.builder().
             software(mixcrSw).
             env("MI_USE_SYSTEM_CA", "true").
@@ -67,6 +70,9 @@ self.body(func(inputs) {
         }
         
         exportReportCmdLight.arg("qc-report-light.tsv").saveFile("qc-report-light.tsv")
+        if !is_undefined(inputs.lightLibrary) {
+            exportReportCmdLight.addFile("lightLibrary.json", inputs.lightLibrary)
+        }
         resultLight := exportReportCmdLight.run()
         lightRawTsv = resultLight.getFile("qc-report-light.tsv")
     }
@@ -171,16 +177,16 @@ self.body(func(inputs) {
         
         // Cast all numeric columns to Long and keep all columns (don't sum)
         mergedDf = joined.withColumns(
-            pt.col("totalReads_heavy").cast("Long").alias("totalReads_heavy"),
-            pt.col("totalClonotypes_heavy").cast("Long").alias("totalClonotypes_heavy"),
-            pt.col("readsUsedInClonotypes_heavy").cast("Long").alias("readsUsedInClonotypes_heavy"),
-            pt.col("align.successAligned_heavy").cast("Long").alias("align.successAligned_heavy"),
-            pt.col("align.alignmentsFailed_heavy").cast("Long").alias("align.alignmentsFailed_heavy"),
-            pt.col("totalReads_light").cast("Long").alias("totalReads_light"),
-            pt.col("totalClonotypes_light").cast("Long").alias("totalClonotypes_light"),
-            pt.col("readsUsedInClonotypes_light").cast("Long").alias("readsUsedInClonotypes_light"),
-            pt.col("align.successAligned_light").cast("Long").alias("align.successAligned_light"),
-            pt.col("align.alignmentsFailed_light").cast("Long").alias("align.alignmentsFailed_light")
+            pt.col("totalReads_heavy").fillNull(0).cast("Long").alias("totalReads_heavy"),
+            pt.col("totalClonotypes_heavy").fillNull(0).cast("Long").alias("totalClonotypes_heavy"),
+            pt.col("readsUsedInClonotypes_heavy").fillNull(0).cast("Long").alias("readsUsedInClonotypes_heavy"),
+            pt.col("align.successAligned_heavy").fillNull(0).cast("Long").alias("align.successAligned_heavy"),
+            pt.col("align.alignmentsFailed_heavy").fillNull(0).cast("Long").alias("align.alignmentsFailed_heavy"),
+            pt.col("totalReads_light").fillNull(0).cast("Long").alias("totalReads_light"),
+            pt.col("totalClonotypes_light").fillNull(0).cast("Long").alias("totalClonotypes_light"),
+            pt.col("readsUsedInClonotypes_light").fillNull(0).cast("Long").alias("readsUsedInClonotypes_light"),
+            pt.col("align.successAligned_light").fillNull(0).cast("Long").alias("align.successAligned_light"),
+            pt.col("align.alignmentsFailed_light").fillNull(0).cast("Long").alias("align.alignmentsFailed_light")
         )
     } else if !is_undefined(heavyDf) {
         // Only heavy chain exists - use _heavy suffix for consistency
@@ -226,30 +232,28 @@ self.body(func(inputs) {
     
     aggregatedDf := mergedDf
     
-    // Calculate percentages for each chain separately
-    finalDf := aggregatedDf
-    if is_undefined(finalDf) {
-        ll.panic("finalDf is undefined after assignment from aggregatedDf")
-    }
-    
+    // Determine which chains actually have data
+    chainsWithData := []
     if !is_undefined(heavyDf) {
-        // Heavy chain exists - calculate percentages
-        if is_undefined(finalDf) {
-            ll.panic("finalDf is undefined before heavy chain percentage calculation")
-        }
-        finalDf = finalDf.withColumns(
-            (pt.col("align.successAligned_heavy").cast("Double").truediv(pt.col("totalReads_heavy").fillNull(1).cast("Double")).multiply(100)).alias("align.successAlignedPercents_heavy"),
-            (pt.col("align.alignmentsFailed_heavy").cast("Double").truediv(pt.col("totalReads_heavy").fillNull(1).cast("Double")).multiply(100)).alias("align.alignmentsFailedPercents_heavy")
-        )
+        chainsWithData = append(chainsWithData, "IGHeavy")
     }
     if !is_undefined(lightDf) {
-        // Light chain exists - calculate percentages
-        if is_undefined(finalDf) {
-            ll.panic("finalDf is undefined before light chain percentage calculation")
+        chainsWithData = append(chainsWithData, "IGLight")
+    }
+    
+    // Calculate percentages for each chain separately (only for chains with data)
+    finalDf := aggregatedDf
+    for chain in chainsWithData {
+        suffix := undefined
+        if chain == "IGHeavy" {
+            suffix = "heavy"
+        } else if chain == "IGLight" {
+            suffix = "light"
         }
+        if is_undefined(suffix) { continue }
+        
         finalDf = finalDf.withColumns(
-            (pt.col("align.successAligned_light").cast("Double").truediv(pt.col("totalReads_light").fillNull(1).cast("Double")).multiply(100)).alias("align.successAlignedPercents_light"),
-            (pt.col("align.alignmentsFailed_light").cast("Double").truediv(pt.col("totalReads_light").fillNull(1).cast("Double")).multiply(100)).alias("align.alignmentsFailedPercents_light")
+            (pt.col("align.successAligned_" + suffix).cast("Double").truediv(pt.col("totalReads_" + suffix).fillNull(1).cast("Double")).multiply(100)).alias("align.successAlignedPercents_" + suffix)
         )
     }
 
@@ -283,24 +287,11 @@ self.body(func(inputs) {
         joinedDf = finalDf.join(aggregatedCounts, { how: "left", on: ["sampleId"] })
     }
 
-    // Per-chain clonotype counts
-    perChainJoined := joinedDf
-    for chain in chains {
-        chainCol := "clonotypesByChain." + chain
-        // For scFv, we don't have per-chain clonotype tables in the same way
-        // Set to 0 for now or calculate from clna if needed
-        perChainJoined = perChainJoined.withColumns(pt.lit(0).alias(chainCol))
-    }
-
     // Finalize: cast/fill totals
     // Set totalClonotypes from exportedClonotypes (readsUsedInClonotypes columns remain separate for heavy/light)
-    finalProcessedDf := perChainJoined.withColumns(
+    finalProcessedDf := joinedDf.withColumns(
         pt.col("exportedClonotypes").fillNull(0).cast("Long").alias("totalClonotypes")
     )
-    for chain in chains {
-        col := "clonotypesByChain." + chain
-        finalProcessedDf = finalProcessedDf.withColumns(pt.col(col).fillNull(0).cast("Long").alias(col))
-    }
     
     // Save the final DataFrame back to TSV
     finalProcessedDf.save("qc-report-processed.tsv", {
@@ -312,7 +303,8 @@ self.body(func(inputs) {
     
     tsvFile := wfResult.getFile("qc-report-processed.tsv")
 
-    qcReportColumnsResult := qcReportColumns(hasUmi, sampleIdAxisSpec, chains)
+    // Only generate column spec for chains that actually have data
+    qcReportColumnsResult := qcReportColumns(hasUmi, sampleIdAxisSpec, chainsWithData)
     reportColumnsSpec := qcReportColumnsResult.reportColumnsSpec
 
     qcReportTable := xsv.importFile(
