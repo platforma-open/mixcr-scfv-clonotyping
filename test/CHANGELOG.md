@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.test
 
+## 1.2.0
+
+### Minor Changes
+
+- befdaec: Qc report table added and dependencies updates
+
 ## 1.1.3
 
 ### Patch Changes
