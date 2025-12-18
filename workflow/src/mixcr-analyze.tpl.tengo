@@ -16,7 +16,7 @@ text := import("text")
 
 json := import("json")
 
-self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv"])
+self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv", "clnsIGHeavy", "clnsIGLight"])
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
 
@@ -253,7 +253,8 @@ self.body(func(inputs) {
 			log: mixcrCmd.getStdoutStream(),
 			reports: reportsMap.build(),
 			alignments: alignments,
-			clones: clones
+			clones: clones,
+			clns: mixcrCmd.getFile(clnaFileName)
 		}
 
 		return result
@@ -265,8 +266,8 @@ self.body(func(inputs) {
 	lightSuppressed := !is_undefined(inputs.lightImputeSequence)
 	light := undefined
 	if lightSuppressed {
-		// create a placeholder structure for outputs; no clones/alignments
-		light = { qc: heavy.qc, log: heavy.log, reports: heavy.reports }
+		// create a placeholder structure for outputs; no clones/alignments/clns
+		light = { qc: heavy.qc, log: heavy.log, reports: heavy.reports, clns: smart.createNullResource() }
 	} else {
 		light = runMixcr("IGLight", inputs.lightAssemblingFeature, inputs.lightTagPattern, mixcrExportArgsLight)
 	}
@@ -301,6 +302,8 @@ self.body(func(inputs) {
 		logsIGHeavy: heavy.log,
 		logsIGLight: light.log,
 		reportsIGHeavy: heavy.reports,
-		reportsIGLight: light.reports
+		reportsIGLight: light.reports,
+		clnsIGHeavy: heavy.clns,
+		clnsIGLight: light.clns
 	}
 })

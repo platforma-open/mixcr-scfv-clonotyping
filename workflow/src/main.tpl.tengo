@@ -119,6 +119,9 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 	// Expose combined clonotype tables frame for UI raw exports (same shape as amplicon alignment)
 	outputs["clonotypeTables"] = pframes.exportFrame(runMixcr.output("clonotypeTables"))
 
+	qcReportTable := runMixcr.output("qcReportTable")
+	outputs["qcReportTable"] = pframes.exportFrame(qcReportTable)
+
 	return {
 		outputs: outputs,
 		exports: exports
