@@ -132,6 +132,7 @@ self.body(func(inputs) {
 	cloneKeyAxes := abundanceColumns.cloneKeyAxes
 	abundanceColumnSpecs := abundanceColumns.columnSpecs
 	mainAbundanceColumn := abundanceColumns.mainAbundanceColumn
+	sampleIdAxisSpec := inputSpec.axesSpec[0]
 
 
 	targetOutputs := []
@@ -302,6 +303,32 @@ self.body(func(inputs) {
 		},
 		name: "cloneProps",
 		path: ["tsv"]
+	}, {
+		type: "Xsv",
+		xsvType: "tsv",
+		settings: {
+			axes: [ {
+				column: "sampleId",
+				spec: sampleIdAxisSpec
+			}, cloneKeyAxes[0] ],
+			columns: [{
+				column: "link",
+				spec: {
+					name: "pl7.app/vdj/link",
+					valueType: "Int",
+					annotations: {
+						"pl7.app/isLinkerColumn": "true",
+						"pl7.app/label": "Sample to clonotype link",
+						"pl7.app/table/visibility": "hidden",
+						"pl7.app/table/orderPriority": "1"
+					}
+				}
+			}],
+			storageFormat: "Parquet",
+			partitionKeyLength: 1
+		},
+		name: "linker",
+		path: ["linker"]
 	} ]
 
 	aggByCloneKey := pframes.processColumn(
@@ -322,10 +349,10 @@ self.body(func(inputs) {
 	clonotypes := pframes.pFrameBuilder()
 	mixcrResults.addXsvOutputToBuilder(clonotypes, "abundance", "abundance/")
 	aggByCloneKey.addXsvOutputToBuilder(clonotypes, "cloneProps", "cloneProps/")
+	aggByCloneKey.addXsvOutputToBuilder(clonotypes, "linker", "linker/")
 	clonotypes = clonotypes.build()
 
 	// Create QC report table
-	sampleIdAxisSpec := inputSpec.axesSpec[0]
 	hasUmi := inputs.hasUMIs
 	chains := ["IGHeavy", "IGLight"]
 	
