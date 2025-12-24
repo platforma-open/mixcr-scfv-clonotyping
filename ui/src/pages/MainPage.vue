@@ -57,7 +57,7 @@ const defaultColumnDef: ColDef = {
   sortable: false,
 };
 
-const hideLightProgress = computed(() => Boolean((app.model.args as any).lightImputeSequence));
+const hideLightProgress = computed(() => Boolean(app.model.args.lightImputeSequence));
 
 const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
   const cols: ColDef<ScFvResult>[] = [
