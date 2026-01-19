@@ -24,7 +24,7 @@ defineProps<{
       Pending
     </div>
   </div>
-  </template>
+</template>
 
 <style module>
 .item {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AgGridVue } from 'ag-grid-vue3';
 
+import { plRefsEqual } from '@platforma-sdk/model';
 import type { PlAgHeaderComponentParams } from '@platforma-sdk/ui-vue';
 import {
   AgGridTheme,
@@ -18,7 +19,7 @@ import {
 } from '@platforma-sdk/ui-vue';
 import type { ColDef, GridApi, GridOptions, GridReadyEvent } from 'ag-grid-enterprise';
 import { ClientSideRowModelModule, ModuleRegistry } from 'ag-grid-enterprise';
-import { computed, reactive, shallowRef } from 'vue';
+import { computed, reactive, shallowRef, watchEffect } from 'vue';
 import { getAlignmentChartSettings } from '../charts/alignmentChartSettings';
 // import { ScFvResult } from '../results';
 import { useApp } from '../app';
@@ -32,13 +33,35 @@ import { ExportRawBtn } from '../ExportRawBtn';
 
 const app = useApp();
 
+// updating defaultBlockLabel
+watchEffect(() => {
+  const parts: string[] = [];
+  // Add dataset name if available
+  if (app.model.args.input) {
+    const inputOption = app.model.outputs.inputOptions?.find((p) => app.model.args.input && plRefsEqual(p.ref, app.model.args.input));
+    if (inputOption?.label) {
+      parts.push(inputOption.label);
+    }
+  }
+  // Add assembling features
+  const heavyFeature = app.model.args.heavyAssemblingFeature;
+  const lightFeature = app.model.args.lightAssemblingFeature;
+  if (heavyFeature) {
+    parts.push(`Heavy: ${heavyFeature}`);
+  }
+  if (lightFeature) {
+    parts.push(`Light: ${lightFeature}`);
+  }
+  app.model.args.defaultBlockLabel = parts.filter(Boolean).join(' - ');
+});
+
 const rows = computed(() => [...(resultMap.value?.values() ?? [])]);
 const data = reactive<{
   settingsOpen: boolean;
   sampleReportOpen: boolean;
   selectedSample: string | undefined;
 }>({
-  settingsOpen: app.model.outputs.logsIGHeavy === undefined,
+  settingsOpen: true,
   sampleReportOpen: false,
   selectedSample: undefined,
 });
@@ -57,7 +80,7 @@ const defaultColumnDef: ColDef = {
   sortable: false,
 };
 
-const hideLightProgress = computed(() => Boolean((app.model.args as any).lightImputeSequence));
+const hideLightProgress = computed(() => Boolean(app.model.args.lightImputeSequence));
 
 const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
   const cols: ColDef<ScFvResult>[] = [
@@ -178,8 +201,9 @@ const gridOptions: GridOptions<ScFvResult> = {
 </script>
 
 <template>
-  <PlBlockPage>
-    <template #title>{{ app.model.ui.title }}</template>
+  <PlBlockPage
+    title="MiXCR scFv Alignment"
+  >
     <template #append>
       <ExportRawBtn />
       <PlBtnGhost @click.stop="() => (data.settingsOpen = true)">
