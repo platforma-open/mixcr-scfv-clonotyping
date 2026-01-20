@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.6.0
+
+### Minor Changes
+
+- 332dd30: Support custom block title and running status
+
+### Patch Changes
+
+- Updated dependencies [332dd30]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.5.0
+
 ## 2.5.0
 
 ### Minor Changes
