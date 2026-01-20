@@ -60,7 +60,7 @@ export const ProgressPattern
 export const model = BlockModel.create()
 
   .withArgs<BlockArgs>({
-    defaultBlockLabel: '',
+    defaultBlockLabel: 'Select Dataset',
     customBlockLabel: '',
     heavyAssemblingFeature: 'FR1:FR4',
     lightAssemblingFeature: 'FR1:FR4',

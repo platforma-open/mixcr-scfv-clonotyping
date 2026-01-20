@@ -43,16 +43,7 @@ watchEffect(() => {
       parts.push(inputOption.label);
     }
   }
-  // Add assembling features
-  const heavyFeature = app.model.args.heavyAssemblingFeature;
-  const lightFeature = app.model.args.lightAssemblingFeature;
-  if (heavyFeature) {
-    parts.push(`Heavy: ${heavyFeature}`);
-  }
-  if (lightFeature) {
-    parts.push(`Light: ${lightFeature}`);
-  }
-  app.model.args.defaultBlockLabel = parts.filter(Boolean).join(' - ');
+  app.model.args.defaultBlockLabel = parts.filter(Boolean).join(' - ') || 'Select Dataset';
 });
 
 const rows = computed(() => [...(resultMap.value?.values() ?? [])]);
