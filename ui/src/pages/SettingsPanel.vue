@@ -45,16 +45,12 @@ const assemblingFeatureOptions: ListOption[] = [
 ];
 
 /* @deprecated Migrate to SDK method when will be published */
-function plRefsEqual(ref1: PlRef, ref2: PlRef) {
+function _plRefsEqual(ref1: PlRef, ref2: PlRef) {
   return ref1.blockId === ref2.blockId && ref2.name === ref1.name;
 }
 
 function setInput(inputRef?: PlRef) {
   app.model.args.input = inputRef;
-  if (inputRef)
-    app.model.ui.title = 'MiXCR scFv Alignment - ' + app.model.outputs.inputOptions?.find((o) => plRefsEqual(o.ref, inputRef))?.label;
-  else
-    app.model.ui.title = undefined;
 }
 
 function parseNumber(v: string): number {

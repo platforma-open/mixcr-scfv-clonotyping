@@ -10,6 +10,9 @@ import {
 export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
 
 export type BlockArgs = {
+  defaultBlockLabel?: string;
+  customBlockLabel?: string;
+  title?: 'MiXCR scFv Alignment';
   input?: PlRef;
   species?: string;
   linker?: string;
@@ -46,7 +49,6 @@ export type BlockArgs = {
 };
 
 export type UiState = {
-  title?: string;
   tableState: PlDataTableStateV2;
 };
 
@@ -58,6 +60,8 @@ export const ProgressPattern
 export const model = BlockModel.create()
 
   .withArgs<BlockArgs>({
+    defaultBlockLabel: 'Select Dataset',
+    customBlockLabel: '',
     heavyAssemblingFeature: 'FR1:FR4',
     lightAssemblingFeature: 'FR1:FR4',
     order: 'hl',
@@ -71,7 +75,6 @@ export const model = BlockModel.create()
     cloneClusteringMode: 'relaxed',
   })
   .withUiState<UiState>({
-    title: 'MiXCR scFv Alignment',
     tableState: createPlDataTableStateV2(),
   })
 
@@ -175,7 +178,7 @@ export const model = BlockModel.create()
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
-  .output('pt', (ctx) => {
+  .outputWithStatus('pt', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'qcReportTable', assertFieldType: 'Input', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -188,7 +191,9 @@ export const model = BlockModel.create()
     { type: 'link', href: '/qc-report-table', label: 'QC Report Table' },
   ])
 
-  .title((ctx) => ctx.uiState.title ?? 'MiXCR scFv Alignment')
+  .title(() => 'MiXCR scFv Alignment')
+
+  .subtitle((ctx) => ctx.args.customBlockLabel || ctx.args.defaultBlockLabel || '')
 
   .done(2);
 
