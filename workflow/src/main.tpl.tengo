@@ -38,13 +38,9 @@ wf.body(func(args) {
 	   args.heavyJGenes != "" {
 
 		customLibrary = true
-		heavyFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
-			writeFile("heavyV.fasta", args.heavyVGenes).saveFile("heavyV.fasta").
-			writeFile("heavyJ.fasta", args.heavyJGenes).saveFile("heavyJ.fasta").
-			run()
 		referenceLibraryHeavyCmd := render.create(repseqioLibraryTpl, {
-			vGeneFasta: heavyFiles.getFile("heavyV.fasta"),
-			jGeneFasta: heavyFiles.getFile("heavyJ.fasta"),
+			vGene: args.heavyVGenes,
+			jGene: args.heavyJGenes,
 			chains: "IGH"
 		})
 		referenceLibraryHeavy = referenceLibraryHeavyCmd.output("referenceLibrary")
@@ -57,13 +53,9 @@ wf.body(func(args) {
 	  args.lightJGenes != "" {
 
 		customLibrary = true
-		lightFiles := exec.builder().cmd("/usr/bin/env").arg("bash").
-			writeFile("lightV.fasta", args.lightVGenes).saveFile("lightV.fasta").
-			writeFile("lightJ.fasta", args.lightJGenes).saveFile("lightJ.fasta").
-			run()
 		referenceLibraryLightCmd := render.create(repseqioLibraryTpl, {
-			vGeneFasta: lightFiles.getFile("lightV.fasta"),
-			jGeneFasta: lightFiles.getFile("lightJ.fasta"),
+			vGene: args.lightVGenes,
+			jGene: args.lightJGenes,
 			chains: "IGK"
 		})
 		referenceLibraryLight = referenceLibraryLightCmd.output("referenceLibrary")
