@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.7.0
+
+### Minor Changes
+
+- f83e6a3: Fix FASTA generation
+
 ## 3.6.0
 
 ### Minor Changes
