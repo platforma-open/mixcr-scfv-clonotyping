@@ -94,7 +94,9 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 		assembleScfvCpu: args.assembleScfvCpu,
 		assembleScfvMem: args.assembleScfvMem,
 		lightImputeSequence: args.lightImputeSequence,
-		cloneClusteringMode: args.cloneClusteringMode
+		cloneClusteringMode: args.cloneClusteringMode,
+		stopCodonTypes: args.stopCodonTypes,
+		stopCodonReplacements: args.stopCodonReplacements
 	})
 
 	exports := {

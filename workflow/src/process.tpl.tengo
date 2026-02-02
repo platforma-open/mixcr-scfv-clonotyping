@@ -23,6 +23,7 @@ render := import("@platforma-sdk/workflow-tengo:render")
 mixcrAnalyzeTpl := assets.importTemplate(":mixcr-analyze")
 aggClonesTpl := assets.importTemplate(":agg-clones")
 exportReportTpl := assets.importTemplate(":export-report")
+stopCodonReplaceTpl := assets.importTemplate(":stop-codon-replace")
 
 self.awaitState("InputsLocked")
 self.awaitState("inputSpec", "ResourceReady")
@@ -110,6 +111,8 @@ self.body(func(inputs) {
 
 	truncateFR4 := !inputs.customLibrary
 	hasUMIs := inputs.hasUMIs
+	stopCodonTypes := inputs.stopCodonTypes
+	stopCodonReplacements := inputs.stopCodonReplacements
 
     // [clonotypeKey] -> heavy/light property columns
     cloneColumnsHeavy := mixcrExports.cloneColumns("IGHeavy", inputs.heavyAssemblingFeature, blockId, truncateFR4)
@@ -126,6 +129,27 @@ self.body(func(inputs) {
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
 	ll.print("__THE_LOG__ cloneColumnSpecs: " + json.encode(cloneColumnSpecs))
+
+	aminoAcidSeqColumns := []
+	cdr3SeqColumns := []
+	for colSpec in cloneColumnSpecs {
+		spec := colSpec.spec
+		if is_undefined(spec) {
+			continue
+		}
+		if spec.name == "pl7.app/vdj/sequence" {
+			if spec.domain["pl7.app/alphabet"] == "aminoacid" {
+				aminoAcidSeqColumns += [ colSpec.column ]
+			}
+			if spec.domain["pl7.app/vdj/feature"] == "CDR3" {
+				cdr3SeqColumns += [ colSpec.column ]
+			}
+		} else if spec.name == "pl7.app/vdj/scFv-sequence" {
+			if spec.domain["pl7.app/alphabet"] == "aminoacid" {
+				aminoAcidSeqColumns += [ colSpec.column ]
+			}
+		}
+	}
 
 	// [sample, clonotypeKey] -> abundance columns
 	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
@@ -214,20 +238,22 @@ self.body(func(inputs) {
 			} ]
 	}
 
-	targetOutputs += [
-		{
-			type: "Resource",
-			spec: {
-				kind: "PColumn",
-				name: "mixcr.com/scFv/clonotypeTable",
-				domain: {
-					"pl7.app/vdj/clonotypingRunId": blockId
-				},
-				valueType: "File"
+	clonotypeTableOutput := {
+		type: "Resource",
+		spec: {
+			kind: "PColumn",
+			name: "mixcr.com/scFv/clonotypeTable",
+			domain: {
+				"pl7.app/vdj/clonotypingRunId": blockId
 			},
-			name: "clonotypeTable",
-			path: ["clonotypesTableTsv"]
-		} , {
+			valueType: "File"
+		},
+		name: "clonotypeTable",
+		path: ["clonotypesTableTsv"]
+	}
+
+	targetOutputs += [
+		clonotypeTableOutput, {
 			type: "Xsv",
 			xsvType: "tsv",
 			settings: {
@@ -273,6 +299,7 @@ self.body(func(inputs) {
 				lightAssemblingFeature: inputs.lightAssemblingFeature,
 				lightImputeSequence: inputs.lightImputeSequence,
 				fileExtension: fileExtension,
+				stopCodonTypes: stopCodonTypes,
 				mixcrExportArgsHeavy: mixcrExportArgsHeavy,
 				mixcrExportArgsLight: mixcrExportArgsLight,
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
@@ -287,7 +314,31 @@ self.body(func(inputs) {
 		}
 	)
 
-	clonotypeTablesOutputs.add("clonotypeTable", mixcrResults.outputSpec("clonotypeTable"), mixcrResults.outputData("clonotypeTable"))
+	clonotypeTableColumn := mixcrResults.output("clonotypeTable")
+	clonotypeTableSpec := mixcrResults.outputSpec("clonotypeTable")
+	clonotypeTableData := mixcrResults.outputData("clonotypeTable")
+	if !is_undefined(stopCodonTypes) && len(stopCodonTypes) > 0 {
+		stopCodonResults := pframes.processColumn(
+			clonotypeTableColumn,
+			stopCodonReplaceTpl,
+			[ clonotypeTableOutput ],
+			{
+				extra: {
+					params: maps.clone({
+						aminoAcidSeqColumns: aminoAcidSeqColumns,
+						cdr3SeqColumns: cdr3SeqColumns,
+						stopCodonTypes: stopCodonTypes,
+						stopCodonReplacements: stopCodonReplacements
+					}, { removeUndefs: true })
+				}
+			}
+		)
+		clonotypeTableColumn = stopCodonResults.output("clonotypeTable")
+		clonotypeTableSpec = stopCodonResults.outputSpec("clonotypeTable")
+		clonotypeTableData = stopCodonResults.outputData("clonotypeTable")
+	}
+
+	clonotypeTablesOutputs.add("clonotypeTable", clonotypeTableSpec, clonotypeTableData)
 
 
 
@@ -305,7 +356,7 @@ self.body(func(inputs) {
 	} ]
 
 	aggByCloneKey := pframes.processColumn(
-		mixcrResults.output("clonotypeTable"),
+		clonotypeTableColumn,
 		aggClonesTpl,
 		aggregationOutputs,
 		{
@@ -334,7 +385,7 @@ self.body(func(inputs) {
 		clnsDataLight: mixcrResults.outputData("clnsIGLight"),
 		sampleIdAxisSpec: sampleIdAxisSpec,
 		chains: chains,
-		clonotypeTablesData: mixcrResults.outputData("clonotypeTable"),
+		clonotypeTablesData: clonotypeTableData,
 		hasUmi: hasUmi,
 		suppressLight: lightSuppressed, 
 		lightLibrary: inputs.referenceLibraryLight,

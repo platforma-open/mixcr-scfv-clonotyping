@@ -46,6 +46,8 @@ self.body(func(inputs) {
 	mixcrExportArgsHeavy := inputs.mixcrExportArgsHeavy
 	mixcrExportArgsLight := inputs.mixcrExportArgsLight
 	hasUMIs := inputs.hasUMIs
+	stopCodonTypes := inputs.stopCodonTypes
+	useProductiveFilter := is_undefined(stopCodonTypes) || len(stopCodonTypes) == 0
 
 	clnaFileName := "result.clna"
 	reports := [
@@ -214,9 +216,14 @@ self.body(func(inputs) {
 			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			arg("exportClones").
-			// arg("--export-productive-clones-only").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
+			
+		if useProductiveFilter {
+			clones = clones.arg("--export-productive-clones-only")
+		} else {
+			clones = clones.arg("--filter-out-of-frames")
+		}
 			
 
 		for argGrp in exportArgs {
