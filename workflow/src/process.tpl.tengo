@@ -20,6 +20,11 @@ json := import("json")
 text := import("text")
 render := import("@platforma-sdk/workflow-tengo:render")
 
+annotationMappings := {
+	"CDRs": "{\"1\":\"CDR1\",\"2\":\"CDR2\",\"3\":\"CDR3\"}",
+	"Segments": "{\"1\":\"V\",\"2\":\"D\",\"3\":\"J\",\"4\":\"C\"}"
+}
+
 mixcrAnalyzeTpl := assets.importTemplate(":mixcr-analyze")
 aggClonesTpl := assets.importTemplate(":agg-clones")
 exportReportTpl := assets.importTemplate(":export-report")
@@ -54,6 +59,33 @@ constructColumns := func(linker, hinge, blockId) {
 				}
 			}
 		}]
+
+		for annotationType in ["CDRs", "Segments"] {
+			columnName := (alphabet == "aa" ? "aa" : "n") + "AnnotationOf" + annotationType + "ForConstruct"
+			columns += [{
+				column: columnName,
+				id: (alphabet == "aa" ? "aa" : "n") + "-annotation-" + text.to_lower(annotationType) + "-construct",
+				naRegex: "region_not_covered",
+				spec: {
+					name: "pl7.app/vdj/sequence/annotation",
+					valueType: "String",
+					domain: {
+						"pl7.app/alphabet": alphabet == "nt" ? "nucleotide" : "aminoacid",
+						"pl7.app/vdj/scFv-linker": linker,
+						"pl7.app/vdj/scFv-hinge": hinge,
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/sequence/annotation/type": annotationType
+					},
+					annotations: {
+						"pl7.app/label": "scFv " + annotationType + " annotation " + alphabet,
+						"pl7.app/table/orderPriority": annotationType == "CDRs" ? "79900" : "79800",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/sequence/annotation/mapping": annotationMappings[annotationType],
+						"pl7.app/sequence/isAnnotation": "true"
+					}
+				}
+			}]
+		}
 	}
 
 	columns += [{
@@ -125,7 +157,6 @@ self.body(func(inputs) {
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
-	ll.print("__THE_LOG__ cloneColumnSpecs: " + json.encode(cloneColumnSpecs))
 
 	// [sample, clonotypeKey] -> abundance columns
 	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
