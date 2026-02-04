@@ -485,6 +485,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 	} ]
 
 	mainAbundanceColumn := "readFraction"
+	mainAbundanceColumnUnnormalized := "readCount"
 
 	if hasUMIs {
 		
@@ -526,6 +527,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 			} ]
 
 		mainAbundanceColumn = "umiFraction"
+		mainAbundanceColumnUnnormalized = "umiCount"
 	}
 
 	// Axes
@@ -552,11 +554,75 @@ abundanceColumns := func(blockId, hasUMIs) {
 	return {
 		cloneKeyAxes: cloneKeyAxes,
 		columnSpecs: columnsSpecPerSample,
-		mainAbundanceColumn: mainAbundanceColumn
+		mainAbundanceColumn: mainAbundanceColumn,
+		mainAbundanceColumnNormalized: mainAbundanceColumn,
+		mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized
 	}
+}
+
+aggregateColumns := func(hasUMIs) {
+	sampleCountColumn := {
+		column: "sampleCount",
+		id: "sample-count",
+		allowNA: false,
+		spec: {
+			name: "pl7.app/vdj/sampleCount",
+			valueType: "Int",
+			annotations: a(87110, true, {
+				"pl7.app/min": "1",
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/unit": "samples",
+				"pl7.app/abundance/normalized": "false",
+				"pl7.app/label": "Number of Samples"
+			})
+		}
+	}
+
+	if hasUMIs {
+		return [
+			sampleCountColumn,
+			{
+				column: "umiCountSum",
+				id: "umi-count-total",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/vdj/uniqueMoleculeCountTotal",
+					valueType: "Long",
+					annotations: a(87120, true, {
+						"pl7.app/min": "1",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/abundance/unit": "molecules",
+						"pl7.app/abundance/normalized": "false",
+						"pl7.app/label": "Supporting UMIs"
+					})
+				}
+			}
+		]
+	}
+
+	return [
+		sampleCountColumn,
+		{
+			column: "readCountSum",
+			id: "read-count-total",
+			allowNA: false,
+			spec: {
+				name: "pl7.app/vdj/readCountTotal",
+				valueType: "Int",
+				annotations: a(87120, true, {
+					"pl7.app/min": "1",
+					"pl7.app/isAbundance": "true",
+					"pl7.app/abundance/unit": "reads",
+					"pl7.app/abundance/normalized": "false",
+					"pl7.app/label": "Supporting Reads"
+				})
+			}
+		}
+	]
 }
 
 export {
 	cloneColumns: cloneColumns,
-	abundanceColumns: abundanceColumns
+	abundanceColumns: abundanceColumns,
+	aggregateColumns: aggregateColumns
 }
