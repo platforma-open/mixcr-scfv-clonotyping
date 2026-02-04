@@ -178,7 +178,7 @@ export const model = BlockModel.create()
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
-  .outputWithStatus('pt', (ctx) => {
+  .retentiveOutputWithStatus('pt', (ctx) => {
     const pCols = ctx.outputs?.resolve({ field: 'qcReportTable', assertFieldType: 'Input', allowPermanentAbsence: true })?.getPColumns();
     if (pCols === undefined) {
       return undefined;
