@@ -608,7 +608,7 @@ aggregateColumns := func(hasUMIs) {
 			allowNA: false,
 			spec: {
 				name: "pl7.app/vdj/readCountTotal",
-				valueType: "Int",
+				valueType: "Long",
 				annotations: a(87120, true, {
 					"pl7.app/min": "1",
 					"pl7.app/isAbundance": "true",
