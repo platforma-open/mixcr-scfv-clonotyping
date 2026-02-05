@@ -1,16 +1,12 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 self := import("@platforma-sdk/workflow-tengo:tpl")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
-slices := import("@platforma-sdk/workflow-tengo:slices")
-assets := import("@platforma-sdk/workflow-tengo:assets")
-exec := import("@platforma-sdk/workflow-tengo:exec")
 units := import("@platforma-sdk/workflow-tengo:units")
+pt := import("@platforma-sdk/workflow-tengo:pt")
 math := import("math")
 json := import("json")
 
 self.defineOutputs("tsv")
-
-ptransformSw := assets.importSoftware("@platforma-open/milaboratories.software-ptransform:main")
 
 self.body(func(inputs) {
 	inputData := inputs[pConstants.VALUE_FIELD_NAME]
@@ -20,48 +16,103 @@ self.body(func(inputs) {
 
 	ll.assert(inputDataMeta.keyLength == 1, "unexpected number of aggregation axes")
 
-	mainAbundanceColumn := inputs.mainAbundanceColumn
+	mainAbundanceColumnNormalized := inputs.mainAbundanceColumnNormalized
+	mainAbundanceColumnUnnormalized := inputs.mainAbundanceColumnUnnormalized
 	cloneColumns := inputs.cloneColumns
+	cloneColumnSpecs := inputs.cloneColumnSpecs
 
-	// Adding clonotypeKey column
-	pWorkflow := {
-		steps: [ {
-			type: "aggregate",
-			groupBy: ["clonotypeKey"],
-			aggregations: [ {
-				type: "max_by",
-				rankingCol: mainAbundanceColumn,
-				pickCols: slices.map(cloneColumns, func(col) {
-					return [col, col]
-				})
-			} ]
-		} ]
+	addedColumns := {}
+	baseSchemaForRead := []
+	addSchema := func(column, t) {
+		if !addedColumns[column] {
+			baseSchemaForRead += [ { column: column, type: t } ]
+			addedColumns[column] = true
+		}
 	}
 
-	aggregateBuilderCmd := exec.builder().
-		printErrStreamToStdout().
-		software(ptransformSw).
-		mem(int(math.max(numberOfSamples, 64)) * units.GiB).
-		cpu(int(math.max(numberOfSamples, 32))).
-		arg("--workflow").arg("wf.json").
-		writeFile("wf.json", json.encode(pWorkflow))
+	for colSpec in cloneColumnSpecs {
+		addSchema(colSpec.column, "String")
+	}
+	addSchema(mainAbundanceColumnNormalized, "String")
+	addSchema(mainAbundanceColumnUnnormalized, "String")
+	addSchema("clonotypeKey", "String")
 
+	wf := pt.workflow().
+		inMediumQueue().
+		mem(int(math.max(numberOfSamples, 64)) * units.GiB).
+		cpu(int(math.max(numberOfSamples, 32)))
+
+	dataFrames := []
 	for sKey, inputFile in inputMap {
 		key := json.decode(sKey)
 		if len(key) != 1 {
 			ll.panic("malformed key: %v", sKey)
 		}
 		sampleId := key[0]
-		aggregateBuilderCmd.
-			arg(sampleId + ".tsv").
-			addFile(sampleId + ".tsv", inputFile)
+		df := wf.frame({
+			file: inputFile,
+			xsvType: "tsv",
+			schema: baseSchemaForRead
+		}, {
+			id: "table_" + sampleId,
+			inferSchema: false
+		})
+		dataFrames = append(dataFrames, df)
 	}
 
-	aggregateCmd := aggregateBuilderCmd.
-		arg("output.tsv").saveFile("output.tsv").
-		run()
+	if len(dataFrames) == 0 {
+		ll.panic("no input files found")
+	}
 
-	processedTsv := aggregateCmd.getFile("output.tsv")
+	currentDf := dataFrames[0]
+	if len(dataFrames) > 1 {
+		currentDf = pt.concat(dataFrames)
+	}
+
+	numericTypes := {
+		"Int": "Int",
+		"Long": "Long",
+		"Double": "Double"
+	}
+	numericColumns := {}
+	for colSpec in cloneColumnSpecs {
+		castType := numericTypes[colSpec.spec.valueType]
+		if !is_undefined(castType) {
+			numericColumns[colSpec.column] = castType
+		}
+	}
+	numericColumns[mainAbundanceColumnNormalized] = "Double"
+	numericColumns[mainAbundanceColumnUnnormalized] = "Long"
+
+	castExprs := []
+	for colName, castType in numericColumns {
+		castExprs = append(castExprs,
+			pt.when(pt.col(colName).eq("region_not_covered")).
+				then(pt.lit(undefined)).
+				otherwise(pt.col(colName)).
+				cast(castType).
+				alias(colName)
+		)
+	}
+	currentDf = currentDf.withColumns(castExprs...)
+
+	aggExpressions := []
+	for col in cloneColumns {
+		aggExpressions = append(aggExpressions,
+			pt.col(col).maxBy(pt.col(mainAbundanceColumnNormalized)).alias(col)
+		)
+	}
+	aggExpressions = append(aggExpressions,
+		pt.col(mainAbundanceColumnNormalized).count().alias("sampleCount"),
+		pt.col(mainAbundanceColumnUnnormalized).sum().alias(mainAbundanceColumnUnnormalized + "Sum")
+	)
+
+	aggregatedDf := currentDf.groupBy("clonotypeKey").agg(aggExpressions...)
+	aggregatedDf.save("output.tsv")
+
+	ptResult := wf.run()
+
+	processedTsv := ptResult.getFile("output.tsv")
 
 	return {
 		tsv: processedTsv
