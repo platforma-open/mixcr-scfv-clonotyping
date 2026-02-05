@@ -137,7 +137,7 @@ importers:
     devDependencies:
       '@milaboratories/ts-builder':
         specifier: 'catalog:'
-        version: 1.2.4(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
+        version: 1.2.4(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
       '@milaboratories/ts-configs':
         specifier: 'catalog:'
         version: 1.2.0
@@ -174,7 +174,7 @@ importers:
     devDependencies:
       '@milaboratories/ts-builder':
         specifier: 'catalog:'
-        version: 1.2.4(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
+        version: 1.2.4(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
       '@milaboratories/ts-configs':
         specifier: 'catalog:'
         version: 1.2.0
@@ -226,7 +226,7 @@ importers:
     devDependencies:
       '@milaboratories/ts-builder':
         specifier: 'catalog:'
-        version: 1.2.4(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
+        version: 1.2.4(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
       '@milaboratories/ts-configs':
         specifier: 'catalog:'
         version: 1.2.0
@@ -1295,6 +1295,9 @@ packages:
 
   '@milaboratories/ptabler-expression-js@1.1.13':
     resolution: {integrity: sha512-GpgCVFq5nl3qNPi+4oLiputrA9QQD4c4nRwlC6F+O/2C3ww1aubRbCFCdcM/3KQ4FXgUb/0U9sGR2wwhKrfC2w==}
+
+  '@milaboratories/ptabler-expression-js@1.1.9':
+    resolution: {integrity: sha512-fH0gix6ObRI9/TgPk1S40EkdFLskSdh6AloNBhkedH7WyTwOmM7zmtjmp+n7TiRHzRfufqzwLOZ9TFb7qAXQRA==}
 
   '@milaboratories/resolve-helper@1.1.1':
     resolution: {integrity: sha512-0A7yX8p3uhTWAGphq9oV3fGQODtmCgPHEuB0UkUw5MSdAOM4rjQX35IPOi3fVVPumVJxeygqdJZ4sfSRU4+IVA==}
@@ -5948,18 +5951,18 @@ snapshots:
 
   '@milaboratories/biowasm-tools@2.0.0': {}
 
-  '@milaboratories/build-configs@1.4.0(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)':
+  '@milaboratories/build-configs@1.4.0(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)':
     dependencies:
-      '@rollup/plugin-commonjs': 28.0.9(rollup@4.53.4)
-      '@rollup/plugin-json': 6.1.0(rollup@4.53.4)
-      '@rollup/plugin-node-resolve': 16.0.3(rollup@4.53.4)
-      '@rollup/plugin-typescript': 12.3.0(rollup@4.53.4)(tslib@2.8.1)(typescript@5.6.3)
-      '@vitejs/plugin-vue': 5.2.4(vite@6.4.1(@types/node@25.0.2)(yaml@2.8.2))(vue@3.5.25(typescript@5.6.3))
-      rollup: 4.53.4
-      rollup-plugin-cleandir: 3.0.0(rollup@4.53.4)
-      rollup-plugin-node-externals: 8.1.2(rollup@4.53.4)
-      rollup-plugin-sourcemaps2: 0.5.4(@types/node@25.0.2)(rollup@4.53.4)
-      tsup: 8.3.6(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(postcss@8.5.6)(typescript@5.6.3)(yaml@2.8.2)
+      '@rollup/plugin-commonjs': 28.0.9(rollup@4.57.1)
+      '@rollup/plugin-json': 6.1.0(rollup@4.57.1)
+      '@rollup/plugin-node-resolve': 16.0.3(rollup@4.57.1)
+      '@rollup/plugin-typescript': 12.3.0(rollup@4.57.1)(tslib@2.8.1)(typescript@5.6.3)
+      '@vitejs/plugin-vue': 5.2.4(vite@6.4.1(@types/node@25.2.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.6.3))
+      rollup: 4.57.1
+      rollup-plugin-cleandir: 3.0.0(rollup@4.57.1)
+      rollup-plugin-node-externals: 8.1.2(rollup@4.57.1)
+      rollup-plugin-sourcemaps2: 0.5.4(@types/node@25.2.0)(rollup@4.57.1)
+      tsup: 8.3.6(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(postcss@8.5.6)(typescript@5.6.3)(yaml@2.8.2)
       typescript: 5.6.3
       vite: 6.4.1(@types/node@25.2.0)(yaml@2.8.2)
       vite-plugin-css-injected-by-js: 3.5.2(vite@6.4.1(@types/node@25.2.0)(yaml@2.8.2))
@@ -6070,28 +6073,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@milaboratories/pl-client@2.16.25':
-    dependencies:
-      '@grpc/grpc-js': 1.13.4
-      '@milaboratories/pl-http': 1.2.0
-      '@milaboratories/pl-model-common': 1.24.2
-      '@milaboratories/ts-helpers': 1.7.0
-      '@protobuf-ts/grpc-transport': 2.11.1(@grpc/grpc-js@1.13.4)
-      '@protobuf-ts/runtime': 2.11.1
-      '@protobuf-ts/runtime-rpc': 2.11.1
-      canonicalize: 2.1.0
-      denque: 2.1.0
-      https-proxy-agent: 7.0.6
-      long: 5.3.2
-      lru-cache: 11.2.5
-      openapi-fetch: 0.15.0
-      tslib: 2.7.0
-      undici: 7.16.0
-      utility-types: 3.11.0
-      yaml: 2.8.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@milaboratories/pl-client@2.16.26':
     dependencies:
       '@grpc/grpc-js': 1.13.4
@@ -6105,7 +6086,7 @@ snapshots:
       denque: 2.1.0
       https-proxy-agent: 7.0.6
       long: 5.3.2
-      lru-cache: 11.2.4
+      lru-cache: 11.2.5
       openapi-fetch: 0.15.0
       tslib: 2.7.0
       undici: 7.16.0
@@ -6277,14 +6258,6 @@ snapshots:
       utility-types: 3.11.0
       zod: 3.23.8
 
-  '@milaboratories/pl-model-middle-layer@1.11.4':
-    dependencies:
-      '@milaboratories/pl-model-common': 1.24.3
-      '@platforma-sdk/model': 1.53.11
-      remeda: 2.32.0
-      utility-types: 3.11.0
-      zod: 3.23.8
-
   '@milaboratories/pl-model-middle-layer@1.8.42':
     dependencies:
       '@milaboratories/pl-model-common': 1.21.8
@@ -6313,15 +6286,19 @@ snapshots:
     dependencies:
       '@platforma-open/milaboratories.software-ptabler.schema': 1.13.6
 
+  '@milaboratories/ptabler-expression-js@1.1.9':
+    dependencies:
+      '@platforma-open/milaboratories.software-ptabler.schema': 1.13.2
+
   '@milaboratories/resolve-helper@1.1.1': {}
 
   '@milaboratories/software-pframes-conv@2.2.9': {}
 
   '@milaboratories/tengo-tester@1.6.4': {}
 
-  '@milaboratories/ts-builder@1.2.4(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)':
+  '@milaboratories/ts-builder@1.2.4(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)':
     dependencies:
-      '@milaboratories/build-configs': 1.4.0(@microsoft/api-extractor@7.55.2(@types/node@25.0.2))(@types/node@25.0.2)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
+      '@milaboratories/build-configs': 1.4.0(@microsoft/api-extractor@7.56.2(@types/node@25.2.0))(@types/node@25.2.0)(postcss@8.5.6)(tslib@2.8.1)(yaml@2.8.2)
       '@milaboratories/ts-configs': 1.2.0
       commander: 12.1.0
       rollup: 4.57.1
@@ -6569,29 +6546,6 @@ snapshots:
       - aws-crt
       - supports-color
 
-  '@platforma-sdk/block-tools@2.6.44':
-    dependencies:
-      '@aws-sdk/client-s3': 3.859.0
-      '@milaboratories/pl-http': 1.2.0
-      '@milaboratories/pl-model-common': 1.24.3
-      '@milaboratories/pl-model-middle-layer': 1.11.4
-      '@milaboratories/resolve-helper': 1.1.1
-      '@milaboratories/ts-helpers': 1.7.0
-      '@milaboratories/ts-helpers-oclif': 1.1.35
-      '@oclif/core': 4.8.0
-      '@platforma-sdk/blocks-deps-updater': 2.0.0
-      canonicalize: 2.1.0
-      lru-cache: 11.2.4
-      mime-types: 2.1.35
-      remeda: 2.32.0
-      tar: 7.5.2
-      undici: 7.16.0
-      yaml: 2.8.2
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - aws-crt
-      - supports-color
-
   '@platforma-sdk/blocks-deps-updater@2.0.0':
     dependencies:
       yaml: 2.8.2
@@ -6634,17 +6588,6 @@ snapshots:
       '@milaboratories/ptabler-expression-js': 1.1.13
       canonicalize: 2.1.0
       es-toolkit: 1.44.0
-      fast-json-patch: 3.1.1
-      utility-types: 3.11.0
-      zod: 3.23.8
-
-  '@platforma-sdk/model@1.53.11':
-    dependencies:
-      '@milaboratories/pl-error-like': 1.12.5
-      '@milaboratories/pl-model-common': 1.24.3
-      '@milaboratories/ptabler-expression-js': 1.1.13
-      canonicalize: 2.1.0
-      es-toolkit: 1.43.0
       fast-json-patch: 3.1.1
       utility-types: 3.11.0
       zod: 3.23.8
