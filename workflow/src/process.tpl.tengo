@@ -148,16 +148,19 @@ self.body(func(inputs) {
         cloneColumnsLight = mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
     }
 
-	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
+	cloneColumnsPerSample := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
+	aggregateColumns := mixcrExports.aggregateColumns(hasUMIs)
+	cloneColumnSpecs := cloneColumnsPerSample + aggregateColumns
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
-
 
 	// [sample, clonotypeKey] -> abundance columns
 	abundanceColumns := mixcrExports.abundanceColumns(blockId, hasUMIs)
 	cloneKeyAxes := abundanceColumns.cloneKeyAxes
 	abundanceColumnSpecs := abundanceColumns.columnSpecs
 	mainAbundanceColumn := abundanceColumns.mainAbundanceColumn
+	mainAbundanceColumnNormalized := abundanceColumns.mainAbundanceColumnNormalized
+	mainAbundanceColumnUnnormalized := abundanceColumns.mainAbundanceColumnUnnormalized
 
 
 	targetOutputs := []
@@ -337,8 +340,10 @@ self.body(func(inputs) {
 		{
 			aggregate: ["pl7.app/sampleId"],
 			extra: {
-				mainAbundanceColumn: mainAbundanceColumn,
-				cloneColumns: slices.map(cloneColumnSpecs, func(col) {
+				mainAbundanceColumnNormalized: mainAbundanceColumnNormalized,
+				mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized,
+				cloneColumnSpecs: cloneColumnsPerSample,
+				cloneColumns: slices.map(cloneColumnsPerSample, func(col) {
 					return col.column
 				})
 			}

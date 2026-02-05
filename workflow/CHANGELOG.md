@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.8.0
+
+### Minor Changes
+
+- e08ddde: aggregated columns added (supporting samples, reads (umi))
+
 ## 3.7.0
 
 ### Minor Changes
