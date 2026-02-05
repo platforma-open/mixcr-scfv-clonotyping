@@ -591,5 +591,6 @@ abundanceColumns := func(blockId, hasUMIs) {
 
 export {
 	cloneColumns: cloneColumns,
-	abundanceColumns: abundanceColumns
+	abundanceColumns: abundanceColumns,
+	annotationMappings: annotationMappings
 }
