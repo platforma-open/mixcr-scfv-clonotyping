@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.10.0
+
+### Minor Changes
+
+- 0390f35: stop codon replacement, dependencies updates
+
+### Patch Changes
+
+- Updated dependencies [0390f35]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@2.5.0
+
 ## 3.9.0
 
 ### Minor Changes

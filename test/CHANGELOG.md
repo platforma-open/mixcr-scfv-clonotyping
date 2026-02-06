@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.test
 
+## 1.4.0
+
+### Minor Changes
+
+- 0390f35: stop codon replacement, dependencies updates
+
 ## 1.3.0
 
 ### Minor Changes
