@@ -204,6 +204,9 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 	} ]
 
 	for vdjU in ["V", "D", "J"] {
+		if chain == "IGLight" && vdjU == "D" {
+			continue
+		}
 		vdjL := text.to_lower(vdjU)
 		for variant in geneHitColumnVariants {
 			columnsSpecPerClonotype += [ {
