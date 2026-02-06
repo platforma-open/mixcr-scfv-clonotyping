@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv
 
+## 2.4.0
+
+### Minor Changes
+
+- d347949: CDRs and segments annotation is added for scfv constructs
+
 ## 2.3.0
 
 ### Minor Changes
