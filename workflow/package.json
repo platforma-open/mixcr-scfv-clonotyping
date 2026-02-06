@@ -11,13 +11,11 @@
   "dependencies": {
     "@platforma-sdk/workflow-tengo": "catalog:",
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv": "workspace:*",
+    "@platforma-open/milaboratories.software-mixcr": "catalog:",
+    "@platforma-open/milaboratories.software-ptransform": "catalog:",
     "@platforma-open/milaboratories.software-repseqio": "catalog:"
   },
   "devDependencies": {
-    "@platforma-sdk/tengo-builder": "catalog:",
-    "@platforma-open/milaboratories.software-small-binaries": "catalog:",
-    "@platforma-open/milaboratories.software-mixcr": "catalog:",
-    "@platforma-open/milaboratories.software-ptransform": "catalog:",
-    "@milaboratories/software-pframes-conv": "catalog:"
+    "@platforma-sdk/tengo-builder": "catalog:"
   }
 }

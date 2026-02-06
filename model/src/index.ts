@@ -8,6 +8,13 @@ import {
 } from '@platforma-sdk/model';
 
 export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
+export type StopCodonType = 'amber' | 'ochre' | 'opal';
+
+export type StopCodonReplacements = {
+  amber?: string;
+  ochre?: string;
+  opal?: string;
+};
 
 export type BlockArgs = {
   defaultBlockLabel?: string;
@@ -46,6 +53,8 @@ export type BlockArgs = {
   assembleScfvMem?: number;
   assembleScfvCpu?: number;
   cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
+  stopCodonTypes?: StopCodonType[];
+  stopCodonReplacements?: StopCodonReplacements;
 };
 
 export type UiState = {

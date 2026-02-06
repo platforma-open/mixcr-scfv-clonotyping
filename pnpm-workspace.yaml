@@ -11,13 +11,13 @@ catalog:
   '@milaboratories/ts-builder': 1.2.4
   '@milaboratories/ts-configs': 1.2.0
   '@platforma-sdk/workflow-tengo': 5.8.0
-  '@platforma-sdk/model': 1.52.3
-  '@platforma-sdk/ui-vue': 1.52.3
+  '@platforma-sdk/model': 1.53.11
+  '@platforma-sdk/ui-vue': 1.53.11
   '@platforma-sdk/tengo-builder': 2.4.14
   '@platforma-sdk/package-builder': 3.11.0
   '@platforma-sdk/block-tools': 2.6.44
   '@platforma-sdk/eslint-config': 1.2.0
-  '@platforma-sdk/test': 1.52.4
+  '@platforma-sdk/test': 1.53.4
   '@milaboratories/helpers': 1.13.0
 
   # Common dependencies - can use ^ or ~

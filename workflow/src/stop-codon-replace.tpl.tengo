@@ -1,0 +1,161 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+self := import("@platforma-sdk/workflow-tengo:tpl.light")
+pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+pt := import("@platforma-sdk/workflow-tengo:pt")
+text := import("text")
+
+self.defineOutputs("clonotypesTableTsv")
+
+applyStopCodonReplacementsPt := func(df, opts) {
+	if is_undefined(opts) {
+		return df
+	}
+	aminoAcidSeqColumns := opts.aminoAcidSeqColumns
+	cdr3SeqColumns := opts.cdr3SeqColumns
+	stopCodonTypes := opts.stopCodonTypes
+	stopCodonReplacements := opts.stopCodonReplacements
+
+	if is_undefined(aminoAcidSeqColumns) || len(aminoAcidSeqColumns) == 0 {
+		return df
+	}
+	if is_undefined(stopCodonTypes) || !is_array(stopCodonTypes) || len(stopCodonTypes) == 0 {
+		return df
+	}
+	if !is_undefined(stopCodonReplacements) && !is_map(stopCodonReplacements) {
+		stopCodonReplacements = undefined
+	}
+
+	contains := func(arr, value) {
+		for v in arr {
+			if v == value { return true }
+		}
+		return false
+	}
+
+	stopReplacement := func(stopType) {
+		if !contains(stopCodonTypes, stopType) {
+			return "*"
+		}
+		if is_undefined(stopCodonReplacements) {
+			return "*"
+		}
+		aa := stopCodonReplacements[stopType]
+		if is_undefined(aa) || aa == "" {
+			return "*"
+		}
+		return text.to_upper(aa)
+	}
+
+	codonMapBase := {
+		"TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
+		"TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S",
+		"TAT": "Y", "TAC": "Y", "TAA": "*",
+		"TAG": "*", "TGT": "C", "TGC": "C",
+		"TGA": "*", "TGG": "W",
+		"CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+		"CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+		"CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+		"CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+		"ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M",
+		"ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T",
+		"AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K",
+		"AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R",
+		"GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+		"GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+		"GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+		"GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
+	}
+
+	codonMapReplace := {
+		"TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
+		"TCT": "S", "TCC": "S", "TCA": "S", "TCG": "S",
+		"TAT": "Y", "TAC": "Y", "TAA": stopReplacement("ochre"),
+		"TAG": stopReplacement("amber"), "TGT": "C", "TGC": "C",
+		"TGA": stopReplacement("opal"), "TGG": "W",
+		"CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",
+		"CCT": "P", "CCC": "P", "CCA": "P", "CCG": "P",
+		"CAT": "H", "CAC": "H", "CAA": "Q", "CAG": "Q",
+		"CGT": "R", "CGC": "R", "CGA": "R", "CGG": "R",
+		"ATT": "I", "ATC": "I", "ATA": "I", "ATG": "M",
+		"ACT": "T", "ACC": "T", "ACA": "T", "ACG": "T",
+		"AAT": "N", "AAC": "N", "AAA": "K", "AAG": "K",
+		"AGT": "S", "AGC": "S", "AGA": "R", "AGG": "R",
+		"GTT": "V", "GTC": "V", "GTA": "V", "GTG": "V",
+		"GCT": "A", "GCC": "A", "GCA": "A", "GCG": "A",
+		"GAT": "D", "GAC": "D", "GAA": "E", "GAG": "E",
+		"GGT": "G", "GGC": "G", "GGA": "G", "GGG": "G"
+	}
+
+	translateNtToAaExpr := func(ntExpr, codonMap) {
+		seq := ntExpr.fillNull("").strToUpper()
+		seq = seq.strReplace("(.{3})", "$1|", { replaceAll: true })
+		for codon, aa in codonMap {
+			seq = seq.strReplace(codon + "|", aa + "|", { replaceAll: true, literal: true })
+		}
+		seq = seq.strReplace("\\|$", "", { replaceAll: false })
+		seq = seq.strReplace("|", "", { replaceAll: true, literal: true })
+		seq = seq.strReplace("[ACGT]{1,2}$", "", { replaceAll: true })
+		return seq
+	}
+
+	pairs := []
+	for aaCol in aminoAcidSeqColumns {
+		ntCol := text.replace(aaCol, "aaSeq", "nSeq", 1)
+		if aaCol == "construct-aa" {
+			ntCol = "construct-nt"
+		}
+		pairs = append(pairs, { aa: aaCol, nt: ntCol })
+	}
+
+	expressions := []
+	replacedAnyExprs := []
+	replacedColsExprs := []
+	for pair in pairs {
+		aaCol := pair.aa
+		ntCol := pair.nt
+		translatedBase := translateNtToAaExpr(pt.col(ntCol), codonMapBase)
+		translatedReplaced := translateNtToAaExpr(pt.col(ntCol), codonMapReplace)
+		expressions = append(expressions, translatedReplaced.alias(aaCol))
+		cond := translatedReplaced.neq(translatedBase)
+		replacedAnyExprs = append(replacedAnyExprs, cond)
+		replacedColsExprs = append(replacedColsExprs, pt.when(cond).then(pt.lit(aaCol)).otherwise(pt.lit("")))
+	}
+	if len(expressions) > 0 {
+		df = df.withColumns(expressions...)
+	}
+
+	if len(replacedAnyExprs) > 0 {
+		colsList := pt.concatStr(replacedColsExprs, { delimiter: "," })
+		colsList = colsList.strReplace(",+", ",", { replaceAll: true }).strReplace("^,|,$", "", { replaceAll: true })
+		df = df.withColumns(
+			pt.anyHorizontal(replacedAnyExprs...).alias("stopCodonReplaced"),
+			colsList.alias("stopCodonReplacedColumns")
+		)
+	}
+
+	return df
+}
+
+self.body(func(inputs) {
+	inputTsv := inputs[pConstants.VALUE_FIELD_NAME]
+	params := inputs.params
+
+	wf := pt.workflow().
+		inMediumQueue().
+		mem("8GB").
+		cpu(2)
+
+	df := wf.frame({ file: inputTsv, xsvType: "tsv", inferSchema: true })
+	df = applyStopCodonReplacementsPt(df, {
+		aminoAcidSeqColumns: params.aminoAcidSeqColumns,
+		cdr3SeqColumns: params.cdr3SeqColumns,
+		stopCodonTypes: params.stopCodonTypes,
+		stopCodonReplacements: params.stopCodonReplacements
+	})
+	df.save("output.tsv")
+	result := wf.run()
+
+	return {
+		clonotypesTableTsv: result.getFile("output.tsv")
+	}
+})
