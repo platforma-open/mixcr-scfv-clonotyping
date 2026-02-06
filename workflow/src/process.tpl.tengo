@@ -55,6 +55,33 @@ constructColumns := func(linker, hinge, blockId) {
 				}
 			}
 		}]
+
+		for annotationType in ["CDRs", "Segments"] {
+			columnName := (alphabet == "aa" ? "aa" : "n") + "AnnotationOf" + annotationType + "ForConstruct"
+			columns += [{
+				column: columnName,
+				id: (alphabet == "aa" ? "aa" : "n") + "-annotation-" + text.to_lower(annotationType) + "-construct",
+				naRegex: "region_not_covered",
+				spec: {
+					name: "pl7.app/vdj/sequence/annotation",
+					valueType: "String",
+					domain: {
+						"pl7.app/alphabet": alphabet == "nt" ? "nucleotide" : "aminoacid",
+						"pl7.app/vdj/scFv-linker": linker,
+						"pl7.app/vdj/scFv-hinge": hinge,
+						"pl7.app/vdj/clonotypingRunId": blockId,
+						"pl7.app/sequence/annotation/type": annotationType
+					},
+					annotations: {
+						"pl7.app/label": "scFv " + annotationType + " annotation " + alphabet,
+						"pl7.app/table/orderPriority": annotationType == "CDRs" ? "79900" : "79800",
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/sequence/annotation/mapping": mixcrExports.annotationMappings[annotationType],
+						"pl7.app/sequence/isAnnotation": "true"
+					}
+				}
+			}]
+		}
 	}
 
 	columns += [{
@@ -124,7 +151,9 @@ self.body(func(inputs) {
         cloneColumnsLight = mixcrExports.cloneColumns("IGLight", inputs.lightAssemblingFeature, blockId, truncateFR4)
     }
 
-	cloneColumnSpecs := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
+	cloneColumnsPerSample := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
+	aggregateColumns := mixcrExports.aggregateColumns(hasUMIs)
+	cloneColumnSpecs := cloneColumnsPerSample + aggregateColumns
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
@@ -156,6 +185,8 @@ self.body(func(inputs) {
 	cloneKeyAxes := abundanceColumns.cloneKeyAxes
 	abundanceColumnSpecs := abundanceColumns.columnSpecs
 	mainAbundanceColumn := abundanceColumns.mainAbundanceColumn
+	mainAbundanceColumnNormalized := abundanceColumns.mainAbundanceColumnNormalized
+	mainAbundanceColumnUnnormalized := abundanceColumns.mainAbundanceColumnUnnormalized
 
 
 	targetOutputs := []
@@ -362,8 +393,10 @@ self.body(func(inputs) {
 		{
 			aggregate: ["pl7.app/sampleId"],
 			extra: {
-				mainAbundanceColumn: mainAbundanceColumn,
-				cloneColumns: slices.map(cloneColumnSpecs, func(col) {
+				mainAbundanceColumnNormalized: mainAbundanceColumnNormalized,
+				mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized,
+				cloneColumnSpecs: cloneColumnsPerSample,
+				cloneColumns: slices.map(cloneColumnsPerSample, func(col) {
 					return col.column
 				})
 			}

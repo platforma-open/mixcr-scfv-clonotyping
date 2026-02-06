@@ -301,9 +301,22 @@ self.body(func(inputs) {
 		cache(48 * times.hour).
 		run()
 
+	annotateScFv := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:construct-annotations")).
+		arg("--input_tsv").arg("input.tsv").
+		arg("--output_tsv").arg("result.tsv").
+		arg("--order").arg(inputs.order).
+		arg("--linker").arg(inputs.linker).
+		arg("--hinge").arg(inputs.hinge).
+		addFile("input.tsv", assembleScFv.getFile("result.tsv")).
+		saveFile("result.tsv").
+		cpu(inputs.assembleScfvCpu).
+		mem(string(inputs.assembleScfvMem) + "GiB").
+		cache(48 * times.hour).
+		run()
 
 	return {
-		clonotypesTableTsv: assembleScFv.getFile("result.tsv"),
+		clonotypesTableTsv: annotateScFv.getFile("result.tsv"),
 		qcIGHeavy: heavy.qc,
 		qcIGLight: light.qc,
 		logsIGHeavy: heavy.log,

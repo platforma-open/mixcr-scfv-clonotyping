@@ -47,6 +47,11 @@ removeInFrame := func(col) {
 	return col
 }
 
+annotationMappings := {
+	"CDRs": "{\"1\":\"CDR1\",\"2\":\"CDR2\",\"3\":\"CDR3\"}",
+	"Segments": "{\"1\":\"V\",\"2\":\"D\",\"3\":\"J\",\"4\":\"C\"}"
+}
+
 /**
  * Given assembling feature, identifies its corresponding productive feature, core feature and
  * features to be exported by MiXCR as imputed and non-imputed.
@@ -239,14 +244,15 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 		imputedL := text.to_lower(imputedU)
 
 		for featureU in features {
-			featureL := text.to_lower(featureU)
+			featureCol := removeInFrame(featureU)
+			featureL := text.to_lower(featureCol)
 			for isAminoAcid in [false, true] {
 				alphabet := isAminoAcid ? "aminoacid" : "nucleotide"
 				alphabetShort := isAminoAcid ? "aa" : "nt"
 				alphabetShortMixcr := isAminoAcid ? "aa" : "n"
 				visibility := false // (featureU == "CDR3" || featureU == assemblingFeature) && isAminoAcid
 				columnsSpecPerClonotype += [ {
-					column: alphabetShortMixcr + "Seq" + imputedU + removeInFrame(featureU) + "-" + chain,
+					column: alphabetShortMixcr + "Seq" + imputedU + featureCol + "-" + chain,
 					id: alphabetShortMixcr + "-seq-" + featureL + (isImputed ? "-imputed" : "") + "-" + chain,
 					naRegex: "region_not_covered",
 					spec: {
@@ -265,6 +271,33 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 				} ]
 				exportArgs += [ [ "-" + alphabetShortMixcr + "Feature" + imputedU, featureU ] ]
 				orderP -= 100
+				if !isImputed && featureCol == "VDJRegion" {
+					for annotationType in ["CDRs", "Segments"] {
+						columnName := alphabetShortMixcr + "AnnotationOf" + annotationType + "For" + featureCol + "-" + chain
+						columnsSpecPerClonotype += [ {
+							column: columnName,
+							id: alphabetShortMixcr + "-annotation-" + annotationType + "-" + featureL + "-" + chain,
+							naRegex: "region_not_covered",
+							spec: {
+								name: "pl7.app/vdj/sequence/annotation",
+								valueType: "String",
+								domain: {
+									"pl7.app/vdj/feature": featureU,
+									"pl7.app/alphabet": alphabet,
+									"pl7.app/sequence/annotation/type": annotationType,
+									"pl7.app/vdj/scClonotypeChain": chain == "IGHeavy" ? "A" : "B"
+								},
+								annotations: a(orderP, false, {
+									"pl7.app/label": annotationType + " annotation for " + featureCol + " " + alphabetShort + " " + chainLabel,
+									"pl7.app/sequence/annotation/mapping": annotationMappings[annotationType],
+									"pl7.app/sequence/isAnnotation": "true"
+								})
+							}
+						} ]
+						exportArgs += [ [ "-" + alphabetShortMixcr + "AnnotationString", annotationType, featureU ] ]
+						orderP -= 100
+					}
+				}
 				if featureU == "CDR3" {
 				columnsSpecPerClonotype += [ {
 					column: alphabetShortMixcr + "Length" + featureU + "-" + chain,
@@ -485,6 +518,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 	} ]
 
 	mainAbundanceColumn := "readFraction"
+	mainAbundanceColumnUnnormalized := "readCount"
 
 	if hasUMIs {
 		
@@ -526,6 +560,7 @@ abundanceColumns := func(blockId, hasUMIs) {
 			} ]
 
 		mainAbundanceColumn = "umiFraction"
+		mainAbundanceColumnUnnormalized = "umiCount"
 	}
 
 	// Axes
@@ -552,11 +587,76 @@ abundanceColumns := func(blockId, hasUMIs) {
 	return {
 		cloneKeyAxes: cloneKeyAxes,
 		columnSpecs: columnsSpecPerSample,
-		mainAbundanceColumn: mainAbundanceColumn
+		mainAbundanceColumn: mainAbundanceColumn,
+		mainAbundanceColumnNormalized: mainAbundanceColumn,
+		mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized
 	}
+}
+
+aggregateColumns := func(hasUMIs) {
+	sampleCountColumn := {
+		column: "sampleCount",
+		id: "sample-count",
+		allowNA: false,
+		spec: {
+			name: "pl7.app/vdj/sampleCount",
+			valueType: "Int",
+			annotations: a(87110, true, {
+				"pl7.app/min": "1",
+				"pl7.app/isAbundance": "true",
+				"pl7.app/abundance/unit": "samples",
+				"pl7.app/abundance/normalized": "false",
+				"pl7.app/label": "Number of Samples"
+			})
+		}
+	}
+
+	if hasUMIs {
+		return [
+			sampleCountColumn,
+			{
+				column: "umiCountSum",
+				id: "umi-count-total",
+				allowNA: false,
+				spec: {
+					name: "pl7.app/vdj/uniqueMoleculeCountTotal",
+					valueType: "Long",
+					annotations: a(87120, true, {
+						"pl7.app/min": "1",
+						"pl7.app/isAbundance": "true",
+						"pl7.app/abundance/unit": "molecules",
+						"pl7.app/abundance/normalized": "false",
+						"pl7.app/label": "Supporting UMIs"
+					})
+				}
+			}
+		]
+	}
+
+	return [
+		sampleCountColumn,
+		{
+			column: "readCountSum",
+			id: "read-count-total",
+			allowNA: false,
+			spec: {
+				name: "pl7.app/vdj/readCountTotal",
+				valueType: "Long",
+				annotations: a(87120, true, {
+					"pl7.app/min": "1",
+					"pl7.app/isAbundance": "true",
+					"pl7.app/abundance/unit": "reads",
+					"pl7.app/abundance/normalized": "false",
+					"pl7.app/label": "Supporting Reads"
+				})
+			}
+		}
+	]
 }
 
 export {
 	cloneColumns: cloneColumns,
-	abundanceColumns: abundanceColumns
+	abundanceColumns: abundanceColumns,
+	annotationMappings: annotationMappings,
+	aggregateColumns: aggregateColumns
 }

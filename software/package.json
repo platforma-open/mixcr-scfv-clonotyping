@@ -1,6 +1,6 @@
 {
   "name": "@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "type": "module",
   "description": "Block Software",
   "scripts": {
@@ -23,6 +23,24 @@
               "requirements": "requirements.txt"
             },
             "root": "./src/assemble-scfv"
+          },
+          "cmd": [
+            "python",
+            "{pkg}/main.py"
+          ]
+        }
+      },
+      "construct-annotations": {
+        "binary": {
+          "artifact": {
+            "type": "python",
+            "registry": "platforma-open",
+            "environment": "@platforma-open/milaboratories.runenv-python-3:3.12.10",
+            "dependencies": {
+              "toolset": "pip",
+              "requirements": "requirements.txt"
+            },
+            "root": "./src/construct-annotations"
           },
           "cmd": [
             "python",
