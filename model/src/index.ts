@@ -169,13 +169,19 @@ export const model = BlockModel.create()
     return parseResourceMap(ctx.outputs?.resolve('logsIGLight'), (acc) => acc.getProgressLog(ProgressPrefix), false);
   })
 
-  .output('qcIGHeavy', (ctx) =>
-    parseResourceMap(ctx.outputs?.resolve('qcIGHeavy'), (acc) => acc.getFileHandle(), true),
-  )
+  .output('started', (ctx) => ctx.outputs !== undefined)
 
-  .output('qcIGLight', (ctx) =>
-    parseResourceMap(ctx.outputs?.resolve('qcIGLight'), (acc) => acc.getFileHandle(), true),
-  )
+  .output('qcIGHeavy', (ctx) => {
+    const acc = ctx.outputs?.resolve('qcIGHeavy');
+    if (!acc || !acc.getInputsLocked()) return undefined;
+    return parseResourceMap(acc, (acc) => acc.getFileHandle(), true);
+  })
+
+  .output('qcIGLight', (ctx) => {
+    const acc = ctx.outputs?.resolve('qcIGLight');
+    if (!acc || !acc.getInputsLocked()) return undefined;
+    return parseResourceMap(acc, (acc) => acc.getFileHandle(), true);
+  })
 
   .output('reportsIGHeavy', (ctx) =>
     parseResourceMap(ctx.outputs?.resolve('reportsIGHeavy'), (acc) => acc.getFileHandle(), false),
