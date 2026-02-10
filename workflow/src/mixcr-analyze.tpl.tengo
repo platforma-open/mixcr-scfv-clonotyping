@@ -71,7 +71,8 @@ self.body(func(inputs) {
 			cpu(inputs.mixcrCpu).
 			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
-			arg("analyze")
+			arg("analyze").
+			arg("--use-local-temp")
 
 		if hasUMIs {
 			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
