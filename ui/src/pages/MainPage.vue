@@ -19,7 +19,7 @@ import {
 } from '@platforma-sdk/ui-vue';
 import type { ColDef, GridApi, GridOptions, GridReadyEvent } from 'ag-grid-enterprise';
 import { ClientSideRowModelModule, ModuleRegistry } from 'ag-grid-enterprise';
-import { computed, reactive, shallowRef, watchEffect } from 'vue';
+import { computed, reactive, shallowRef, watch, watchEffect } from 'vue';
 import { getAlignmentChartSettings } from '../charts/alignmentChartSettings';
 // import { ScFvResult } from '../results';
 import { useApp } from '../app';
@@ -46,18 +46,39 @@ watchEffect(() => {
   app.model.args.defaultBlockLabel = parts.filter(Boolean).join(' - ') || 'Select Dataset';
 });
 
-const rows = computed(() => [...(resultMap.value?.values() ?? [])]);
+const rows = computed(() =>
+  resultMap.value ? [...resultMap.value.values()] : undefined,
+);
+
+const loadingOverlayParams = computed(() => {
+  if (app.model.outputs.started) {
+    return { variant: 'running' as const, runningText: 'Loading Sample List' };
+  }
+  return { variant: 'not-ready' as const };
+});
+
 const data = reactive<{
   settingsOpen: boolean;
   sampleReportOpen: boolean;
   selectedSample: string | undefined;
 }>({
-  settingsOpen: true,
+  settingsOpen: app.model.outputs.started === false,
   sampleReportOpen: false,
   selectedSample: undefined,
 });
 
 ModuleRegistry.registerModules([ClientSideRowModelModule]);
+
+watch(
+  () => app.model.outputs.started,
+  (newVal, oldVal) => {
+    if (oldVal === false && newVal === true) {
+      data.settingsOpen = false;
+      gridApi.value?.showLoadingOverlay();
+    }
+    if (oldVal === true && newVal === false) data.settingsOpen = true;
+  },
+);
 
 const gridApi = shallowRef<GridApi>();
 const onGridReady = (params: GridReadyEvent) => {
@@ -212,7 +233,7 @@ const gridOptions: GridOptions<ScFvResult> = {
         :defaultColDef="defaultColumnDef"
         :columnDefs="columnDefs"
         :grid-options="gridOptions"
-        :loadingOverlayComponentParams="{ notReady: true }"
+        :loadingOverlayComponentParams="loadingOverlayParams"
         :loadingOverlayComponent="PlAgOverlayLoading"
         :noRowsOverlayComponent="PlAgOverlayNoRows"
         @grid-ready="onGridReady"
