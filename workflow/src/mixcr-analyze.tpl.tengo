@@ -71,6 +71,7 @@ self.body(func(inputs) {
 			cpu(inputs.mixcrCpu).
 			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
+			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("analyze")
 
 		if hasUMIs {
@@ -183,6 +184,7 @@ self.body(func(inputs) {
 			cpu(2).
 			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
+			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportAlignments")
 			
 		if hasUMIs {
@@ -215,6 +217,7 @@ self.body(func(inputs) {
 			cpu(2).
 			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
+			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportClones").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
