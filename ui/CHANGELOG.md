@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.7.1
+
+### Patch Changes
+
+- 97ed624: Upgrade MiXCR to 4.7.0-300-develop, add MI_LICENSE_DEBUG env, use --use-local-temp, show loading spinner while sample list loads
+- Updated dependencies [97ed624]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.6.1
+
 ## 2.7.0
 
 ### Minor Changes
