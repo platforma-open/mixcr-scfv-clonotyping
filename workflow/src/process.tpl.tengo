@@ -153,7 +153,83 @@ self.body(func(inputs) {
 
 	cloneColumnsPerSample := cloneColumnsHeavy.columnSpecs + cloneColumnsLight.columnSpecs + constructColumns(inputs.linker, inputs.hinge, blockId) + clonotypeKeyLabelColumns(blockId)
 	aggregateColumns := mixcrExports.aggregateColumns(hasUMIs)
-	cloneColumnSpecs := cloneColumnsPerSample + aggregateColumns
+
+	// SHM mutation columns: chain-agnostic sums of heavy+light
+	heavyMap := cloneColumnsHeavy.shmInternalColumns
+	lightMap := lightSuppressed ? {} : cloneColumnsLight.shmInternalColumns
+	hasShm := len(heavyMap) > 0
+
+	shmOutputSpecs := []
+	shmMapping := []
+	if hasShm {
+		orderP := 10400
+		shmDefs := [ {
+			outputColumn: "nMutations",
+			label: "Nt mutations",
+			specName: "pl7.app/vdj/sequence/nMutations",
+			valueType: "Int",
+			rankingOrder: "decreasing"
+		}, {
+			outputColumn: "nAAMutationsCDR",
+			label: "AA mutations (CDR)",
+			specName: "pl7.app/vdj/sequence/nAAMutationsCDR",
+			valueType: "Int",
+			rankingOrder: "decreasing"
+		}, {
+			outputColumn: "nAAMutationsFWR",
+			label: "AA mutations (FWR)",
+			specName: "pl7.app/vdj/sequence/nAAMutationsFWR",
+			valueType: "Int",
+			rankingOrder: "increasing"
+		} ]
+
+		for def in shmDefs {
+			shmOutputSpecs = append(shmOutputSpecs, {
+				column: def.outputColumn,
+				id: def.outputColumn,
+				allowNA: true,
+				naRegex: "^[a-z_]*$",
+				spec: {
+					valueType: def.valueType,
+					name: def.specName,
+					annotations: {
+						"pl7.app/label": def.label,
+						"pl7.app/table/orderPriority": string(orderP),
+						"pl7.app/table/visibility": "optional",
+						"pl7.app/isScore": "true",
+						"pl7.app/score/rankingOrder": def.rankingOrder
+					}
+				}
+			})
+			shmMapping = append(shmMapping, {
+				outputColumn: def.outputColumn,
+				heavyColumn: heavyMap[def.outputColumn],
+				lightColumn: lightMap[def.outputColumn]
+			})
+			orderP -= 100
+		}
+
+		// CDR mutation fraction (computed in agg-clones from summed CDR+FWR)
+		shmOutputSpecs = append(shmOutputSpecs, {
+			column: "fractionCDRMutations",
+			id: "fraction-cdr-mutations",
+			naRegex: "^[a-z_]*$",
+			allowNA: true,
+			spec: {
+				valueType: "Double",
+				name: "pl7.app/vdj/sequence/fractionCDRMutations",
+				annotations: {
+					"pl7.app/label": "CDR mutation fraction",
+					"pl7.app/table/orderPriority": string(orderP),
+					"pl7.app/table/visibility": "optional",
+					"pl7.app/isScore": "true",
+					"pl7.app/score/rankingOrder": "decreasing"
+				}
+			}
+		})
+	}
+
+	cloneColumnSpecs := cloneColumnsPerSample + aggregateColumns + shmOutputSpecs
 	mixcrExportArgsHeavy := cloneColumnsHeavy.exportArgs
 	mixcrExportArgsLight := cloneColumnsLight.exportArgs
 
@@ -398,7 +474,8 @@ self.body(func(inputs) {
 				cloneColumnSpecs: cloneColumnsPerSample,
 				cloneColumns: slices.map(cloneColumnsPerSample, func(col) {
 					return col.column
-				})
+				}),
+				shmMapping: shmMapping
 			}
 		}
 	)
