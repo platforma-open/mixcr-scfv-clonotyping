@@ -21,6 +21,20 @@ self.body(func(inputs) {
 	cloneColumns := inputs.cloneColumns
 	cloneColumnSpecs := inputs.cloneColumnSpecs
 
+	shmMapping := inputs.shmMapping
+	if is_undefined(shmMapping) {
+		shmMapping = []
+	}
+
+	// Collect internal per-chain column names from cross-region mapping
+	shmInternalCols := []
+	for mapping in shmMapping {
+		shmInternalCols = append(shmInternalCols, mapping.heavyColumn)
+		if !is_undefined(mapping.lightColumn) {
+			shmInternalCols = append(shmInternalCols, mapping.lightColumn)
+		}
+	}
+
 	addedColumns := {}
 	baseSchemaForRead := []
 	addSchema := func(column, t) {
@@ -32,6 +46,9 @@ self.body(func(inputs) {
 
 	for colSpec in cloneColumnSpecs {
 		addSchema(colSpec.column, "String")
+	}
+	for col in shmInternalCols {
+		addSchema(col, "String")
 	}
 	addSchema(mainAbundanceColumnNormalized, "String")
 	addSchema(mainAbundanceColumnUnnormalized, "String")
@@ -81,6 +98,9 @@ self.body(func(inputs) {
 			numericColumns[colSpec.column] = castType
 		}
 	}
+	for col in shmInternalCols {
+		numericColumns[col] = "Int"
+	}
 	numericColumns[mainAbundanceColumnNormalized] = "Double"
 	numericColumns[mainAbundanceColumnUnnormalized] = "Long"
 
@@ -102,12 +122,50 @@ self.body(func(inputs) {
 			pt.col(col).maxBy(pt.col(mainAbundanceColumnNormalized)).alias(col)
 		)
 	}
+	for col in shmInternalCols {
+		aggExpressions = append(aggExpressions,
+			pt.col(col).maxBy(pt.col(mainAbundanceColumnNormalized)).alias(col)
+		)
+	}
 	aggExpressions = append(aggExpressions,
 		pt.col(mainAbundanceColumnNormalized).count().alias("sampleCount"),
 		pt.col(mainAbundanceColumnUnnormalized).sum().alias(mainAbundanceColumnUnnormalized + "Sum")
 	)
 
 	aggregatedDf := currentDf.groupBy("clonotypeKey").agg(aggExpressions...)
+
+	// Sum heavy+light per-chain mutation counts into chain-agnostic output columns
+	for mapping in shmMapping {
+		if !is_undefined(mapping.lightColumn) {
+			aggregatedDf = aggregatedDf.withColumns(
+				pt.col(mapping.heavyColumn).plus(pt.col(mapping.lightColumn)).
+					alias(mapping.outputColumn)
+			)
+		} else {
+			aggregatedDf = aggregatedDf.withColumns(
+				pt.col(mapping.heavyColumn).alias(mapping.outputColumn)
+			)
+		}
+	}
+
+	// Calculate CDR mutation fraction: CDR / (CDR + FWR), fallback 1.0
+	if len(shmMapping) > 0 {
+		cdr := "nAAMutationsCDR"
+		fwr := "nAAMutationsFWR"
+		aggregatedDf = aggregatedDf.withColumns(
+			pt.when(
+				pt.col(cdr).isNotNull().
+					and(pt.col(fwr).isNotNull()).
+					and(pt.col(cdr).cast("Double").plus(pt.col(fwr).cast("Double")).gt(0.0))
+			).then(
+				pt.col(cdr).cast("Double").truediv(
+					pt.col(cdr).cast("Double").plus(pt.col(fwr).cast("Double"))
+				)
+			).otherwise(pt.lit(1.0)).
+				alias("fractionCDRMutations")
+		)
+	}
+
 	aggregatedDf.save("output.tsv")
 
 	ptResult := wf.run()

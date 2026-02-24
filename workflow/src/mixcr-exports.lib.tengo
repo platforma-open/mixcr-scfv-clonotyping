@@ -419,6 +419,35 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 		}
 	}
 
+	// SHM mutation counts (only for full FR1:FR4 assembling)
+	// These are internal columns — not PColumns. Chain-agnostic combined PColumns
+	// (summing heavy+light) are defined in process.tpl.tengo.
+	shmInternalColumns := {}
+	afParts := text.split(assemblingFeature, ":")
+	if len(afParts) == 2 && afParts[0] == "FR1" && afParts[1] == "FR4" {
+		nMutationsFeature := coreGeneFeatures["V"] + "," + coreGeneFeatures["J"]
+		fwrFeature := "FR1,FR2,FR3," + coreGeneFeatures["J"]
+
+		shmMutations := [ {
+			exportFlag: "nMutationsCount",
+			feature: nMutationsFeature,
+			outputColumn: "nMutations"
+		}, {
+			exportFlag: "aaMutationsCount",
+			feature: "CDR1,CDR2",
+			outputColumn: "nAAMutationsCDR"
+		}, {
+			exportFlag: "aaMutationsCount",
+			feature: fwrFeature,
+			outputColumn: "nAAMutationsFWR"
+		} ]
+
+		for col in shmMutations {
+			shmInternalColumns[col.outputColumn] = col.exportFlag + removeInFrame(col.feature) + "-" + chain
+			exportArgs += [ [ "-" + col.exportFlag, col.feature ] ]
+		}
+	}
+
 	// Isotype and chain
 
 	columnsSpecPerClonotype += [ {
@@ -464,7 +493,8 @@ cloneColumns := func(chain, assemblingFeature, blockId, truncateFR4) {
 
 	return  {
 		exportArgs : exportArgs,
-		columnSpecs : columnsSpecPerClonotype
+		columnSpecs : columnsSpecPerClonotype,
+		shmInternalColumns: shmInternalColumns
 	}
 }
 
