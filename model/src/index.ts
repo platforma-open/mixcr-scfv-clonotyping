@@ -1,4 +1,4 @@
-import type { InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
+import type { ImportFileHandle, InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
 import {
   BlockModel,
   createPlDataTableV2,
@@ -37,6 +37,10 @@ export type BlockArgs = {
   heavyChainSequence?: string;
   lightChainSequence?: string;
   lightImputeSequence?: string;
+
+  scFvFileHandle?: ImportFileHandle;
+  heavyChainFileHandle?: ImportFileHandle;
+  lightChainFileHandle?: ImportFileHandle;
 
   // If true in scFv mode, use the reference to impute light chain and ignore light chain read extraction options
   imputeLight?: boolean;

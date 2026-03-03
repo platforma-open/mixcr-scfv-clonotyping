@@ -60,7 +60,7 @@ export function validateLibrarySequence(sequence: string): SequenceValidationRes
   if (translatedSequence.length === 0) return { isValid: false, error: 'Translation resulted in empty protein sequence (possibly due to early stop codon)' };
   if (translatedSequence.includes('X')) warnings.push('Translation contains unknown amino acids (X) due to invalid codons');
 
-  const validationRegex = /C[ACDEFGHIKLMNPQRSTVWY]{4,50}[FWYLI][ACDEFGHIKLMNPQRSTVWY]{0,5}G[ACDEFGHIKLMNPQRSTVWY]G/;
+  const validationRegex = /C[ACDEFGHIKLMNPQRSTVWYX]{4,50}[FWYLIX][ACDEFGHIKLMNPQRSTVWYX]{0,5}G[ACDEFGHIKLMNPQRSTVWYX]G/;
   const searchStartPosition = 40;
   const sequenceToSearch = translatedSequence.substring(searchStartPosition);
   const match = validationRegex.exec(sequenceToSearch);

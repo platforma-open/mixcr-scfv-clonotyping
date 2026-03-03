@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { PlRef } from '@platforma-sdk/model';
+import type { ImportFileHandle, LocalImportFileHandle, PlRef } from '@platforma-sdk/model';
+import { getRawPlatformaInstance } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
-import { computed, watch } from 'vue';
+import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlFileInput, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
@@ -218,6 +219,82 @@ const umiMismatchWarning = computed(() => {
   return undefined;
 });
 
+// File upload support
+const fileErrors = ref<Record<string, string | undefined>>({});
+const updatingFromFile = ref(false);
+
+async function readFileContent(file: ImportFileHandle): Promise<string> {
+  const data = await getRawPlatformaInstance().lsDriver.getLocalFileContent(
+    file as LocalImportFileHandle,
+  );
+  return new TextDecoder().decode(data);
+}
+
+async function setScFvFile(file: ImportFileHandle | undefined) {
+  if (!file) {
+    fileErrors.value = { ...fileErrors.value, scFv: undefined };
+    return;
+  }
+  try {
+    const content = await readFileContent(file);
+    updatingFromFile.value = true;
+    app.model.args.scFvSequence = content;
+    fileErrors.value = { ...fileErrors.value, scFv: undefined };
+    nextTick(() => {
+      updatingFromFile.value = false;
+    });
+  } catch (e) {
+    fileErrors.value = { ...fileErrors.value, scFv: `Failed to read file: ${e instanceof Error ? e.message : 'Unknown error'}` };
+  }
+}
+
+async function setHeavyChainFile(file: ImportFileHandle | undefined) {
+  if (!file) {
+    fileErrors.value = { ...fileErrors.value, heavy: undefined };
+    return;
+  }
+  try {
+    const content = await readFileContent(file);
+    updatingFromFile.value = true;
+    app.model.args.heavyChainSequence = content;
+    fileErrors.value = { ...fileErrors.value, heavy: undefined };
+    nextTick(() => {
+      updatingFromFile.value = false;
+    });
+  } catch (e) {
+    fileErrors.value = { ...fileErrors.value, heavy: `Failed to read file: ${e instanceof Error ? e.message : 'Unknown error'}` };
+  }
+}
+
+async function setLightChainFile(file: ImportFileHandle | undefined) {
+  if (!file) {
+    fileErrors.value = { ...fileErrors.value, light: undefined };
+    return;
+  }
+  try {
+    const content = await readFileContent(file);
+    updatingFromFile.value = true;
+    app.model.args.lightChainSequence = content;
+    fileErrors.value = { ...fileErrors.value, light: undefined };
+    nextTick(() => {
+      updatingFromFile.value = false;
+    });
+  } catch (e) {
+    fileErrors.value = { ...fileErrors.value, light: `Failed to read file: ${e instanceof Error ? e.message : 'Unknown error'}` };
+  }
+}
+
+// Clear file handle when user manually edits text
+watch(() => app.model.args.scFvSequence, () => {
+  if (!updatingFromFile.value) app.model.args.scFvFileHandle = undefined;
+});
+watch(() => app.model.args.heavyChainSequence, () => {
+  if (!updatingFromFile.value) app.model.args.heavyChainFileHandle = undefined;
+});
+watch(() => app.model.args.lightChainSequence, () => {
+  if (!updatingFromFile.value) app.model.args.lightChainFileHandle = undefined;
+});
+
 // Derive per-chain V/J FASTA strings into args for workflow
 watch(
   () => ({
@@ -397,10 +474,22 @@ watch(
       <div v-if="heavyValidation && !heavyValidation.isValid">Heavy chain: {{ heavyValidation.error }}</div>
       <div v-if="lightValidation && !lightValidation.isValid">Light chain: {{ lightValidation.error }}</div>
     </PlAlert>
+    <PlFileInput
+      v-model="app.model.args.heavyChainFileHandle"
+      label="Upload heavy chain file (FASTA)"
+      :extensions="['fasta', 'fa']"
+      :error="fileErrors.heavy"
+      clearable
+      @update:model-value="setHeavyChainFile"
+    >
+      <template #tooltip>
+        Import a FASTA file with the heavy chain V(D)J reference sequence(s).
+      </template>
+    </PlFileInput>
     <PlTextArea
       v-model="app.model.args.heavyChainSequence"
       :rows="4"
-      label="Heavy chain sequence"
+      label="Or paste heavy chain sequence"
       placeholder=">name
 ATCGATCGATCG..."
     >
@@ -408,10 +497,22 @@ ATCGATCGATCG..."
         Paste the DNA sequence of the reference heavy chain V(D)J region. Can be in ATCG... or FASTA format.
       </template>
     </PlTextArea>
+    <PlFileInput
+      v-model="app.model.args.lightChainFileHandle"
+      label="Upload light chain file (FASTA)"
+      :extensions="['fasta', 'fa']"
+      :error="fileErrors.light"
+      clearable
+      @update:model-value="setLightChainFile"
+    >
+      <template #tooltip>
+        Import a FASTA file with the light chain V(J) reference sequence(s).
+      </template>
+    </PlFileInput>
     <PlTextArea
       v-model="app.model.args.lightChainSequence"
       :rows="4"
-      label="Light chain sequence"
+      label="Or paste light chain sequence"
       placeholder=">name
 ATCGATCGATCG..."
     >
@@ -429,10 +530,22 @@ ATCGATCGATCG..."
     >
       {{ scFvValidation.error }}
     </PlAlert>
+    <PlFileInput
+      v-model="app.model.args.scFvFileHandle"
+      label="Upload scFv sequence file (FASTA)"
+      :extensions="['fasta', 'fa']"
+      :error="fileErrors.scFv"
+      clearable
+      @update:model-value="setScFvFile"
+    >
+      <template #tooltip>
+        Import a FASTA file with the complete scFv DNA reference sequence(s).
+      </template>
+    </PlFileInput>
     <PlTextArea
       v-model="app.model.args.scFvSequence"
       :rows="4"
-      label="Full scFv sequence"
+      label="Or paste full scFv sequence"
       placeholder=">name
 heavy-seq + linker + light-seq (or reverse)"
     >
