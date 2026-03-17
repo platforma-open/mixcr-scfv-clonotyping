@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.10.3
+
+### Patch Changes
+
+- f1d54dc: Upgrade MiXCR to 4.7.0-317-develop — increases JVM non-heap memory headroom to fix OOM on export
+
 ## 3.10.2
 
 ### Patch Changes
