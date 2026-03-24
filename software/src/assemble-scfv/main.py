@@ -269,18 +269,17 @@ heavy_aa_col = heavyVdj.replace("nSeq", "aaSeq")
 if args.no_light:
     # Light chain is synthetic/imputed — no MiXCR AA column exists for it.
     # Productivity is determined by the heavy chain alone.
-    result = result.with_columns(
-        isProductive=~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
-    )
+    is_productive_expr = ~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
 else:
     light_aa_col = lightVdj.replace("nSeq", "aaSeq")
-    result = result.with_columns(
-        isProductive=(
-            ~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
-            & ~pl.col(light_aa_col).str.contains(r"[*_]", strict=False)
-        )
+    is_productive_expr = (
+        ~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
+        & ~pl.col(light_aa_col).str.contains(r"[*_]", strict=False)
     )
-    
+
+result = result.with_columns(
+    isProductive=is_productive_expr
+)
 
 # Group by 'construct-aa' and aggregate
 # Sum readCount and readFraction, take first value for all other columns
