@@ -261,20 +261,25 @@ def translate(seq):
 result = result.with_columns(pl.col("construct-nt").map_elements(
     translate, return_dtype=pl.String).alias("construct-aa"))
 
-# isProductive: both chains must have no stop codons (*) and be in-frame (_).
-# Checked against the individual VDJ sequences, not the full construct, to avoid
-# false negatives from stop codons at linker/hinge junctions.
-result = result.with_columns([
-    pl.col(heavyVdj).map_elements(translate, return_dtype=pl.String).alias("_heavy_aa_tmp"),
-    pl.col(lightVdj).map_elements(translate, return_dtype=pl.String).alias("_light_aa_tmp"),
-])
-result = result.with_columns(
-    isProductive=(
-        ~pl.col("_heavy_aa_tmp").str.contains(r"[*_]", strict=False)
-        & ~pl.col("_light_aa_tmp").str.contains(r"[*_]", strict=False)
+# isProductive: use MiXCR's reading-frame-aware AA sequences, which correctly
+# detect internal frameshifts (e.g. CDR3 N-nucleotide additions) that a naive
+# codon-by-codon translation would miss.
+heavy_aa_col = heavyVdj.replace("nSeq", "aaSeq")
+
+if args.no_light:
+    # Light chain is synthetic/imputed — no MiXCR AA column exists for it.
+    # Productivity is determined by the heavy chain alone.
+    result = result.with_columns(
+        isProductive=~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
     )
-)
-result = result.drop(["_heavy_aa_tmp", "_light_aa_tmp"])
+else:
+    light_aa_col = lightVdj.replace("nSeq", "aaSeq")
+    result = result.with_columns(
+        isProductive=(
+            ~pl.col(heavy_aa_col).str.contains(r"[*_]", strict=False)
+            & ~pl.col(light_aa_col).str.contains(r"[*_]", strict=False)
+        )
+    )
     
 
 # Group by 'construct-aa' and aggregate
