@@ -261,9 +261,21 @@ def translate(seq):
 result = result.with_columns(pl.col("construct-nt").map_elements(
     translate, return_dtype=pl.String).alias("construct-aa"))
 
-# Add isProductive column - false if construct-aa contains stop codon(*) or incomplete codon(_)
+# isProductive: both chains must have no stop codons (*) and be in-frame (_).
+# Checked against the individual VDJ sequences, not the full construct, to avoid
+# false negatives from stop codons at linker/hinge junctions.
+result = result.with_columns([
+    pl.col(heavyVdj).map_elements(translate, return_dtype=pl.String).alias("_heavy_aa_tmp"),
+    pl.col(lightVdj).map_elements(translate, return_dtype=pl.String).alias("_light_aa_tmp"),
+])
 result = result.with_columns(
-    isProductive=~pl.col("construct-aa").str.contains(r"[*_]", strict=False))
+    isProductive=(
+        ~pl.col("_heavy_aa_tmp").str.contains(r"[*_]", strict=False)
+        & ~pl.col("_light_aa_tmp").str.contains(r"[*_]", strict=False)
+    )
+)
+result = result.drop(["_heavy_aa_tmp", "_light_aa_tmp"])
+    
 
 # Group by 'construct-aa' and aggregate
 # Sum readCount and readFraction, take first value for all other columns
