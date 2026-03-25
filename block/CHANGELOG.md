@@ -1,5 +1,15 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.4.4
+
+### Patch Changes
+
+- dc1cf84: Upgrade SDK to 1.61.1 — fix styles import removed in new SDK, switch limitInput field to PlNumberField
+- Updated dependencies [dc1cf84]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.10.4
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.6.2
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.7.2
+
 ## 3.4.3
 
 ### Patch Changes
