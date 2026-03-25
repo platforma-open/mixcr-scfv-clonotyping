@@ -131,6 +131,24 @@ watch(stopCodonSelection, (selected) => {
   app.model.args.stopCodonReplacements = Object.keys(next).length > 0 ? next : undefined;
 });
 
+const DRY_RUN_READS = 100_000;
+
+const runModeOptions: ListOption<'dry' | 'full'>[] = [
+  { label: 'Preview', value: 'dry' },
+  { label: 'Full run', value: 'full' },
+];
+
+const runMode = computed({
+  get: () => (app.model.args.limitInput !== undefined ? 'dry' : 'full'),
+  set: (value: 'dry' | 'full') => {
+    if (value === 'dry') {
+      app.model.args.limitInput = DRY_RUN_READS;
+    } else {
+      app.model.args.limitInput = undefined;
+    }
+  },
+});
+
 const heavyValidation = computed(() => {
   if (app.model.args.customRefMode === 'separate') {
     const raw = (app.model.args.heavyChainSequence ?? '').trim();
@@ -568,6 +586,24 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlTextArea>
 
+  <PlBtnGroup v-model="runMode" :options="runModeOptions" label="Run mode">
+    <template #tooltip>
+      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct and results look reasonable before launching a full run, which may take much longer.
+    </template>
+  </PlBtnGroup>
+
+  <PlNumberField
+    v-if="runMode === 'dry'"
+    v-model="app.model.args.limitInput"
+    label="Reads per sample limit"
+    :minValue="1"
+    :validate="(v) => (Number.isInteger(v) ? undefined : 'Value must be an integer')"
+  >
+    <template #tooltip>
+      Number of reads to use per sample in the preview run. Recommended: 100,000 for bulk data.
+    </template>
+  </PlNumberField>
+
   <PlAccordionSection label="Advanced Settings">
     <PlSectionSeparator>MiXCR Settings</PlSectionSeparator>
     <PlDropdown
@@ -583,12 +619,6 @@ heavy-seq + linker + light-seq (or reverse)"
         </ul>
       </template>
     </PlDropdown>
-    <PlNumberField
-      v-model="app.model.args.limitInput"
-      label="Take only this number of reads into analysis"
-      :clearable="true"
-      :minValue="1"
-    />
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
       v-model="stopCodonSelection"
