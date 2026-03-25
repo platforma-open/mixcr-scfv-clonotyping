@@ -2,7 +2,7 @@
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
 import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
@@ -132,6 +132,16 @@ watch(stopCodonSelection, (selected) => {
 });
 
 const DRY_RUN_READS = 100_000;
+const lastLimitInput = ref(app.model.args.limitInput);
+
+watch(
+  () => app.model.args.limitInput,
+  (newLimit) => {
+    if ((newLimit ?? 0) > 0) {
+      lastLimitInput.value = newLimit;
+    }
+  },
+);
 
 const runModeOptions: ListOption<'dry' | 'full'>[] = [
   { label: 'Preview', value: 'dry' },
@@ -139,10 +149,10 @@ const runModeOptions: ListOption<'dry' | 'full'>[] = [
 ];
 
 const runMode = computed({
-  get: () => (app.model.args.limitInput !== undefined ? 'dry' : 'full'),
+  get: () => ((app.model.args.limitInput ?? 0) > 0 ? 'dry' : 'full'),
   set: (value: 'dry' | 'full') => {
     if (value === 'dry') {
-      app.model.args.limitInput = DRY_RUN_READS;
+      app.model.args.limitInput = lastLimitInput.value ?? DRY_RUN_READS;
     } else {
       app.model.args.limitInput = undefined;
     }
