@@ -586,6 +586,8 @@ heavy-seq + linker + light-seq (or reverse)"
     <PlNumberField
       v-model="app.model.args.limitInput"
       label="Take only this number of reads into analysis"
+      :clearable="true"
+      :minValue="1"
     />
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
