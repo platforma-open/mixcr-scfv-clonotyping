@@ -83,16 +83,6 @@ function setInput(inputRef?: PlRef) {
   app.model.args.input = inputRef;
 }
 
-function parseNumber(v: string): number {
-  const parsed = Number(v);
-
-  if (!Number.isFinite(parsed)) {
-    throw Error('Not a number');
-  }
-
-  return parsed;
-}
-
 const orderOptions: ListOption[] = [
   { label: 'Heavy-linker-light', value: 'hl' },
   { label: 'Light-linker-heavy', value: 'lh' },
@@ -593,9 +583,11 @@ heavy-seq + linker + light-seq (or reverse)"
         </ul>
       </template>
     </PlDropdown>
-    <PlTextField
-      v-model="app.model.args.limitInput" :parse="parseNumber" :clearable="() => undefined"
+    <PlNumberField
+      v-model="app.model.args.limitInput"
       label="Take only this number of reads into analysis"
+      :clearable="true"
+      :minValue="1"
     />
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
