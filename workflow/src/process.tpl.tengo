@@ -13,8 +13,11 @@ llPFrames := import("@platforma-sdk/workflow-tengo:pframes.ll")
 pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
 pUtil := import("@platforma-sdk/workflow-tengo:pframes.util")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+anonymize := import("@platforma-sdk/workflow-tengo:anonymize")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 
 mixcrExports := import(":mixcr-exports")
+qcReportColumnsLib := import(":qc-report-columns")
 
 json := import("json")
 text := import("text")
@@ -24,6 +27,7 @@ mixcrAnalyzeTpl := assets.importTemplate(":mixcr-analyze")
 aggClonesTpl := assets.importTemplate(":agg-clones")
 exportReportTpl := assets.importTemplate(":export-report")
 stopCodonReplaceTpl := assets.importTemplate(":stop-codon-replace")
+deanonymizationTpl := assets.importTemplate(":deanonymization")
 
 self.awaitState("InputsLocked")
 self.awaitState("inputSpec", "ResourceReady")
@@ -412,11 +416,14 @@ self.body(func(inputs) {
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
 				referenceLibraryLight: inputs.referenceLibraryLight,
 				truncateFR4: truncateFR4,
+				cloneClusteringMode: inputs.cloneClusteringMode
+			},
+
+			metaExtra: {
 				mixcrCpu: inputs.mixcrCpu,
 				mixcrMem: inputs.mixcrMem,
 				assembleScfvCpu: inputs.assembleScfvCpu,
-				assembleScfvMem: inputs.assembleScfvMem,
-				cloneClusteringMode: inputs.cloneClusteringMode
+				assembleScfvMem: inputs.assembleScfvMem
 			}
 		}
 	)
@@ -467,7 +474,7 @@ self.body(func(inputs) {
 		aggClonesTpl,
 		aggregationOutputs,
 		{
-			aggregate: ["pl7.app/sampleId"],
+			aggregate: [{ name: "pl7.app/sampleId", anonymize: true }],
 			extra: {
 				mainAbundanceColumnNormalized: mainAbundanceColumnNormalized,
 				mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized,
@@ -489,18 +496,40 @@ self.body(func(inputs) {
 	sampleIdAxisSpec := inputSpec.axesSpec[0]
 	hasUmi := inputs.hasUMIs
 	chains := ["IGHeavy", "IGLight"]
-	
-	qcReportTable := render.create(exportReportTpl, {
+
+	// Anonymize sample-keyed ResourceMaps for QC report dedup
+	anonResult := anonymize.anonymizePKeys({
 		clnsDataHeavy: mixcrResults.outputData("clnsIGHeavy"),
 		clnsDataLight: mixcrResults.outputData("clnsIGLight"),
+		clonotypeTablesData: clonotypeTableData
+	}, [0])
+
+	qcReportRender := render.create(exportReportTpl, {
+		clnsDataHeavy: anonResult.result["clnsDataHeavy"],
+		clnsDataLight: anonResult.result["clnsDataLight"],
 		sampleIdAxisSpec: sampleIdAxisSpec,
 		chains: chains,
-		clonotypeTablesData: clonotypeTableData,
+		clonotypeTablesData: anonResult.result["clonotypeTablesData"],
 		hasUmi: hasUmi,
-		suppressLight: lightSuppressed, 
+		suppressLight: lightSuppressed,
 		lightLibrary: inputs.referenceLibraryLight,
 		heavyLibrary: inputs.referenceLibraryHeavy
 	})
+
+	// Deanonymize QC report raw TSV
+	deanonResult := render.createEphemeral(deanonymizationTpl, {
+		mapping: anonResult.mapping,
+		clusteringResult: qcReportRender.output("rawTsv")
+	})
+
+	// Import deanonymized TSV into PFrame
+	qcReportColumns := qcReportColumnsLib(hasUmi, sampleIdAxisSpec, chains)
+	qcReportTable := xsv.importFile(
+		deanonResult.output("deanonimizedTsv"),
+		"tsv",
+		qcReportColumns.reportColumnsSpec,
+		{ cpu: 1, mem: "16GiB" }
+	)
 
 	result := {}
 	for chain in ["IGHeavy", "IGLight"] {
@@ -515,7 +544,7 @@ self.body(func(inputs) {
 	}
 	result["clonotypes"] = clonotypes
 	result["clonotypeTables"] = clonotypeTablesOutputs.build()
-	result["qcReportTable"] = qcReportTable.output("qcReportTable")
+	result["qcReportTable"] = qcReportTable
 
 	return result
 })

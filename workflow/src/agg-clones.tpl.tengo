@@ -1,3 +1,5 @@
+//tengo:hash_override B4E8C2DA-6F3E-4B9A-87D4-E0F5A1B2C3D6
+
 ll := import("@platforma-sdk/workflow-tengo:ll")
 self := import("@platforma-sdk/workflow-tengo:tpl")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
