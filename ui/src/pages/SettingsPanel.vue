@@ -2,7 +2,7 @@
 import type { PlRef } from '@platforma-sdk/model';
 import type { ListOption } from '@platforma-sdk/ui-vue';
 import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useApp } from '../app';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
@@ -130,6 +130,42 @@ watch(stopCodonSelection, (selected) => {
   }
   app.model.args.stopCodonReplacements = Object.keys(next).length > 0 ? next : undefined;
 });
+
+const DRY_RUN_READS = 100_000;
+const lastLimitInput = ref(app.model.args.limitInput);
+
+watch(
+  () => app.model.args.limitInput,
+  (newLimit) => {
+    if ((newLimit ?? 0) > 0) {
+      lastLimitInput.value = newLimit;
+    }
+  },
+);
+
+const runModeOptions: ListOption<'dry' | 'full'>[] = [
+  { label: 'Preview', value: 'dry' },
+  { label: 'Full run', value: 'full' },
+];
+
+const runMode = ref<'dry' | 'full'>((app.model.args.limitInput ?? 0) > 0 ? 'dry' : 'full');
+
+watch(runMode, (value) => {
+  if (value === 'dry') {
+    app.model.args.limitInput = lastLimitInput.value ?? DRY_RUN_READS;
+  } else {
+    app.model.args.limitInput = undefined;
+  }
+});
+
+watch(
+  () => app.model.args.input,
+  () => {
+    lastLimitInput.value = undefined;
+    runMode.value = 'dry';
+    app.model.args.limitInput = DRY_RUN_READS;
+  },
+);
 
 const heavyValidation = computed(() => {
   if (app.model.args.customRefMode === 'separate') {
@@ -568,6 +604,26 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlTextArea>
 
+  <PlBtnGroup v-model="runMode" :options="runModeOptions" label="Run mode">
+    <template #tooltip>
+      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct and results look reasonable before launching a full run, which may take much longer.
+    </template>
+  </PlBtnGroup>
+
+  <PlNumberField
+    v-if="runMode === 'dry'"
+    v-model="app.model.args.limitInput"
+    label="Reads per sample limit"
+    :clearable="true"
+    :minValue="1"
+    :validate="(v) => (Number.isInteger(v) ? undefined : 'Value must be an integer')"
+    :error-message="app.model.args.limitInput == null ? 'Enter a number of reads to use per sample' : undefined"
+  >
+    <template #tooltip>
+      Number of reads to use per sample in the preview run. Recommended: 100,000 for bulk data.
+    </template>
+  </PlNumberField>
+
   <PlAccordionSection label="Advanced Settings">
     <PlSectionSeparator>MiXCR Settings</PlSectionSeparator>
     <PlDropdown
@@ -583,12 +639,6 @@ heavy-seq + linker + light-seq (or reverse)"
         </ul>
       </template>
     </PlDropdown>
-    <PlNumberField
-      v-model="app.model.args.limitInput"
-      label="Take only this number of reads into analysis"
-      :clearable="true"
-      :minValue="1"
-    />
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
       v-model="stopCodonSelection"
