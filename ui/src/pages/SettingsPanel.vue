@@ -584,7 +584,7 @@ heavy-seq + linker + light-seq (or reverse)"
 
   <PlBtnGroup v-model="app.model.data.runMode" :options="runModeOptions" label="Run mode">
     <template #tooltip>
-      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct and results look reasonable before launching a full run, which may take much longer.
+      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct before processing the whole dataset.
     </template>
   </PlBtnGroup>
 
