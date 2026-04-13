@@ -20,7 +20,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@platforma-sdk/model": "catalog:"
+    "@platforma-sdk/model": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@milaboratories/ts-builder": "catalog:",

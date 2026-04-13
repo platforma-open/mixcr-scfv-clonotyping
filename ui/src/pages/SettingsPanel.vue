@@ -8,13 +8,27 @@ import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
 
 const app = useApp();
-type ArgsExt = typeof app.model.args & { imputeLight?: boolean; lightImputeSequence?: string };
 type StopCodonType = 'amber' | 'ochre' | 'opal';
-const argsExt = app.model.args as ArgsExt;
 const imputeLight = computed<boolean>({
-  get: () => argsExt.imputeLight === true,
-  set: (v: boolean) => { argsExt.imputeLight = v; },
+  get: () => app.model.data.imputeLight === true,
+  set: (v: boolean) => { app.model.data.imputeLight = v; },
 });
+
+const DRY_RUN_READS = 100_000;
+
+const runModeOptions: ListOption<'dry' | 'full'>[] = [
+  { label: 'Preview', value: 'dry' },
+  { label: 'Full run', value: 'full' },
+];
+
+watch(
+  () => app.model.data.runMode,
+  (value) => {
+    if (value === 'dry' && app.model.data.limitInput === undefined) {
+      app.model.data.limitInput = DRY_RUN_READS;
+    }
+  },
+);
 // no separate scFv hinge field; use general hinge in Analysis section
 
 const speciesOptions: ListOption[] = [
@@ -80,7 +94,7 @@ function _plRefsEqual(ref1: PlRef, ref2: PlRef) {
 }
 
 function setInput(inputRef?: PlRef) {
-  app.model.args.input = inputRef;
+  app.model.data.input = inputRef;
 }
 
 const orderOptions: ListOption[] = [
@@ -95,24 +109,24 @@ const clusteringOptions: ListOption[] = [
 ] as const;
 
 const stopCodonSelection = computed({
-  get: () => app.model.args.stopCodonTypes ?? [],
+  get: () => app.model.data.stopCodonTypes ?? [],
   set: (value: StopCodonType[]) => {
-    app.model.args.stopCodonTypes = value.length > 0 ? value : undefined;
+    app.model.data.stopCodonTypes = value.length > 0 ? value : undefined;
   },
 });
 
 const stopCodonReplacementModel = (type: StopCodonType) =>
   computed({
-    get: () => app.model.args.stopCodonReplacements?.[type],
+    get: () => app.model.data.stopCodonReplacements?.[type],
     set: (value: string | undefined) => {
-      const current = app.model.args.stopCodonReplacements ?? {};
+      const current = app.model.data.stopCodonReplacements ?? {};
       if (value === undefined) {
         if (current[type] !== undefined) {
           delete current[type];
         }
-        app.model.args.stopCodonReplacements = Object.keys(current).length > 0 ? current : undefined;
+        app.model.data.stopCodonReplacements = Object.keys(current).length > 0 ? current : undefined;
       } else {
-        app.model.args.stopCodonReplacements = { ...current, [type]: value };
+        app.model.data.stopCodonReplacements = { ...current, [type]: value };
       }
     },
   });
@@ -122,29 +136,29 @@ const ochreReplacement = stopCodonReplacementModel('ochre');
 const opalReplacement = stopCodonReplacementModel('opal');
 
 watch(stopCodonSelection, (selected) => {
-  const current = app.model.args.stopCodonReplacements;
+  const current = app.model.data.stopCodonReplacements;
   if (!current) return;
   const next = { ...current };
   for (const key of Object.keys(next) as StopCodonType[]) {
     if (!selected.includes(key)) delete next[key];
   }
-  app.model.args.stopCodonReplacements = Object.keys(next).length > 0 ? next : undefined;
+  app.model.data.stopCodonReplacements = Object.keys(next).length > 0 ? next : undefined;
 });
 
 const heavyValidation = computed(() => {
-  if (app.model.args.customRefMode === 'separate') {
-    const raw = (app.model.args.heavyChainSequence ?? '').trim();
+  if (app.model.data.customRefMode === 'separate') {
+    const raw = (app.model.data.heavyChainSequence ?? '').trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (app.model.args.customRefMode === 'builtin') return undefined;
+  if (app.model.data.customRefMode === 'builtin') return undefined;
 
-  const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
+  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.args.order ?? 'hl';
+  const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
+  const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
+  const order = app.model.data.order ?? 'hl';
   if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
@@ -158,18 +172,18 @@ const heavyValidation = computed(() => {
 });
 
 const lightValidation = computed(() => {
-  if (app.model.args.customRefMode === 'separate') {
-    const raw = (app.model.args.lightChainSequence ?? '').trim();
+  if (app.model.data.customRefMode === 'separate') {
+    const raw = (app.model.data.lightChainSequence ?? '').trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (app.model.args.customRefMode === 'builtin') return undefined;
-  const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
+  if (app.model.data.customRefMode === 'builtin') return undefined;
+  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.args.order ?? 'hl';
+  const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
+  const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
+  const order = app.model.data.order ?? 'hl';
   if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
   let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
   if (hingeRaw) {
@@ -184,19 +198,19 @@ const lightValidation = computed(() => {
 
 // Full scFv-level validation (format/linker/split) for scFv mode
 const scFvValidation = computed(() => {
-  if (app.model.args.customRefMode !== 'scFv') return undefined;
-  const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
+  if (app.model.data.customRefMode !== 'scFv') return undefined;
+  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
   if (!scfvRaw) return undefined;
-  return validateFullScFv(scfvRaw, app.model.args.linker ?? '', app.model.args.hinge, (app.model.args.order as 'hl' | 'lh') ?? 'hl');
+  return validateFullScFv(scfvRaw, app.model.data.linker ?? '', app.model.data.hinge, (app.model.data.order as 'hl' | 'lh') ?? 'hl');
 });
 
 // Validate linker and hinge as plain nt sequences (no FASTA, only A/C/G/T, multiple of 3)
-const linkerValidation = computed(() => validateLinker(app.model.args.linker ?? ''));
-const hingeValidation = computed(() => validateHinge(app.model.args.hinge ?? ''));
+const linkerValidation = computed(() => validateLinker(app.model.data.linker ?? ''));
+const hingeValidation = computed(() => validateHinge(app.model.data.hinge ?? ''));
 
 const umiMismatchWarning = computed(() => {
-  const heavyPattern = app.model.args.heavyTagPattern ?? '';
-  const lightPattern = app.model.args.lightTagPattern ?? '';
+  const heavyPattern = app.model.data.heavyTagPattern ?? '';
+  const lightPattern = app.model.data.lightTagPattern ?? '';
   const heavyHasUmi = /umi/i.test(heavyPattern);
   const lightHasUmi = /umi/i.test(lightPattern);
   if (heavyHasUmi && !lightHasUmi) {
@@ -211,18 +225,18 @@ const umiMismatchWarning = computed(() => {
 // Derive per-chain V/J FASTA strings into args for workflow
 watch(
   () => ({
-    mode: app.model.args.customRefMode,
-    heavy: app.model.args.heavyChainSequence,
-    light: app.model.args.lightChainSequence,
-    scfv: app.model.args.scFvSequence,
-    linker: app.model.args.linker,
-    hinge: app.model.args.hinge,
-    order: app.model.args.order,
-    imputeLight: argsExt.imputeLight,
+    mode: app.model.data.customRefMode,
+    heavy: app.model.data.heavyChainSequence,
+    light: app.model.data.lightChainSequence,
+    scfv: app.model.data.scFvSequence,
+    linker: app.model.data.linker,
+    hinge: app.model.data.hinge,
+    order: app.model.data.order,
+    imputeLight: app.model.data.imputeLight,
   }),
   () => {
     const setVJ = (chain: 'heavy' | 'light', v?: string, j?: string) => {
-      const args = app.model.args as Record<string, unknown>;
+      const args = app.model.data as Record<string, unknown>;
       if (chain === 'heavy') {
         args.heavyVGenes = v;
         args.heavyJGenes = j;
@@ -236,17 +250,17 @@ watch(
     setVJ('heavy', undefined, undefined);
     setVJ('light', undefined, undefined);
     // reset derived impute sequence by default
-    argsExt.lightImputeSequence = undefined;
+    app.model.data.lightImputeSequence = undefined;
 
-    const mode = app.model.args.customRefMode;
+    const mode = app.model.data.customRefMode;
     if (mode === 'builtin') {
       setVJ('heavy', undefined, undefined);
       setVJ('light', undefined, undefined);
       return;
     }
     if (mode === 'separate') {
-      const hv = app.model.args.heavyChainSequence?.trim();
-      const lv = app.model.args.lightChainSequence?.trim();
+      const hv = app.model.data.heavyChainSequence?.trim();
+      const lv = app.model.data.lightChainSequence?.trim();
       if (hv) {
         const hvRecs = hv.startsWith('>') ? parseFasta(hv) : [{ header: 'Heavy', seq: hv }];
         const hvVParts: string[] = [];
@@ -275,19 +289,19 @@ watch(
         }
         setVJ('light', lvVParts.length ? lvVParts.join('\n') : undefined, lvJParts.length ? lvJParts.join('\n') : undefined);
         // if imputing in separate mode, use provided light chain reference as impute sequence
-        if (argsExt.imputeLight === true) {
+        if (app.model.data.imputeLight === true) {
           const seq = (lvRecs[0]?.seq ?? '').toUpperCase().replace(/\s/g, '');
-          argsExt.lightImputeSequence = seq || undefined;
+          app.model.data.lightImputeSequence = seq || undefined;
         }
       }
       return;
     }
 
     // scFv mode: allow multi-record FASTA in scFvSequence
-    const scfvRaw = (app.model.args.scFvSequence ?? '').trim();
-    const hingeRaw = (app.model.args.hinge ?? '').toUpperCase().replace(/\s/g, '');
-    const linker = (app.model.args.linker ?? '').toUpperCase().replace(/\s/g, '');
-    const order = app.model.args.order ?? 'hl';
+    const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
+    const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
+    const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
+    const order = app.model.data.order ?? 'hl';
     if (!scfvRaw || !linker) return;
 
     const records = scfvRaw.startsWith('>') ? parseFasta(scfvRaw) : [{ header: 'scFv', seq: scfvRaw }];
@@ -338,8 +352,8 @@ watch(
     setVJ('light', lv, lj);
 
     // when imputing light from scFv reference, store the derived nt sequence for workflow
-    if (argsExt.imputeLight === true) {
-      argsExt.lightImputeSequence = firstValidLightSeq;
+    if (app.model.data.imputeLight === true) {
+      app.model.data.lightImputeSequence = firstValidLightSeq;
     }
   },
   { immediate: true, deep: true },
@@ -349,7 +363,7 @@ watch(
 <template>
   <PlDropdownRef
     :options="app.model.outputs.inputOptions"
-    :model-value="app.model.args.input"
+    :model-value="app.model.data.input"
     label="Select dataset"
     clearable required
     @update:model-value="setInput"
@@ -360,7 +374,7 @@ watch(
   </PlDropdownRef>
 
   <PlBtnGroup
-    v-model="app.model.args.customRefMode"
+    v-model="app.model.data.customRefMode"
     :options="[
       { label: 'Built-in reference', value: 'builtin' },
       { label: 'Full scFv sequence', value: 'scFv' },
@@ -378,7 +392,7 @@ watch(
     </template>
   </PlBtnGroup>
 
-  <template v-if="app.model.args.customRefMode === 'separate'">
+  <template v-if="app.model.data.customRefMode === 'separate'">
     <PlAlert
       v-if="(heavyValidation && !heavyValidation.isValid) || (lightValidation && !lightValidation.isValid)"
       type="error"
@@ -388,7 +402,7 @@ watch(
       <div v-if="lightValidation && !lightValidation.isValid">Light chain: {{ lightValidation.error }}</div>
     </PlAlert>
     <PlTextArea
-      v-model="app.model.args.heavyChainSequence"
+      v-model="app.model.data.heavyChainSequence"
       :rows="4"
       label="Heavy chain sequence"
       placeholder=">name
@@ -399,7 +413,7 @@ ATCGATCGATCG..."
       </template>
     </PlTextArea>
     <PlTextArea
-      v-model="app.model.args.lightChainSequence"
+      v-model="app.model.data.lightChainSequence"
       :rows="4"
       label="Light chain sequence"
       placeholder=">name
@@ -411,7 +425,7 @@ ATCGATCGATCG..."
     </PlTextArea>
   </template>
 
-  <template v-else-if="app.model.args.customRefMode === 'scFv'">
+  <template v-else-if="app.model.data.customRefMode === 'scFv'">
     <PlAlert
       v-if="scFvValidation && !scFvValidation.isValid"
       type="error"
@@ -420,7 +434,7 @@ ATCGATCGATCG..."
       {{ scFvValidation.error }}
     </PlAlert>
     <PlTextArea
-      v-model="app.model.args.scFvSequence"
+      v-model="app.model.data.scFvSequence"
       :rows="4"
       label="Full scFv sequence"
       placeholder=">name
@@ -433,8 +447,8 @@ heavy-seq + linker + light-seq (or reverse)"
   </template>
 
   <PlDropdown
-    v-if="app.model.args.customRefMode === 'builtin'"
-    v-model="app.model.args.species"
+    v-if="app.model.data.customRefMode === 'builtin'"
+    v-model="app.model.data.species"
     :options="speciesOptions"
     label="Select species"
     required
@@ -445,7 +459,7 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlDropdown>
 
   <PlDropdown
-    v-model="app.model.args.order"
+    v-model="app.model.data.order"
     :options="orderOptions"
     label="Construct building order"
   >
@@ -467,7 +481,7 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlAlert>
 
   <PlTextArea
-    v-model="app.model.args.linker"
+    v-model="app.model.data.linker"
     :rows="3"
     label="Linker nucleotide sequence"
     placeholder="GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT"
@@ -487,9 +501,9 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlAlert>
 
   <PlTextField
-    v-model="app.model.args.heavyTagPattern"
+    v-model="app.model.data.heavyTagPattern"
     label="Heavy chain tag pattern"
-    :clearable="() => undefined"
+    :clearable="() => ''"
     placeholder="^(R1:*)ggtggcggtggctct*\*"
     required
   >
@@ -505,7 +519,7 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlTextField>
 
   <PlDropdown
-    v-model="app.model.args.heavyAssemblingFeature"
+    v-model="app.model.data.heavyAssemblingFeature"
     :options="assemblingFeatureOptions"
     label="Heavy chain assembling feature"
   >
@@ -514,7 +528,7 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlDropdown>
 
-  <template v-if="app.model.args.customRefMode === 'scFv' || app.model.args.customRefMode === 'separate'">
+  <template v-if="app.model.data.customRefMode === 'scFv' || app.model.data.customRefMode === 'separate'">
     <PlCheckbox
       v-model="imputeLight"
     >
@@ -523,11 +537,11 @@ heavy-seq + linker + light-seq (or reverse)"
   </template>
 
   <PlTextField
-    v-model="app.model.args.lightTagPattern"
+    v-model="app.model.data.lightTagPattern"
     label="Light chain tag pattern"
-    :clearable="() => undefined"
+    :clearable="() => ''"
     placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
-    :disabled="app.model.args.customRefMode === 'scFv' && imputeLight === true || app.model.args.customRefMode === 'separate' && imputeLight === true"
+    :disabled="app.model.data.customRefMode === 'scFv' && imputeLight === true || app.model.data.customRefMode === 'separate' && imputeLight === true"
   >
     <template #tooltip>
       <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
@@ -541,10 +555,10 @@ heavy-seq + linker + light-seq (or reverse)"
   </PlTextField>
 
   <PlDropdown
-    v-model="app.model.args.lightAssemblingFeature"
+    v-model="app.model.data.lightAssemblingFeature"
     :options="assemblingFeatureOptions"
     label="Light chain assembling feature"
-    :disabled="app.model.args.customRefMode === 'scFv' && imputeLight === true || app.model.args.customRefMode === 'separate' && imputeLight === true"
+    :disabled="app.model.data.customRefMode === 'scFv' && imputeLight === true || app.model.data.customRefMode === 'separate' && imputeLight === true"
   >
     <template #tooltip>
       Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
@@ -559,7 +573,7 @@ heavy-seq + linker + light-seq (or reverse)"
     {{ hingeValidation.error }}
   </PlAlert>
   <PlTextArea
-    v-model="app.model.args.hinge"
+    v-model="app.model.data.hinge"
     :rows="3"
     label="Hinge region nt sequence"
   >
@@ -568,10 +582,31 @@ heavy-seq + linker + light-seq (or reverse)"
     </template>
   </PlTextArea>
 
+  <PlBtnGroup v-model="app.model.data.runMode" :options="runModeOptions" label="Run mode">
+    <template #tooltip>
+      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct and results look reasonable before launching a full run, which may take much longer.
+    </template>
+  </PlBtnGroup>
+
+  <template v-if="app.model.data.runMode === 'dry'">
+    <PlNumberField
+      v-model="app.model.data.limitInput"
+      label="Reads per sample limit"
+      :clearable="true"
+      :minValue="1"
+      :error-message="app.model.data.limitInput == null ? 'Read limit is required for Preview mode' : undefined"
+    >
+      <template #tooltip>
+        Number of reads to use per sample in the dry run.
+        Recommended: 100,000.
+      </template>
+    </PlNumberField>
+  </template>
+
   <PlAccordionSection label="Advanced Settings">
     <PlSectionSeparator>MiXCR Settings</PlSectionSeparator>
     <PlDropdown
-      v-model="app.model.args.cloneClusteringMode"
+      v-model="app.model.data.cloneClusteringMode"
       :options="clusteringOptions"
       label="Error correction"
     >
@@ -583,12 +618,6 @@ heavy-seq + linker + light-seq (or reverse)"
         </ul>
       </template>
     </PlDropdown>
-    <PlNumberField
-      v-model="app.model.args.limitInput"
-      label="Take only this number of reads into analysis"
-      :clearable="true"
-      :minValue="1"
-    />
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
       v-model="stopCodonSelection"
@@ -623,7 +652,7 @@ heavy-seq + linker + light-seq (or reverse)"
     />
     <PlSectionSeparator>Resource Allocation</PlSectionSeparator>
     <PlNumberField
-      v-model="app.model.args.mixcrCpu"
+      v-model="app.model.data.mixcrCpu"
       label="MiXCR CPU (cores)"
       :min-value="1"
       :step="1"
@@ -634,7 +663,7 @@ heavy-seq + linker + light-seq (or reverse)"
       </template>
     </PlNumberField>
     <PlNumberField
-      v-model="app.model.args.mixcrMem"
+      v-model="app.model.data.mixcrMem"
       label="MiXCR Memory (GiB)"
       :min-value="1"
       :step="1"
@@ -645,7 +674,7 @@ heavy-seq + linker + light-seq (or reverse)"
       </template>
     </PlNumberField>
     <PlNumberField
-      v-model="app.model.args.assembleScfvCpu"
+      v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"
       :min-value="1"
       :step="1"
@@ -656,7 +685,7 @@ heavy-seq + linker + light-seq (or reverse)"
       </template>
     </PlNumberField>
     <PlNumberField
-      v-model="app.model.args.assembleScfvMem"
+      v-model="app.model.data.assembleScfvMem"
       label="Assemble scFv Memory (GiB)"
       :min-value="1"
       :step="1"

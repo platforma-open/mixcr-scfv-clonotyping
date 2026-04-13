@@ -13,7 +13,6 @@
     "ag-grid-enterprise": "catalog:",
     "ag-grid-vue3": "catalog:",
     "@milaboratories/helpers": "catalog:",
-    "@platforma-open/milaboratories.mixcr-clonotyping-2.model": "catalog:",
     "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model": "workspace:*",
     "@platforma-sdk/ui-vue": "catalog:",
     "@platforma-sdk/model": "catalog:",

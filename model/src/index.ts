@@ -1,11 +1,14 @@
 import type { InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
 import {
-  BlockModel,
+  BlockModelV3,
+  DataModelBuilder,
   createPlDataTableV2,
   createPlDataTableStateV2,
   isPColumnSpec,
   parseResourceMap,
 } from '@platforma-sdk/model';
+
+export * from './reports';
 
 export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
 export type StopCodonType = 'amber' | 'ochre' | 'opal';
@@ -61,14 +64,28 @@ export type UiState = {
   tableState: PlDataTableStateV2;
 };
 
+export type BlockData = BlockArgs & {
+  tableState: PlDataTableStateV2;
+  runMode: 'dry' | 'full';
+};
+
+type LegacyUiState = {
+  tableState: PlDataTableStateV2;
+};
+
 export const ProgressPrefix = '[==PROGRESS==]';
 
 export const ProgressPattern
   = /(?<stage>[^:]*):(?: *(?<progress>[0-9.]+)%)?(?: *ETA: *(?<eta>.+))?/;
 
-export const model = BlockModel.create()
-
-  .withArgs<BlockArgs>({
+const dataModel = new DataModelBuilder()
+  .from<BlockData>('v1')
+  .upgradeLegacy<BlockArgs, LegacyUiState>(({ args, uiState }) => ({
+    ...args,
+    tableState: uiState.tableState,
+    runMode: (args.limitInput ?? 0) > 0 ? 'dry' : 'full',
+  }))
+  .init(() => ({
     defaultBlockLabel: 'Select Dataset',
     customBlockLabel: '',
     heavyAssemblingFeature: 'FR1:FR4',
@@ -82,28 +99,62 @@ export const model = BlockModel.create()
     assembleScfvMem: 64,
     assembleScfvCpu: 4,
     cloneClusteringMode: 'relaxed',
-  })
-  .withUiState<UiState>({
     tableState: createPlDataTableStateV2(),
-  })
+    runMode: 'full',
+  }));
 
-  .argsValid((ctx) => {
-    const mode = ctx.args.customRefMode ?? 'builtin';
-    const speciesOk = mode === 'builtin' ? ctx.args.species !== undefined : true;
+export const model = BlockModelV3.create(dataModel)
+
+  .args((data) => {
+    const mode = data.customRefMode ?? 'builtin';
+    const speciesOk = mode === 'builtin' ? data.species !== undefined : true;
     const skipLightTagPattern = (
-      (mode === 'scFv' || mode === 'separate') && (ctx.args.imputeLight === true)
+      (mode === 'scFv' || mode === 'separate') && (data.imputeLight === true)
     ) || (
       // also skip if a light impute sequence is already present (avoids transient race)
-      (mode === 'scFv' || mode === 'separate') && typeof ctx.args.lightImputeSequence === 'string' && ctx.args.lightImputeSequence.length > 0
+      (mode === 'scFv' || mode === 'separate') && typeof data.lightImputeSequence === 'string' && data.lightImputeSequence.length > 0
     );
-    return (
-      ctx.args.input !== undefined
-      && speciesOk
-      && ctx.args.linker !== undefined
-      && ctx.args.hinge !== undefined
-      && ctx.args.heavyTagPattern !== undefined
-      && (skipLightTagPattern ? true : ctx.args.lightTagPattern !== undefined)
-    );
+
+    if (!data.input) throw new Error('Input dataset is required');
+    if (!speciesOk) throw new Error('Species is required');
+    if (!data.linker) throw new Error('Linker is required');
+    if (data.hinge === undefined) throw new Error('Hinge is required');
+    if (!data.heavyTagPattern) throw new Error('Heavy tag pattern is required');
+    if (!skipLightTagPattern && !data.lightTagPattern) throw new Error('Light tag pattern is required');
+    if (data.runMode === 'dry' && data.limitInput == null) throw new Error('Read limit is required for Preview mode');
+
+    return {
+      defaultBlockLabel: data.defaultBlockLabel,
+      customBlockLabel: data.customBlockLabel,
+      title: data.title,
+      input: data.input,
+      species: data.species,
+      linker: data.linker,
+      hinge: data.hinge,
+      order: data.order,
+      heavyTagPattern: data.heavyTagPattern,
+      heavyAssemblingFeature: data.heavyAssemblingFeature,
+      lightTagPattern: data.lightTagPattern,
+      lightAssemblingFeature: data.lightAssemblingFeature,
+      limitInput: data.runMode === 'dry' ? data.limitInput : undefined,
+      customRefMode: data.customRefMode,
+      scFvSequence: data.scFvSequence,
+      heavyChainSequence: data.heavyChainSequence,
+      lightChainSequence: data.lightChainSequence,
+      lightImputeSequence: data.lightImputeSequence,
+      imputeLight: data.imputeLight,
+      heavyVGenes: data.heavyVGenes,
+      heavyJGenes: data.heavyJGenes,
+      lightVGenes: data.lightVGenes,
+      lightJGenes: data.lightJGenes,
+      mixcrMem: data.mixcrMem,
+      mixcrCpu: data.mixcrCpu,
+      assembleScfvMem: data.assembleScfvMem,
+      assembleScfvCpu: data.assembleScfvCpu,
+      cloneClusteringMode: data.cloneClusteringMode,
+      stopCodonTypes: data.stopCodonTypes,
+      stopCodonReplacements: data.stopCodonReplacements,
+    };
   })
 
   .retentiveOutput('inputOptions', (ctx) => {
@@ -123,7 +174,7 @@ export const model = BlockModel.create()
   })
 
   .output('sampleLabels', (ctx): Record<string, string> | undefined => {
-    const inputRef = ctx.args.input;
+    const inputRef = ctx.data.input;
     if (inputRef === undefined) return undefined;
 
     const spec = ctx.resultPool.getPColumnSpecByRef(inputRef);
@@ -198,7 +249,7 @@ export const model = BlockModel.create()
     if (pCols === undefined) {
       return undefined;
     }
-    return createPlDataTableV2(ctx, pCols, ctx.uiState.tableState);
+    return createPlDataTableV2(ctx, pCols, ctx.data.tableState);
   })
 
   .sections((_) => [
@@ -208,8 +259,8 @@ export const model = BlockModel.create()
 
   .title(() => 'MiXCR scFv Alignment')
 
-  .subtitle((ctx) => ctx.args.customBlockLabel || ctx.args.defaultBlockLabel || '')
+  .subtitle((ctx) => ctx.data.customBlockLabel || ctx.data.defaultBlockLabel || '')
 
-  .done(2);
+  .done();
 
 export type BlockOutputs = InferOutputsType<typeof model>;
