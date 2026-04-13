@@ -412,11 +412,16 @@ self.body(func(inputs) {
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
 				referenceLibraryLight: inputs.referenceLibraryLight,
 				truncateFR4: truncateFR4,
+				cloneClusteringMode: inputs.cloneClusteringMode
+			},
+
+			// by passing those parameters as meta fields we allow for recovery and deduplication mechanisms
+			// to pick up the results from executions with different values for CPU and Memory overrides
+			metaExtra: {
 				mixcrCpu: inputs.mixcrCpu,
 				mixcrMem: inputs.mixcrMem,
 				assembleScfvCpu: inputs.assembleScfvCpu,
-				assembleScfvMem: inputs.assembleScfvMem,
-				cloneClusteringMode: inputs.cloneClusteringMode
+				assembleScfvMem: inputs.assembleScfvMem
 			}
 		}
 	)
