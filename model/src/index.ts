@@ -1,4 +1,4 @@
-import type { InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
+import type { InferHrefType, InferOutputsType, PlDataTableStateV2, PlRef } from '@platforma-sdk/model';
 import {
   BlockModelV3,
   DataModelBuilder,
@@ -7,7 +7,9 @@ import {
   isPColumnSpec,
   parseResourceMap,
 } from '@platforma-sdk/model';
+import { ProgressPrefix } from './progress';
 
+export * from './progress';
 export * from './reports';
 
 export type CloneClusteringMode = 'relaxed' | 'default' | 'off';
@@ -73,11 +75,6 @@ type LegacyUiState = {
   tableState: PlDataTableStateV2;
 };
 
-export const ProgressPrefix = '[==PROGRESS==]';
-
-export const ProgressPattern
-  = /(?<stage>[^:]*):(?: *(?<progress>[0-9.]+)%)?(?: *ETA: *(?<eta>.+))?/;
-
 const dataModel = new DataModelBuilder()
   .from<BlockData>('v1')
   .upgradeLegacy<BlockArgs, LegacyUiState>(({ args, uiState }) => ({
@@ -103,7 +100,7 @@ const dataModel = new DataModelBuilder()
     runMode: 'full',
   }));
 
-export const model = BlockModelV3.create(dataModel)
+export const platforma = BlockModelV3.create(dataModel)
 
   .args((data) => {
     const mode = data.customRefMode ?? 'builtin';
@@ -263,4 +260,5 @@ export const model = BlockModelV3.create(dataModel)
 
   .done();
 
-export type BlockOutputs = InferOutputsType<typeof model>;
+export type BlockOutputs = InferOutputsType<typeof platforma>;
+export type Href = InferHrefType<typeof platforma>;
