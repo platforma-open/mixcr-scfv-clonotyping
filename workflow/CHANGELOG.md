@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.11.0
+
+### Minor Changes
+
+- 98e6acc: Migrate to BlockModelV3 with `DataModelBuilder` and add Preview / Dry run mode (100,000 reads per sample) so users can verify settings before launching a full analysis.
+
 ## 3.10.5
 
 ### Patch Changes
