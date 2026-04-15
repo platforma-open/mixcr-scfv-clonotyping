@@ -85,7 +85,7 @@ const exportRawTsvs = async () => {
         'application/zip': ['.zip'],
       },
     }],
-    suggestedName: `${new Date().toISOString().split('T')[0]}_ScFvClonotypingResultsRaw_${app.model.args.title ?? 'Untitled'}.zip`,
+    suggestedName: `${new Date().toISOString().split('T')[0]}_ScFvClonotypingResultsRaw_${app.model.data.title ?? 'Untitled'}.zip`,
   });
 
   data.loading = true;

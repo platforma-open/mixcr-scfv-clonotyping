@@ -1,8 +1,8 @@
 import {
   AlignReport,
   AssembleReport,
-} from '@platforma-open/milaboratories.mixcr-clonotyping-2.model';
-import { ProgressPrefix } from '@platforma-open/milaboratories.mixcr-scfv-clonotyping.model';
+  ProgressPrefix,
+} from '@platforma-open/milaboratories.mixcr-scfv-clonotyping.model';
 import { isLiveLog, type AnyLogHandle } from '@platforma-sdk/model';
 import { ReactiveFileContent } from '@platforma-sdk/ui-vue';
 import { computed } from 'vue';
@@ -92,15 +92,15 @@ export const resultMap = computed(() => {
               // globally cached
               chainResult.alignReport = reactiveFileContent.getContentJson(
                 report.value.handle,
-                AlignReport,
-              )?.value;
+                AlignReport as never,
+              )?.value as AlignReport | undefined;
               break;
             case 'assemble':
               // globally cached
               chainResult.assembleReport = reactiveFileContent.getContentJson(
                 report.value.handle,
-                AssembleReport,
-              )?.value;
+                AssembleReport as never,
+              )?.value as AssembleReport | undefined;
               break;
           }
         }

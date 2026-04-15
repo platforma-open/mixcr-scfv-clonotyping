@@ -37,13 +37,13 @@ const app = useApp();
 watchEffect(() => {
   const parts: string[] = [];
   // Add dataset name if available
-  if (app.model.args.input) {
-    const inputOption = app.model.outputs.inputOptions?.find((p) => app.model.args.input && plRefsEqual(p.ref, app.model.args.input));
+  if (app.model.data.input) {
+    const inputOption = app.model.outputs.inputOptions?.find((p) => app.model.data.input && plRefsEqual(p.ref, app.model.data.input));
     if (inputOption?.label) {
       parts.push(inputOption.label);
     }
   }
-  app.model.args.defaultBlockLabel = parts.filter(Boolean).join(' - ') || 'Select Dataset';
+  app.model.data.defaultBlockLabel = parts.filter(Boolean).join(' - ') || 'Select Dataset';
 });
 
 const rows = computed(() =>
@@ -92,7 +92,7 @@ const defaultColumnDef: ColDef = {
   sortable: false,
 };
 
-const hideLightProgress = computed(() => Boolean(app.model.args.lightImputeSequence));
+const hideLightProgress = computed(() => Boolean(app.model.data.lightImputeSequence));
 
 const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
   const cols: ColDef<ScFvResult>[] = [
