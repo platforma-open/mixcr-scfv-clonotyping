@@ -9,6 +9,9 @@ import { validateFullScFv, validateLibrarySequence, validateSeparateChain, valid
 
 const app = useApp();
 type StopCodonType = 'amber' | 'ochre' | 'opal';
+
+const hasInputOptions = computed(() => (app.model.outputs.inputOptions?.length ?? 0) > 0);
+const hasMultiplexedFastq = computed(() => app.model.outputs.hasMultiplexedFastq === true);
 const imputeLight = computed<boolean>({
   get: () => app.model.data.imputeLight === true,
   set: (v: boolean) => { app.model.data.imputeLight = v; },
@@ -361,6 +364,13 @@ watch(
 </script>
 
 <template>
+  <PlAlert v-if="!hasInputOptions && hasMultiplexedFastq" type="warn" icon>
+    Multiplexed FASTQ detected. Add a <b>FASTQ Demultiplexing</b> block above this one to split by sample.
+  </PlAlert>
+  <PlAlert v-else-if="!hasInputOptions" type="warn" icon>
+    Make sure you have an executed <b>Samples &amp; Data</b> block above this one.
+  </PlAlert>
+
   <PlDropdownRef
     :options="app.model.outputs.inputOptions"
     :model-value="app.model.data.input"
