@@ -4,14 +4,16 @@ import type { ListOption } from '@platforma-sdk/ui-vue';
 import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
+import { retentive } from '../retentive';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
 
 const app = useApp();
 type StopCodonType = 'amber' | 'ochre' | 'opal';
 
-const hasInputOptions = computed(() => (app.model.outputs.inputOptions?.length ?? 0) > 0);
-const hasMultiplexedFastq = computed(() => app.model.outputs.hasMultiplexedFastq === true);
+const inputOptions = retentive(computed(() => app.model.outputs.inputOptions));
+const hasMultiplexedFastq = retentive(computed(() => app.model.outputs.hasMultiplexedFastq));
+const hasInputOptions = computed(() => (inputOptions.value?.length ?? 0) > 0);
 const imputeLight = computed<boolean>({
   get: () => app.model.data.imputeLight === true,
   set: (v: boolean) => { app.model.data.imputeLight = v; },
@@ -372,7 +374,7 @@ watch(
   </PlAlert>
 
   <PlDropdownRef
-    :options="app.model.outputs.inputOptions"
+    :options="inputOptions"
     :model-value="app.model.data.input"
     label="Select dataset"
     clearable required
