@@ -4,11 +4,16 @@ import type { ListOption } from '@platforma-sdk/ui-vue';
 import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
 import { computed, watch } from 'vue';
 import { useApp } from '../app';
+import { retentive } from '../retentive';
 import { parseFasta } from '../utils/fastaValidator';
 import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
 
 const app = useApp();
 type StopCodonType = 'amber' | 'ochre' | 'opal';
+
+const inputOptions = retentive(computed(() => app.model.outputs.inputOptions));
+const hasMultiplexedFastq = retentive(computed(() => app.model.outputs.hasMultiplexedFastq));
+const hasInputOptions = computed(() => (inputOptions.value?.length ?? 0) > 0);
 const imputeLight = computed<boolean>({
   get: () => app.model.data.imputeLight === true,
   set: (v: boolean) => { app.model.data.imputeLight = v; },
@@ -361,8 +366,15 @@ watch(
 </script>
 
 <template>
+  <PlAlert v-if="!hasInputOptions && hasMultiplexedFastq" type="warn" icon>
+    Multiplexed FASTQ detected. Add a <b>FASTQ Demultiplexing</b> block above this one to split by sample.
+  </PlAlert>
+  <PlAlert v-else-if="!hasInputOptions" type="warn" icon>
+    Make sure you have an executed <b>Samples &amp; Data</b> block above this one.
+  </PlAlert>
+
   <PlDropdownRef
-    :options="app.model.outputs.inputOptions"
+    :options="inputOptions"
     :model-value="app.model.data.input"
     label="Select dataset"
     clearable required
