@@ -74,15 +74,15 @@ self.body(func(inputs) {
         arg("--force").
         addFile("referenceLibrary.json", referenceLibrary).
         arg("referenceLibrary.json").
-        arg("referenceLibrary.json").
-        saveFile("referenceLibrary.json").
+        arg("referenceLibrary.out.json").
+        saveFile("referenceLibrary.out.json").
         writeFile("vGene.fasta", vGene).
         cpu(1).
         mem("4GB").
         cacheHours(24)
 
     repseqioInferPointsVResult := repseqioInferPointsVCmd.run()
-    referenceLibraryV := repseqioInferPointsVResult.getFile("referenceLibrary.json")
+    referenceLibraryV := repseqioInferPointsVResult.getFile("referenceLibrary.out.json")
 
     // inferPoints for J
     repseqioInferPointsJCmd := exec.builder().
@@ -93,15 +93,15 @@ self.body(func(inputs) {
         arg("--force").
         addFile("referenceLibrary.json", referenceLibraryV).
         arg("referenceLibrary.json").
-        arg("referenceLibrary.json").
-        saveFile("referenceLibrary.json").
+        arg("referenceLibrary.out.json").
+        saveFile("referenceLibrary.out.json").
         writeFile("jGene.fasta", jGene).
         cpu(1).
         mem("4GB").
         cacheHours(24)
 
     repseqioInferPointsJResult := repseqioInferPointsJCmd.run()
-    referenceLibraryJ := repseqioInferPointsJResult.getFile("referenceLibrary.json")
+    referenceLibraryJ := repseqioInferPointsJResult.getFile("referenceLibrary.out.json")
 
     // compile the library
     repseqioCompileCmd := exec.builder().
@@ -110,8 +110,8 @@ self.body(func(inputs) {
         arg("--force").
         addFile("referenceLibrary.json", referenceLibraryJ).
         arg("referenceLibrary.json").
-        arg("referenceLibrary.json").
-        saveFile("referenceLibrary.json").
+        arg("referenceLibrary.out.json").
+        saveFile("referenceLibrary.out.json").
         writeFile("vGene.fasta", vGene).
         writeFile("jGene.fasta", jGene).
         cpu(1).
@@ -119,7 +119,7 @@ self.body(func(inputs) {
         cacheHours(24)
 
     repseqioCompileResult := repseqioCompileCmd.run()
-    referenceLibraryCompiled := repseqioCompileResult.getFile("referenceLibrary.json")
+    referenceLibraryCompiled := repseqioCompileResult.getFile("referenceLibrary.out.json")
 
     return {
         referenceLibrary: referenceLibraryCompiled
