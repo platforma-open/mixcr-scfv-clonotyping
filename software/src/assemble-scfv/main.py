@@ -100,10 +100,15 @@ else:
         **{"cloneId-IGLight": pl.lit(0)}
     )
 
-if 'tagValueUMI-IGHeavy' in hl.columns:
+# Identify all molecular-barcode (UMI) tag columns exported by MiXCR.
+# It will most probably be one, but we safely handle more
+umi_cols = [c for c in hl.columns
+            if c.startswith('tagValueUMI') and c.endswith('-IGHeavy')]
+
+if umi_cols:
     hl = hl.group_by(['cloneId-IGHeavy', 'cloneId-IGLight']).agg(
         readCount=pl.col('descrR1').count(),
-        umiCount=pl.col('tagValueUMI-IGHeavy').n_unique()
+        umiCount=pl.struct(umi_cols).n_unique()
     )
     hl = hl.with_columns(
         (pl.col('umiCount') / pl.col('umiCount').sum()).alias('umiFraction'))

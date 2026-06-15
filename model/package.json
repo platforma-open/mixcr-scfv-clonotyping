@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@platforma-sdk/model": "catalog:",
+    "@milaboratories/helpers": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
