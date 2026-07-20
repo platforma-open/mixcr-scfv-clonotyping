@@ -1,35 +1,55 @@
 <script setup lang="ts">
-import type { PlRef } from '@platforma-sdk/model';
-import type { ListOption } from '@platforma-sdk/ui-vue';
-import { PlAccordionSection, PlAlert, PlBtnGroup, PlCheckbox, PlDropdown, PlDropdownMulti, PlDropdownRef, PlNumberField, PlSectionSeparator, PlTextArea, PlTextField } from '@platforma-sdk/ui-vue';
-import { computed, watch } from 'vue';
-import { useApp } from '../app';
-import { retentive } from '../retentive';
-import { parseFasta } from '../utils/fastaValidator';
-import { validateFullScFv, validateLibrarySequence, validateSeparateChain, validateLinker, validateHinge } from '../utils/sequenceValidator';
+import type { PlRef } from "@platforma-sdk/model";
+import type { ListOption } from "@platforma-sdk/ui-vue";
+import {
+  PlAccordionSection,
+  PlAlert,
+  PlBtnGroup,
+  PlCheckbox,
+  PlDropdown,
+  PlDropdownMulti,
+  PlDropdownRef,
+  PlNumberField,
+  PlSectionSeparator,
+  PlTextArea,
+  PlTextField,
+} from "@platforma-sdk/ui-vue";
+import { computed, watch } from "vue";
+import { useApp } from "../app";
+import { retentive } from "../retentive";
+import { parseFasta } from "../utils/fastaValidator";
+import {
+  validateFullScFv,
+  validateLibrarySequence,
+  validateSeparateChain,
+  validateLinker,
+  validateHinge,
+} from "../utils/sequenceValidator";
 
 const app = useApp();
-type StopCodonType = 'amber' | 'ochre' | 'opal';
+type StopCodonType = "amber" | "ochre" | "opal";
 
 const inputOptions = retentive(computed(() => app.model.outputs.inputOptions));
 const hasMultiplexedFastq = retentive(computed(() => app.model.outputs.hasMultiplexedFastq));
 const hasInputOptions = computed(() => (inputOptions.value?.length ?? 0) > 0);
 const imputeLight = computed<boolean>({
   get: () => app.model.data.imputeLight === true,
-  set: (v: boolean) => { app.model.data.imputeLight = v; },
+  set: (v: boolean) => {
+    app.model.data.imputeLight = v;
+  },
 });
 
 const DRY_RUN_READS = 100_000;
 
-const runModeOptions: ListOption<'dry' | 'full'>[] = [
-  { label: 'Preview', value: 'dry' },
-  { label: 'Full run', value: 'full' },
+const runModeOptions: ListOption<"dry" | "full">[] = [
+  { label: "Preview", value: "dry" },
+  { label: "Full run", value: "full" },
 ];
 
 watch(
   () => app.model.data.runMode,
   (value) => {
-    if (value === 'dry' && app.model.data.limitInput == null) {
+    if (value === "dry" && app.model.data.limitInput == null) {
       app.model.data.limitInput = DRY_RUN_READS;
     }
   },
@@ -37,60 +57,60 @@ watch(
 // no separate scFv hinge field; use general hinge in Analysis section
 
 const speciesOptions: ListOption[] = [
-  { label: 'Homo sapiens', value: 'hsa' },
-  { label: 'Mus musculus', value: 'mmu' },
-  { label: 'Lama glama', value: 'lama' },
-  { label: 'Alpaca', value: 'alpaca' },
-  { label: 'Macaca fascicularis', value: 'mfas' },
-  { label: 'Macaca mulatta', value: 'mmul' },
-  { label: 'Rabbit', value: 'rabbit' },
-  { label: 'Rat', value: 'rat' },
-  { label: 'Sheep', value: 'sheep' },
-  { label: 'Spalax', value: 'spalax' },
+  { label: "Homo sapiens", value: "hsa" },
+  { label: "Mus musculus", value: "mmu" },
+  { label: "Lama glama", value: "lama" },
+  { label: "Alpaca", value: "alpaca" },
+  { label: "Macaca fascicularis", value: "mfas" },
+  { label: "Macaca mulatta", value: "mmul" },
+  { label: "Rabbit", value: "rabbit" },
+  { label: "Rat", value: "rat" },
+  { label: "Sheep", value: "sheep" },
+  { label: "Spalax", value: "spalax" },
 ];
 
 const assemblingFeatureOptions: ListOption[] = [
-  { label: 'CDR3', value: 'CDR3:CDR3' },
-  { label: 'FR1 – FR4', value: 'FR1:FR4' },
-  { label: 'CDR1 – FR4', value: 'CDR1:FR4' },
-  { label: 'FR2 – FR4', value: 'FR2:FR4' },
-  { label: 'CDR2 – FR4', value: 'CDR2:FR4' },
-  { label: 'FR3 – FR4', value: 'FR3:FR4' },
-  { label: 'CDR3 – FR4', value: 'CDR3:FR4' },
-  { label: 'FR1 – CDR3', value: 'FR1:CDR3' },
-  { label: 'CDR1 – CDR3', value: 'CDR1:CDR3' },
-  { label: 'FR2 – CDR3', value: 'FR2:CDR3' },
-  { label: 'CDR2 – CDR3', value: 'CDR2:CDR3' },
-  { label: 'FR3 – CDR3', value: 'FR3:CDR3' },
+  { label: "CDR3", value: "CDR3:CDR3" },
+  { label: "FR1 – FR4", value: "FR1:FR4" },
+  { label: "CDR1 – FR4", value: "CDR1:FR4" },
+  { label: "FR2 – FR4", value: "FR2:FR4" },
+  { label: "CDR2 – FR4", value: "CDR2:FR4" },
+  { label: "FR3 – FR4", value: "FR3:FR4" },
+  { label: "CDR3 – FR4", value: "CDR3:FR4" },
+  { label: "FR1 – CDR3", value: "FR1:CDR3" },
+  { label: "CDR1 – CDR3", value: "CDR1:CDR3" },
+  { label: "FR2 – CDR3", value: "FR2:CDR3" },
+  { label: "CDR2 – CDR3", value: "CDR2:CDR3" },
+  { label: "FR3 – CDR3", value: "FR3:CDR3" },
 ];
 
 const stopCodonOptions: ListOption<StopCodonType>[] = [
-  { label: 'Amber (TAG)', value: 'amber' },
-  { label: 'Ochre (TAA)', value: 'ochre' },
-  { label: 'Opal/Umber (TGA)', value: 'opal' },
+  { label: "Amber (TAG)", value: "amber" },
+  { label: "Ochre (TAA)", value: "ochre" },
+  { label: "Opal/Umber (TGA)", value: "opal" },
 ];
 
 const aminoAcidOptions: ListOption[] = [
-  { label: 'A (Ala)', value: 'A' },
-  { label: 'C (Cys)', value: 'C' },
-  { label: 'D (Asp)', value: 'D' },
-  { label: 'E (Glu)', value: 'E' },
-  { label: 'F (Phe)', value: 'F' },
-  { label: 'G (Gly)', value: 'G' },
-  { label: 'H (His)', value: 'H' },
-  { label: 'I (Ile)', value: 'I' },
-  { label: 'K (Lys)', value: 'K' },
-  { label: 'L (Leu)', value: 'L' },
-  { label: 'M (Met)', value: 'M' },
-  { label: 'N (Asn)', value: 'N' },
-  { label: 'P (Pro)', value: 'P' },
-  { label: 'Q (Gln)', value: 'Q' },
-  { label: 'R (Arg)', value: 'R' },
-  { label: 'S (Ser)', value: 'S' },
-  { label: 'T (Thr)', value: 'T' },
-  { label: 'V (Val)', value: 'V' },
-  { label: 'W (Trp)', value: 'W' },
-  { label: 'Y (Tyr)', value: 'Y' },
+  { label: "A (Ala)", value: "A" },
+  { label: "C (Cys)", value: "C" },
+  { label: "D (Asp)", value: "D" },
+  { label: "E (Glu)", value: "E" },
+  { label: "F (Phe)", value: "F" },
+  { label: "G (Gly)", value: "G" },
+  { label: "H (His)", value: "H" },
+  { label: "I (Ile)", value: "I" },
+  { label: "K (Lys)", value: "K" },
+  { label: "L (Leu)", value: "L" },
+  { label: "M (Met)", value: "M" },
+  { label: "N (Asn)", value: "N" },
+  { label: "P (Pro)", value: "P" },
+  { label: "Q (Gln)", value: "Q" },
+  { label: "R (Arg)", value: "R" },
+  { label: "S (Ser)", value: "S" },
+  { label: "T (Thr)", value: "T" },
+  { label: "V (Val)", value: "V" },
+  { label: "W (Trp)", value: "W" },
+  { label: "Y (Tyr)", value: "Y" },
 ];
 
 /* @deprecated Migrate to SDK method when will be published */
@@ -103,14 +123,14 @@ function setInput(inputRef?: PlRef) {
 }
 
 const orderOptions: ListOption[] = [
-  { label: 'Heavy-linker-light', value: 'hl' },
-  { label: 'Light-linker-heavy', value: 'lh' },
+  { label: "Heavy-linker-light", value: "hl" },
+  { label: "Light-linker-heavy", value: "lh" },
 ];
 
 const clusteringOptions: ListOption[] = [
-  { value: 'relaxed', label: 'Relaxed error correction, faster assembly' },
-  { value: 'default', label: 'Default MiXCR error correction, slower assembly' },
-  { value: 'off', label: 'No error correction, fastest assembly' },
+  { value: "relaxed", label: "Relaxed error correction, faster assembly" },
+  { value: "default", label: "Default MiXCR error correction, slower assembly" },
+  { value: "off", label: "No error correction, fastest assembly" },
 ] as const;
 
 const stopCodonSelection = computed({
@@ -129,16 +149,17 @@ const stopCodonReplacementModel = (type: StopCodonType) =>
         if (current[type] !== undefined) {
           delete current[type];
         }
-        app.model.data.stopCodonReplacements = Object.keys(current).length > 0 ? current : undefined;
+        app.model.data.stopCodonReplacements =
+          Object.keys(current).length > 0 ? current : undefined;
       } else {
         app.model.data.stopCodonReplacements = { ...current, [type]: value };
       }
     },
   });
 
-const amberReplacement = stopCodonReplacementModel('amber');
-const ochreReplacement = stopCodonReplacementModel('ochre');
-const opalReplacement = stopCodonReplacementModel('opal');
+const amberReplacement = stopCodonReplacementModel("amber");
+const ochreReplacement = stopCodonReplacementModel("ochre");
+const opalReplacement = stopCodonReplacementModel("opal");
 
 watch(stopCodonSelection, (selected) => {
   const current = app.model.data.stopCodonReplacements;
@@ -151,71 +172,76 @@ watch(stopCodonSelection, (selected) => {
 });
 
 const heavyValidation = computed(() => {
-  if (app.model.data.customRefMode === 'separate') {
-    const raw = (app.model.data.heavyChainSequence ?? '').trim();
+  if (app.model.data.customRefMode === "separate") {
+    const raw = (app.model.data.heavyChainSequence ?? "").trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (app.model.data.customRefMode === 'builtin') return undefined;
+  if (app.model.data.customRefMode === "builtin") return undefined;
 
-  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
+  const scfvRaw = (app.model.data.scFvSequence ?? "").trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.data.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
-  let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
+  const linker = (app.model.data.linker ?? "").toUpperCase().replace(/\s/g, "");
+  const hingeRaw = (app.model.data.hinge ?? "").toUpperCase().replace(/\s/g, "");
+  const order = app.model.data.order ?? "hl";
+  if (!linker) return { isValid: false, error: "Linker sequence is required in scFv mode" };
+  let seq = scfvRaw.toUpperCase().replace(/\s/g, "");
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
-  const heavySeq = order === 'hl' ? parts[0] : parts[1];
+  if (parts.length !== 2) return { isValid: false, error: "Cannot split scFv sequence by linker" };
+  const heavySeq = order === "hl" ? parts[0] : parts[1];
   return validateLibrarySequence(heavySeq);
 });
 
 const lightValidation = computed(() => {
-  if (app.model.data.customRefMode === 'separate') {
-    const raw = (app.model.data.lightChainSequence ?? '').trim();
+  if (app.model.data.customRefMode === "separate") {
+    const raw = (app.model.data.lightChainSequence ?? "").trim();
     if (!raw) return undefined;
     return validateSeparateChain(raw);
   }
-  if (app.model.data.customRefMode === 'builtin') return undefined;
-  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
+  if (app.model.data.customRefMode === "builtin") return undefined;
+  const scfvRaw = (app.model.data.scFvSequence ?? "").trim();
   if (!scfvRaw) return undefined;
   // FASTA format is checked in scFvValidation now
-  const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
-  const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
-  const order = app.model.data.order ?? 'hl';
-  if (!linker) return { isValid: false, error: 'Linker sequence is required in scFv mode' };
-  let seq = scfvRaw.toUpperCase().replace(/\s/g, '');
+  const linker = (app.model.data.linker ?? "").toUpperCase().replace(/\s/g, "");
+  const hingeRaw = (app.model.data.hinge ?? "").toUpperCase().replace(/\s/g, "");
+  const order = app.model.data.order ?? "hl";
+  if (!linker) return { isValid: false, error: "Linker sequence is required in scFv mode" };
+  let seq = scfvRaw.toUpperCase().replace(/\s/g, "");
   if (hingeRaw) {
     const idx = seq.indexOf(hingeRaw);
     if (idx >= 0) seq = seq.slice(0, idx) + seq.slice(idx + hingeRaw.length);
   }
   const parts = seq.split(linker);
-  if (parts.length !== 2) return { isValid: false, error: 'Cannot split scFv sequence by linker' };
-  const lightSeq = order === 'hl' ? parts[1] : parts[0];
+  if (parts.length !== 2) return { isValid: false, error: "Cannot split scFv sequence by linker" };
+  const lightSeq = order === "hl" ? parts[1] : parts[0];
   return validateLibrarySequence(lightSeq);
 });
 
 // Full scFv-level validation (format/linker/split) for scFv mode
 const scFvValidation = computed(() => {
-  if (app.model.data.customRefMode !== 'scFv') return undefined;
-  const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
+  if (app.model.data.customRefMode !== "scFv") return undefined;
+  const scfvRaw = (app.model.data.scFvSequence ?? "").trim();
   if (!scfvRaw) return undefined;
-  return validateFullScFv(scfvRaw, app.model.data.linker ?? '', app.model.data.hinge, (app.model.data.order as 'hl' | 'lh') ?? 'hl');
+  return validateFullScFv(
+    scfvRaw,
+    app.model.data.linker ?? "",
+    app.model.data.hinge,
+    (app.model.data.order as "hl" | "lh") ?? "hl",
+  );
 });
 
 // Validate linker and hinge as plain nt sequences (no FASTA, only A/C/G/T, multiple of 3)
-const linkerValidation = computed(() => validateLinker(app.model.data.linker ?? ''));
-const hingeValidation = computed(() => validateHinge(app.model.data.hinge ?? ''));
+const linkerValidation = computed(() => validateLinker(app.model.data.linker ?? ""));
+const hingeValidation = computed(() => validateHinge(app.model.data.hinge ?? ""));
 
 const umiMismatchWarning = computed(() => {
-  const heavyPattern = app.model.data.heavyTagPattern ?? '';
-  const lightPattern = app.model.data.lightTagPattern ?? '';
+  const heavyPattern = app.model.data.heavyTagPattern ?? "";
+  const lightPattern = app.model.data.lightTagPattern ?? "";
   const heavyHasUmi = /umi/i.test(heavyPattern);
   const lightHasUmi = /umi/i.test(lightPattern);
   if (heavyHasUmi && !lightHasUmi) {
@@ -240,9 +266,9 @@ watch(
     imputeLight: app.model.data.imputeLight,
   }),
   () => {
-    const setVJ = (chain: 'heavy' | 'light', v?: string, j?: string) => {
+    const setVJ = (chain: "heavy" | "light", v?: string, j?: string) => {
       const args = app.model.data as Record<string, unknown>;
-      if (chain === 'heavy') {
+      if (chain === "heavy") {
         args.heavyVGenes = v;
         args.heavyJGenes = j;
       } else {
@@ -252,50 +278,58 @@ watch(
     };
 
     // reset by default
-    setVJ('heavy', undefined, undefined);
-    setVJ('light', undefined, undefined);
+    setVJ("heavy", undefined, undefined);
+    setVJ("light", undefined, undefined);
     // reset derived impute sequence by default
     app.model.data.lightImputeSequence = undefined;
 
     const mode = app.model.data.customRefMode;
-    if (mode === 'builtin') {
-      setVJ('heavy', undefined, undefined);
-      setVJ('light', undefined, undefined);
+    if (mode === "builtin") {
+      setVJ("heavy", undefined, undefined);
+      setVJ("light", undefined, undefined);
       return;
     }
-    if (mode === 'separate') {
+    if (mode === "separate") {
       const hv = app.model.data.heavyChainSequence?.trim();
       const lv = app.model.data.lightChainSequence?.trim();
       if (hv) {
-        const hvRecs = hv.startsWith('>') ? parseFasta(hv) : [{ header: 'Heavy', seq: hv }];
+        const hvRecs = hv.startsWith(">") ? parseFasta(hv) : [{ header: "Heavy", seq: hv }];
         const hvVParts: string[] = [];
         const hvJParts: string[] = [];
         for (const r of hvRecs) {
           const res = validateLibrarySequence(r.seq);
           if (res.isValid && res.vGene && res.jGene) {
-            const base = r.header.replace(/\s+/g, '_');
+            const base = r.header.replace(/\s+/g, "_");
             hvVParts.push(res.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
             hvJParts.push(res.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
           }
         }
-        setVJ('heavy', hvVParts.length ? hvVParts.join('\n') : undefined, hvJParts.length ? hvJParts.join('\n') : undefined);
+        setVJ(
+          "heavy",
+          hvVParts.length ? hvVParts.join("\n") : undefined,
+          hvJParts.length ? hvJParts.join("\n") : undefined,
+        );
       }
       if (lv) {
-        const lvRecs = lv.startsWith('>') ? parseFasta(lv) : [{ header: 'Light', seq: lv }];
+        const lvRecs = lv.startsWith(">") ? parseFasta(lv) : [{ header: "Light", seq: lv }];
         const lvVParts: string[] = [];
         const lvJParts: string[] = [];
         for (const r of lvRecs) {
           const res = validateLibrarySequence(r.seq);
           if (res.isValid && res.vGene && res.jGene) {
-            const base = r.header.replace(/\s+/g, '_');
+            const base = r.header.replace(/\s+/g, "_");
             lvVParts.push(res.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
             lvJParts.push(res.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
           }
         }
-        setVJ('light', lvVParts.length ? lvVParts.join('\n') : undefined, lvJParts.length ? lvJParts.join('\n') : undefined);
+        setVJ(
+          "light",
+          lvVParts.length ? lvVParts.join("\n") : undefined,
+          lvJParts.length ? lvJParts.join("\n") : undefined,
+        );
         // if imputing in separate mode, use provided light chain reference as impute sequence
         if (app.model.data.imputeLight === true) {
-          const seq = (lvRecs[0]?.seq ?? '').toUpperCase().replace(/\s/g, '');
+          const seq = (lvRecs[0]?.seq ?? "").toUpperCase().replace(/\s/g, "");
           app.model.data.lightImputeSequence = seq || undefined;
         }
       }
@@ -303,13 +337,15 @@ watch(
     }
 
     // scFv mode: allow multi-record FASTA in scFvSequence
-    const scfvRaw = (app.model.data.scFvSequence ?? '').trim();
-    const hingeRaw = (app.model.data.hinge ?? '').toUpperCase().replace(/\s/g, '');
-    const linker = (app.model.data.linker ?? '').toUpperCase().replace(/\s/g, '');
-    const order = app.model.data.order ?? 'hl';
+    const scfvRaw = (app.model.data.scFvSequence ?? "").trim();
+    const hingeRaw = (app.model.data.hinge ?? "").toUpperCase().replace(/\s/g, "");
+    const linker = (app.model.data.linker ?? "").toUpperCase().replace(/\s/g, "");
+    const order = app.model.data.order ?? "hl";
     if (!scfvRaw || !linker) return;
 
-    const records = scfvRaw.startsWith('>') ? parseFasta(scfvRaw) : [{ header: 'scFv', seq: scfvRaw }];
+    const records = scfvRaw.startsWith(">")
+      ? parseFasta(scfvRaw)
+      : [{ header: "scFv", seq: scfvRaw }];
     if (records.length === 0) return;
 
     const heavyVParts: string[] = [];
@@ -319,7 +355,7 @@ watch(
 
     let firstValidLightSeq: string | undefined = undefined;
     for (const r of records) {
-      let seq = r.seq.toUpperCase().replace(/\s/g, '');
+      let seq = r.seq.toUpperCase().replace(/\s/g, "");
       if (hingeRaw) {
         const idx = seq.indexOf(hingeRaw);
         if (idx >= 0) {
@@ -329,32 +365,32 @@ watch(
       const parts = seq.split(linker);
       if (parts.length !== 2) continue;
 
-      const hs = order === 'hl' ? parts[0] : parts[1];
-      const ls = order === 'hl' ? parts[1] : parts[0];
+      const hs = order === "hl" ? parts[0] : parts[1];
+      const ls = order === "hl" ? parts[1] : parts[0];
       const hRes = validateLibrarySequence(hs);
       const lRes = validateLibrarySequence(ls);
 
       if (hRes.isValid && hRes.vGene && hRes.jGene) {
-        const base = r.header.replace(/\s+/g, '_');
+        const base = r.header.replace(/\s+/g, "_");
         heavyVParts.push(hRes.vGene.replace(/^>Vgene/m, `>${base}_V_Heavy`));
         heavyJParts.push(hRes.jGene.replace(/^>JGene/m, `>${base}_J_Heavy`));
       }
 
       if (lRes.isValid && lRes.vGene && lRes.jGene) {
-        const base = r.header.replace(/\s+/g, '_');
+        const base = r.header.replace(/\s+/g, "_");
         lightVParts.push(lRes.vGene.replace(/^>Vgene/m, `>${base}_V_Light`));
         lightJParts.push(lRes.jGene.replace(/^>JGene/m, `>${base}_J_Light`));
         if (firstValidLightSeq === undefined) firstValidLightSeq = ls;
       }
     }
 
-    const hv = heavyVParts.length ? heavyVParts.join('\n') : undefined;
-    const hj = heavyJParts.length ? heavyJParts.join('\n') : undefined;
-    const lv = lightVParts.length ? lightVParts.join('\n') : undefined;
-    const lj = lightJParts.length ? lightJParts.join('\n') : undefined;
+    const hv = heavyVParts.length ? heavyVParts.join("\n") : undefined;
+    const hj = heavyJParts.length ? heavyJParts.join("\n") : undefined;
+    const lv = lightVParts.length ? lightVParts.join("\n") : undefined;
+    const lj = lightJParts.length ? lightJParts.join("\n") : undefined;
 
-    setVJ('heavy', hv, hj);
-    setVJ('light', lv, lj);
+    setVJ("heavy", hv, hj);
+    setVJ("light", lv, lj);
 
     // when imputing light from scFv reference, store the derived nt sequence for workflow
     if (app.model.data.imputeLight === true) {
@@ -367,7 +403,8 @@ watch(
 
 <template>
   <PlAlert v-if="!hasInputOptions && hasMultiplexedFastq" type="warn" icon>
-    Multiplexed FASTQ detected. Add a <b>FASTQ Demultiplexing</b> block above this one to split by sample.
+    Multiplexed FASTQ detected. Add a <b>FASTQ Demultiplexing</b> block above this one to split by
+    sample.
   </PlAlert>
   <PlAlert v-else-if="!hasInputOptions" type="warn" icon>
     Make sure you have an executed <b>Samples &amp; Data</b> block above this one.
@@ -377,12 +414,11 @@ watch(
     :options="inputOptions"
     :model-value="app.model.data.input"
     label="Select dataset"
-    clearable required
+    clearable
+    required
     @update:model-value="setInput"
   >
-    <template #tooltip>
-      Select input sequencing dataset (FASTA/FASTQ).
-    </template>
+    <template #tooltip> Select input sequencing dataset (FASTA/FASTQ). </template>
   </PlDropdownRef>
 
   <PlBtnGroup
@@ -395,23 +431,44 @@ watch(
     label="Reference type"
   >
     <template #tooltip>
-      <p>This is the most important setting, as it determines the alignment strategy. You must choose the option that best describes the origin and nature of your scFv library.</p>
+      <p>
+        This is the most important setting, as it determines the alignment strategy. You must choose
+        the option that best describes the origin and nature of your scFv library.
+      </p>
       <ul>
-        <li><b>Built-in Reference:</b> Standard choice for scFv libraries from natural antibody repertoires (e.g., from immunized animals). Alignment is performed against MiXCR's built-in database of germline V, D, and J genes.</li>
-        <li><b>Full scFv Sequence:</b> For synthetic libraries (e.g., phage or yeast display) where sequences are variants of a single, known scFv construct. Paste the complete DNA sequence of your reference scFv.</li>
-        <li><b>Separate Chains:</b> Alternative for synthetic libraries where you have reference sequences for heavy and light variable regions, but not as a pre-joined construct.</li>
+        <li>
+          <b>Built-in Reference:</b> Standard choice for scFv libraries from natural antibody
+          repertoires (e.g., from immunized animals). Alignment is performed against MiXCR's
+          built-in database of germline V, D, and J genes.
+        </li>
+        <li>
+          <b>Full scFv Sequence:</b> For synthetic libraries (e.g., phage or yeast display) where
+          sequences are variants of a single, known scFv construct. Paste the complete DNA sequence
+          of your reference scFv.
+        </li>
+        <li>
+          <b>Separate Chains:</b> Alternative for synthetic libraries where you have reference
+          sequences for heavy and light variable regions, but not as a pre-joined construct.
+        </li>
       </ul>
     </template>
   </PlBtnGroup>
 
   <template v-if="app.model.data.customRefMode === 'separate'">
     <PlAlert
-      v-if="(heavyValidation && !heavyValidation.isValid) || (lightValidation && !lightValidation.isValid)"
+      v-if="
+        (heavyValidation && !heavyValidation.isValid) ||
+        (lightValidation && !lightValidation.isValid)
+      "
       type="error"
       :title="'Separate chains input issues detected'"
     >
-      <div v-if="heavyValidation && !heavyValidation.isValid">Heavy chain: {{ heavyValidation.error }}</div>
-      <div v-if="lightValidation && !lightValidation.isValid">Light chain: {{ lightValidation.error }}</div>
+      <div v-if="heavyValidation && !heavyValidation.isValid">
+        Heavy chain: {{ heavyValidation.error }}
+      </div>
+      <div v-if="lightValidation && !lightValidation.isValid">
+        Light chain: {{ lightValidation.error }}
+      </div>
     </PlAlert>
     <PlTextArea
       v-model="app.model.data.heavyChainSequence"
@@ -421,7 +478,8 @@ watch(
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Paste the DNA sequence of the reference heavy chain V(D)J region. Can be in ATCG... or FASTA format.
+        Paste the DNA sequence of the reference heavy chain V(D)J region. Can be in ATCG... or FASTA
+        format.
       </template>
     </PlTextArea>
     <PlTextArea
@@ -432,7 +490,8 @@ ATCGATCGATCG..."
 ATCGATCGATCG..."
     >
       <template #tooltip>
-        Paste the DNA sequence of the reference light chain V(J) region. Can be in ATCG... or FASTA format.
+        Paste the DNA sequence of the reference light chain V(J) region. Can be in ATCG... or FASTA
+        format.
       </template>
     </PlTextArea>
   </template>
@@ -453,7 +512,10 @@ ATCGATCGATCG..."
 heavy-seq + linker + light-seq (or reverse)"
     >
       <template #tooltip>
-        Paste the complete DNA sequence of your reference scFv construct (VH-Linker-VL or VL-Linker-VH). The aligner will use this sequence as a direct template to align all reads from your dataset. The provided sequence must be in-frame. Can be in ATCG... or FASTA format.
+        Paste the complete DNA sequence of your reference scFv construct (VH-Linker-VL or
+        VL-Linker-VH). The aligner will use this sequence as a direct template to align all reads
+        from your dataset. The provided sequence must be in-frame. Can be in ATCG... or FASTA
+        format.
       </template>
     </PlTextArea>
   </template>
@@ -466,7 +528,8 @@ heavy-seq + linker + light-seq (or reverse)"
     required
   >
     <template #tooltip>
-      Choose the species from which the antibody repertoire was derived. This ensures the aligner uses the correct set of germline genes.
+      Choose the species from which the antibody repertoire was derived. This ensures the aligner
+      uses the correct set of germline genes.
     </template>
   </PlDropdown>
 
@@ -478,8 +541,14 @@ heavy-seq + linker + light-seq (or reverse)"
     <template #tooltip>
       <p>Defines the physical arrangement of the chains in your scFv construct.</p>
       <ul>
-        <li><b>Heavy-linker-light:</b> The VH domain is upstream of the linker, followed by the VL domain.</li>
-        <li><b>Light-linker-heavy:</b> The VL domain is upstream of the linker, followed by the VH domain.</li>
+        <li>
+          <b>Heavy-linker-light:</b> The VH domain is upstream of the linker, followed by the VL
+          domain.
+        </li>
+        <li>
+          <b>Light-linker-heavy:</b> The VL domain is upstream of the linker, followed by the VH
+          domain.
+        </li>
       </ul>
     </template>
   </PlDropdown>
@@ -500,15 +569,13 @@ heavy-seq + linker + light-seq (or reverse)"
     required
   >
     <template #tooltip>
-      Enter the exact DNA sequence of the linker used in your construct. The length of this sequence must be a multiple of three. A commonly used linker is (G₄S)₃ with the sequence GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT.
+      Enter the exact DNA sequence of the linker used in your construct. The length of this sequence
+      must be a multiple of three. A commonly used linker is (G₄S)₃ with the sequence
+      GGTGGCGGTGGCTCTGGTGGCGGTGGCTCTGGTGGCGGTGGCTCT.
     </template>
   </PlTextArea>
 
-  <PlAlert
-    v-if="umiMismatchWarning"
-    type="warn"
-    :title="'UMI tag pattern mismatch'"
-  >
+  <PlAlert v-if="umiMismatchWarning" type="warn" :title="'UMI tag pattern mismatch'">
     {{ umiMismatchWarning }}
   </PlAlert>
 
@@ -520,13 +587,29 @@ heavy-seq + linker + light-seq (or reverse)"
     required
   >
     <template #tooltip>
-      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p>
+        This critical parameter tells the aligner where to locate the chain's sequence within the
+        raw sequencing read(s). It uses a specific syntax to define the structure of the reads to
+        isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other
+        non-antibody sequences.
+      </p>
       <p><b>Examples:</b></p>
       <ul>
-        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^(R1:*)linker*</code></li>
-        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+        <li>
+          For long-read data (PacBio/ONT) where the chain is at the start of Read 1:
+          <code>^(R1:*)linker*</code>
+        </li>
+        <li>
+          For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is
+          in Read 2, the heavy chain pattern would be more complex.
+        </li>
       </ul>
-      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
+      <p>
+        For detailed syntax, refer to the
+        <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank"
+          >MiXCR Tag Pattern Documentation</a
+        >.
+      </p>
     </template>
   </PlTextField>
 
@@ -536,16 +619,16 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Heavy chain assembling feature"
   >
     <template #tooltip>
-      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
+      Specifies the portion of the variable chain that your sequencing protocol is expected to
+      cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3
+      for protocols targeting CDR3).
     </template>
   </PlDropdown>
 
-  <template v-if="app.model.data.customRefMode === 'scFv' || app.model.data.customRefMode === 'separate'">
-    <PlCheckbox
-      v-model="imputeLight"
-    >
-      Impute light chain from reference
-    </PlCheckbox>
+  <template
+    v-if="app.model.data.customRefMode === 'scFv' || app.model.data.customRefMode === 'separate'"
+  >
+    <PlCheckbox v-model="imputeLight"> Impute light chain from reference </PlCheckbox>
   </template>
 
   <PlTextField
@@ -553,16 +636,35 @@ heavy-seq + linker + light-seq (or reverse)"
     label="Light chain tag pattern"
     :clearable="() => ''"
     placeholder="^*gcggaagt(R1:*)\^*gactcggatc(R2:*)"
-    :disabled="app.model.data.customRefMode === 'scFv' && imputeLight === true || app.model.data.customRefMode === 'separate' && imputeLight === true"
+    :disabled="
+      (app.model.data.customRefMode === 'scFv' && imputeLight === true) ||
+      (app.model.data.customRefMode === 'separate' && imputeLight === true)
+    "
   >
     <template #tooltip>
-      <p>This critical parameter tells the aligner where to locate the chain's sequence within the raw sequencing read(s). It uses a specific syntax to define the structure of the reads to isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other non-antibody sequences.</p>
+      <p>
+        This critical parameter tells the aligner where to locate the chain's sequence within the
+        raw sequencing read(s). It uses a specific syntax to define the structure of the reads to
+        isolate the relevant part of the read for alignment, ignoring adapters, UMIs, or other
+        non-antibody sequences.
+      </p>
       <p><b>Examples:</b></p>
       <ul>
-        <li>For long-read data (PacBio/ONT) where the chain is at the start of Read 1: <code>^*linker(R1:*)</code></li>
-        <li>For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is in Read 2, the heavy chain pattern would be more complex.</li>
+        <li>
+          For long-read data (PacBio/ONT) where the chain is at the start of Read 1:
+          <code>^*linker(R1:*)</code>
+        </li>
+        <li>
+          For paired-end data (Illumina) where the heavy chain is in Read 1 and the light chain is
+          in Read 2, the heavy chain pattern would be more complex.
+        </li>
       </ul>
-      <p>For detailed syntax, refer to the <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank">MiXCR Tag Pattern Documentation</a>.</p>
+      <p>
+        For detailed syntax, refer to the
+        <a href="https://mixcr.com/mixcr/reference/ref-tag-pattern/" target="_blank"
+          >MiXCR Tag Pattern Documentation</a
+        >.
+      </p>
     </template>
   </PlTextField>
 
@@ -570,10 +672,15 @@ heavy-seq + linker + light-seq (or reverse)"
     v-model="app.model.data.lightAssemblingFeature"
     :options="assemblingFeatureOptions"
     label="Light chain assembling feature"
-    :disabled="app.model.data.customRefMode === 'scFv' && imputeLight === true || app.model.data.customRefMode === 'separate' && imputeLight === true"
+    :disabled="
+      (app.model.data.customRefMode === 'scFv' && imputeLight === true) ||
+      (app.model.data.customRefMode === 'separate' && imputeLight === true)
+    "
   >
     <template #tooltip>
-      Specifies the portion of the variable chain that your sequencing protocol is expected to cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3 for protocols targeting CDR3).
+      Specifies the portion of the variable chain that your sequencing protocol is expected to
+      cover. Setting this correctly helps anchor the alignment (e.g. FR1-FR4 for full-length, CDR3
+      for protocols targeting CDR3).
     </template>
   </PlDropdown>
 
@@ -584,19 +691,17 @@ heavy-seq + linker + light-seq (or reverse)"
   >
     {{ hingeValidation.error }}
   </PlAlert>
-  <PlTextArea
-    v-model="app.model.data.hinge"
-    :rows="3"
-    label="Hinge region nt sequence"
-  >
+  <PlTextArea v-model="app.model.data.hinge" :rows="3" label="Hinge region nt sequence">
     <template #tooltip>
-      If your construct includes a portion of the antibody hinge region, specify its nucleotide sequence here to improve alignment accuracy.
+      If your construct includes a portion of the antibody hinge region, specify its nucleotide
+      sequence here to improve alignment accuracy.
     </template>
   </PlTextArea>
 
   <PlBtnGroup v-model="app.model.data.runMode" :options="runModeOptions" label="Run mode">
     <template #tooltip>
-      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that settings are correct before processing the whole dataset.
+      Preview — runs the analysis on a small fraction of reads per sample. Use it to check that
+      settings are correct before processing the whole dataset.
     </template>
   </PlBtnGroup>
 
@@ -606,11 +711,12 @@ heavy-seq + linker + light-seq (or reverse)"
       label="Reads per sample limit"
       :clearable="true"
       :minValue="1"
-      :error-message="app.model.data.limitInput == null ? 'Read limit is required for Preview mode' : undefined"
+      :error-message="
+        app.model.data.limitInput == null ? 'Read limit is required for Preview mode' : undefined
+      "
     >
       <template #tooltip>
-        Number of reads to use per sample in the dry run.
-        Recommended: 100,000.
+        Number of reads to use per sample in the dry run. Recommended: 100,000.
       </template>
     </PlNumberField>
   </template>
@@ -626,7 +732,9 @@ heavy-seq + linker + light-seq (or reverse)"
         <ul>
           <li><b>Default assembly:</b> The standard MiXCR clustering mode.</li>
           <li><b>Faster assembly:</b> Relaxes fuzzy matching criteria, speeding up assembly.</li>
-          <li><b>Fastest assembly:</b> Further accelerates the process but disables error correction.</li>
+          <li>
+            <b>Fastest assembly:</b> Further accelerates the process but disables error correction.
+          </li>
         </ul>
       </template>
     </PlDropdown>
@@ -637,9 +745,7 @@ heavy-seq + linker + light-seq (or reverse)"
       :options="stopCodonOptions"
       clearable
     >
-      <template #tooltip>
-        Select stop codons to replace in amino acid sequences.
-      </template>
+      <template #tooltip> Select stop codons to replace in amino acid sequences. </template>
     </PlDropdownMulti>
     <PlDropdown
       v-if="stopCodonSelection.includes('amber')"
@@ -670,9 +776,7 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
       :max-value="128"
     >
-      <template #tooltip>
-        Sets the number of CPU cores to use for the MiXCR alignment.
-      </template>
+      <template #tooltip> Sets the number of CPU cores to use for the MiXCR alignment. </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.mixcrMem"
@@ -681,9 +785,7 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
       :max-value="1012"
     >
-      <template #tooltip>
-        Sets the amount of memory to use for the MiXCR alignment.
-      </template>
+      <template #tooltip> Sets the amount of memory to use for the MiXCR alignment. </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
@@ -692,9 +794,7 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
       :max-value="128"
     >
-      <template #tooltip>
-        Sets the number of CPU cores to use for the scFv assembly.
-      </template>
+      <template #tooltip> Sets the number of CPU cores to use for the scFv assembly. </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvMem"
@@ -703,9 +803,7 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
       :max-value="1012"
     >
-      <template #tooltip>
-        Sets the amount of memory to use for the scFv assembly.
-      </template>
+      <template #tooltip> Sets the amount of memory to use for the scFv assembly. </template>
     </PlNumberField>
   </PlAccordionSection>
 </template>

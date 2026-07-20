@@ -1,4 +1,4 @@
-import { ProgressPattern } from '@platforma-open/milaboratories.mixcr-scfv-clonotyping.model';
+import { ProgressPattern } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model";
 
 type ParsedProgress = {
   raw?: string;
@@ -18,7 +18,7 @@ type ParsedProgress = {
 // 'Queued'
 // 'Done'
 export function parseProgressString(progressString: string | undefined | null): ParsedProgress {
-  const raw = progressString ?? 'Unknown';
+  const raw = progressString ?? "Unknown";
 
   const res: ParsedProgress = {
     raw,
