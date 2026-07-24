@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.11.4
+
+### Patch Changes
+
+- 1125c5d: Structurer template migration and SDK update
+- Updated dependencies [1125c5d]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@2.5.2
+
 ## 3.11.3
 
 ### Patch Changes

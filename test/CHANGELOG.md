@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.test
 
+## 1.4.1
+
+### Patch Changes
+
+- 1125c5d: Structurer template migration and SDK update
+
 ## 1.4.0
 
 ### Minor Changes
