@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import AlignmentsChart from '../charts/AlignmentsChart.vue';
-import type { ScFvResult } from '../results';
+import AlignmentsChart from "../charts/AlignmentsChart.vue";
+import type { ScFvResult } from "../results";
 
 defineProps<{
   sampleData: ScFvResult;

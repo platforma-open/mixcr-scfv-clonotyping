@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { AgGridVue } from 'ag-grid-vue3';
+import { AgGridVue } from "ag-grid-vue3";
 
-import { plRefsEqual } from '@platforma-sdk/model';
-import type { PlAgHeaderComponentParams } from '@platforma-sdk/ui-vue';
+import { plRefsEqual } from "@platforma-sdk/model";
+import type { PlAgHeaderComponentParams } from "@platforma-sdk/ui-vue";
 import {
   AgGridTheme,
   PlAgChartStackedBarCell,
@@ -16,18 +16,18 @@ import {
   autoSizeRowNumberColumn,
   createAgGridColDef,
   makeRowNumberColDef,
-} from '@platforma-sdk/ui-vue';
-import type { ColDef, GridApi, GridOptions, GridReadyEvent } from 'ag-grid-enterprise';
-import { ClientSideRowModelModule, ModuleRegistry } from 'ag-grid-enterprise';
-import { computed, reactive, shallowRef, watch, watchEffect } from 'vue';
-import { getAlignmentChartSettings } from '../charts/alignmentChartSettings';
+} from "@platforma-sdk/ui-vue";
+import type { ColDef, GridApi, GridOptions, GridReadyEvent } from "ag-grid-enterprise";
+import { ClientSideRowModelModule, ModuleRegistry } from "ag-grid-enterprise";
+import { computed, reactive, shallowRef, watch, watchEffect } from "vue";
+import { getAlignmentChartSettings } from "../charts/alignmentChartSettings";
 // import { ScFvResult } from '../results';
-import { useApp } from '../app';
-import { parseProgressString } from '../parseProgress';
-import { resultMap, type ScFvResult } from '../results';
-import SampleReportPanel from './SampleReportPanel.vue';
-import SettingsPanel from './SettingsPanel.vue';
-import { ExportRawBtn } from '../ExportRawBtn';
+import { useApp } from "../app";
+import { parseProgressString } from "../parseProgress";
+import { resultMap, type ScFvResult } from "../results";
+import SampleReportPanel from "./SampleReportPanel.vue";
+import SettingsPanel from "./SettingsPanel.vue";
+import { ExportRawBtn } from "../ExportRawBtn";
 // import SampleReportPanel from './SampleReportPanel.vue';
 // import SettingsPanel from './SettingsPanel.vue';
 
@@ -38,23 +38,23 @@ watchEffect(() => {
   const parts: string[] = [];
   // Add dataset name if available
   if (app.model.data.input) {
-    const inputOption = app.model.outputs.inputOptions?.find((p) => app.model.data.input && plRefsEqual(p.ref, app.model.data.input));
+    const inputOption = app.model.outputs.inputOptions?.find(
+      (p) => app.model.data.input && plRefsEqual(p.ref, app.model.data.input),
+    );
     if (inputOption?.label) {
       parts.push(inputOption.label);
     }
   }
-  app.model.data.defaultBlockLabel = parts.filter(Boolean).join(' - ') || 'Select Dataset';
+  app.model.data.defaultBlockLabel = parts.filter(Boolean).join(" - ") || "Select Dataset";
 });
 
-const rows = computed(() =>
-  resultMap.value ? [...resultMap.value.values()] : undefined,
-);
+const rows = computed(() => (resultMap.value ? [...resultMap.value.values()] : undefined));
 
 const loadingOverlayParams = computed(() => {
   if (app.model.outputs.started) {
-    return { variant: 'running' as const, runningText: 'Loading Sample List' };
+    return { variant: "running" as const, runningText: "Loading Sample List" };
   }
-  return { variant: 'not-ready' as const };
+  return { variant: "not-ready" as const };
 });
 
 const data = reactive<{
@@ -98,11 +98,11 @@ const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
   const cols: ColDef<ScFvResult>[] = [
     makeRowNumberColDef(),
     createAgGridColDef<ScFvResult, string>({
-      colId: 'label',
-      field: 'label',
-      headerName: 'Sample',
-      headerComponentParams: { type: 'Text' } satisfies PlAgHeaderComponentParams,
-      pinned: 'left',
+      colId: "label",
+      field: "label",
+      headerName: "Sample",
+      headerComponentParams: { type: "Text" } satisfies PlAgHeaderComponentParams,
+      pinned: "left",
       lockPinned: true,
       sortable: true,
       cellRenderer: PlAgTextAndButtonCell,
@@ -111,37 +111,37 @@ const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
       },
     }),
     createAgGridColDef<ScFvResult, string>({
-      colId: 'progressIGHeavy',
-      field: 'heavy.progress',
-      headerName: 'Progress (Heavy)',
-      headerComponentParams: { type: 'Progress' } satisfies PlAgHeaderComponentParams,
+      colId: "progressIGHeavy",
+      field: "heavy.progress",
+      headerName: "Progress (Heavy)",
+      headerComponentParams: { type: "Progress" } satisfies PlAgHeaderComponentParams,
       progress(cellData, cd) {
         const parsed = parseProgressString(cellData);
 
         const p = cd?.data?.heavy.progress;
-        if (p === 'Not started' || p === 'Queued') {
+        if (p === "Not started" || p === "Queued") {
           return {
-            status: 'not_started',
+            status: "not_started",
             text: parsed.stage,
           };
         }
 
         return {
-          status: parsed.stage === 'Done' ? 'done' : 'running',
+          status: parsed.stage === "Done" ? "done" : "running",
           percent: parsed.percentage,
           text: parsed.stage,
-          suffix: parsed.etaLabel ?? '',
+          suffix: parsed.etaLabel ?? "",
         };
       },
     }),
 
     createAgGridColDef<ScFvResult, string>({
-      colId: 'alignmentStats',
-      headerName: 'Alignments (Heavy)',
-      headerComponentParams: { type: 'Text' } satisfies PlAgHeaderComponentParams,
+      colId: "alignmentStats",
+      headerName: "Alignments (Heavy)",
+      headerComponentParams: { type: "Text" } satisfies PlAgHeaderComponentParams,
       flex: 1,
       cellStyle: {
-        '--ag-cell-horizontal-padding': '12px',
+        "--ag-cell-horizontal-padding": "12px",
       },
       cellRendererSelector: (cellData) => {
         const value = getAlignmentChartSettings(cellData.data?.heavy.alignReport);
@@ -156,45 +156,51 @@ const columnDefs = computed<ColDef<ScFvResult>[]>(() => {
   ];
 
   if (!hideLightProgress.value) {
-    cols.splice(3, 0, createAgGridColDef<ScFvResult, string>({
-      colId: 'progressIGLight',
-      field: 'light.progress',
-      headerName: 'Progress (Light)',
-      headerComponentParams: { type: 'Progress' } satisfies PlAgHeaderComponentParams,
-      progress(cellData, cd) {
-        const parsed = parseProgressString(cellData);
-        const p = cd?.data?.light.progress;
-        if (p === 'Not started' || p === 'Queued') {
+    cols.splice(
+      3,
+      0,
+      createAgGridColDef<ScFvResult, string>({
+        colId: "progressIGLight",
+        field: "light.progress",
+        headerName: "Progress (Light)",
+        headerComponentParams: { type: "Progress" } satisfies PlAgHeaderComponentParams,
+        progress(cellData, cd) {
+          const parsed = parseProgressString(cellData);
+          const p = cd?.data?.light.progress;
+          if (p === "Not started" || p === "Queued") {
+            return {
+              status: "not_started",
+              text: parsed.stage,
+            };
+          }
           return {
-            status: 'not_started',
+            status: parsed.stage === "Done" ? "done" : "running",
+            percent: parsed.percentage,
             text: parsed.stage,
+            suffix: parsed.etaLabel ?? "",
           };
-        }
-        return {
-          status: parsed.stage === 'Done' ? 'done' : 'running',
-          percent: parsed.percentage,
-          text: parsed.stage,
-          suffix: parsed.etaLabel ?? '',
-        };
-      },
-    }));
+        },
+      }),
+    );
     // Also show Light alignments when not imputing
-    cols.push(createAgGridColDef<ScFvResult, string>({
-      colId: 'alignmentStats',
-      headerName: 'Alignments (Light)',
-      headerComponentParams: { type: 'Text' } satisfies PlAgHeaderComponentParams,
-      flex: 1,
-      cellStyle: {
-        '--ag-cell-horizontal-padding': '12px',
-      },
-      cellRendererSelector: (cellData) => {
-        const value = getAlignmentChartSettings(cellData.data?.light.alignReport);
-        return {
-          component: PlAgChartStackedBarCell,
-          params: { value },
-        };
-      },
-    }));
+    cols.push(
+      createAgGridColDef<ScFvResult, string>({
+        colId: "alignmentStats",
+        headerName: "Alignments (Light)",
+        headerComponentParams: { type: "Text" } satisfies PlAgHeaderComponentParams,
+        flex: 1,
+        cellStyle: {
+          "--ag-cell-horizontal-padding": "12px",
+        },
+        cellRendererSelector: (cellData) => {
+          const value = getAlignmentChartSettings(cellData.data?.light.alignReport);
+          return {
+            component: PlAgChartStackedBarCell,
+            params: { value },
+          };
+        },
+      }),
+    );
   }
 
   return cols;
@@ -213,9 +219,7 @@ const gridOptions: GridOptions<ScFvResult> = {
 </script>
 
 <template>
-  <PlBlockPage
-    title="MiXCR scFv Alignment"
-  >
+  <PlBlockPage title="MiXCR scFv Alignment">
     <template #append>
       <ExportRawBtn />
       <PlBtnGhost @click.stop="() => (data.settingsOpen = true)">
@@ -249,16 +253,12 @@ const gridOptions: GridOptions<ScFvResult> = {
     <template #title>Settings</template>
     <SettingsPanel />
   </PlSlideModal>
-  <PlSlideModal
-    v-model="data.sampleReportOpen"
-    :close-on-outside-click="true"
-    width="80%"
-  >
+  <PlSlideModal v-model="data.sampleReportOpen" :close-on-outside-click="true" width="80%">
     <template #title>
       Results for
       {{
         (data.selectedSample ? app.model.outputs.sampleLabels?.[data.selectedSample] : undefined) ??
-          '...'
+        "..."
       }}
     </template>
     <SampleReportPanel v-model="data.selectedSample" />

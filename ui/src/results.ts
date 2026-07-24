@@ -2,11 +2,11 @@ import {
   AlignReport,
   AssembleReport,
   ProgressPrefix,
-} from '@platforma-open/milaboratories.mixcr-scfv-clonotyping.model';
-import { isLiveLog, type AnyLogHandle } from '@platforma-sdk/model';
-import { ReactiveFileContent } from '@platforma-sdk/ui-vue';
-import { computed } from 'vue';
-import { useApp } from './app';
+} from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model";
+import { isLiveLog, type AnyLogHandle } from "@platforma-sdk/model";
+import { ReactiveFileContent } from "@platforma-sdk/ui-vue";
+import { computed } from "vue";
+import { useApp } from "./app";
 
 export type ScFvResult = {
   label: string;
@@ -39,21 +39,21 @@ export const resultMap = computed(() => {
       sampleId: sampleId,
       label: label,
       heavy: {
-        progress: app.model.outputs.isRunning ? 'Queued' : 'Not started',
+        progress: app.model.outputs.isRunning ? "Queued" : "Not started",
       },
       light: {
-        progress: app.model.outputs.isRunning ? 'Queued' : 'Not started',
+        progress: app.model.outputs.isRunning ? "Queued" : "Not started",
       },
     };
     resultMap.set(sampleId, result);
   }
 
   // logs & reports
-  for (const c of ['h', 'k']) {
+  for (const c of ["h", "k"]) {
     let logs;
     let reports;
     let progress;
-    if (c == 'h') {
+    if (c == "h") {
       logs = app.model.outputs.logsIGHeavy;
       reports = app.model.outputs.reportsIGHeavy;
       progress = app.model.outputs.progressIGHeavy;
@@ -69,7 +69,7 @@ export const resultMap = computed(() => {
         const r = resultMap.get(sampleId);
         if (!r) continue;
 
-        if (c == 'h') r.heavy.logHandle = logData.value;
+        if (c == "h") r.heavy.logHandle = logData.value;
         else r.light.logHandle = logData.value;
       }
     }
@@ -78,24 +78,22 @@ export const resultMap = computed(() => {
       for (const report of reports.data) {
         const sampleId = report.key[0] as string;
         const reportId = report.key[1] as string;
-        if (report.key[2] !== 'json' || report.value === undefined) continue;
+        if (report.key[2] !== "json" || report.value === undefined) continue;
         const r = resultMap.get(sampleId);
         if (r) {
           let chainResult;
-          if (c == 'h')
-            chainResult = r.heavy;
-          else
-            chainResult = r.light;
+          if (c == "h") chainResult = r.heavy;
+          else chainResult = r.light;
 
           switch (reportId) {
-            case 'align':
+            case "align":
               // globally cached
               chainResult.alignReport = reactiveFileContent.getContentJson(
                 report.value.handle,
                 AlignReport as never,
               )?.value as AlignReport | undefined;
               break;
-            case 'assemble':
+            case "assemble":
               // globally cached
               chainResult.assembleReport = reactiveFileContent.getContentJson(
                 report.value.handle,
@@ -112,12 +110,14 @@ export const resultMap = computed(() => {
         const r = resultMap.get(sampleId);
         if (!r) continue;
 
-        const logHandle = c == 'h' ? r.heavy.logHandle : r.light.logHandle;
+        const logHandle = c == "h" ? r.heavy.logHandle : r.light.logHandle;
 
         const done = logHandle && !isLiveLog(logHandle);
-        const p = done ? 'Done' : progressData.value?.replace(ProgressPrefix, '') ?? 'Not started';
+        const p = done
+          ? "Done"
+          : (progressData.value?.replace(ProgressPrefix, "") ?? "Not started");
 
-        if (c == 'h') r.heavy.progress = p;
+        if (c == "h") r.heavy.progress = p;
         else r.light.progress = p;
       }
     }
