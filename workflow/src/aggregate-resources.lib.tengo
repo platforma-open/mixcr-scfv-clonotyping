@@ -7,9 +7,9 @@
 //              job is silently unschedulable while still holding Kueue quota.
 //   mem   256  the shipped Helm chart's maxJobResources ceiling for a single job.
 //
-// These are deliberately the NO-REGRESSION caps: below them nothing changes, and
-// above them jobs that previously could not be scheduled at all now run. Tightening
-// them to save money is a separate, measurement-gated change — not this one.
+// These are deliberately the NO-REGRESSION caps: below them nothing changes, and above
+// them jobs that could never be scheduled now run. Tightening them to save money is a
+// separate, measurement-gated change.
 //
 // Clamp order matters: min(cap, max(floor, n)), so a floor above the cap is still
 // capped. The reverse, max(floor, min(cap, n)), would let a large floor through.
