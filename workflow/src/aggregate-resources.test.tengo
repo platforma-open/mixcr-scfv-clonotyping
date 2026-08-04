@@ -1,0 +1,27 @@
+test := import("@platforma-sdk/workflow-tengo:test")
+ar := import(":aggregate-resources")
+
+_MAX_CPU := 62
+_MAX_MEM_GB := 256
+
+_SAMPLE_COUNTS := [1, 2, 3, 10, 32, 62, 63, 64, 100, 400, 1000, 2000]
+
+TestNeverExceedsNodeCapacity := func() {
+	for n in _SAMPLE_COUNTS {
+		r := ar.forSamples(n, { floorMemGB: 64, floorCpu: 32 })
+		test.isTruef(r.cpu <= _MAX_CPU,
+			"cpu %d exceeds %d allocatable vCPU at %d samples", r.cpu, _MAX_CPU, n)
+		test.isTruef(r.memGB <= _MAX_MEM_GB,
+			"memGB %d exceeds the %d GiB chart ceiling at %d samples", r.memGB, _MAX_MEM_GB, n)
+	}
+}
+
+TestPreservesTodaysValuesBelowTheCap := func() {
+	o := { floorMemGB: 64, floorCpu: 32 }
+	test.isEqual(64, ar.forSamples(1, o).memGB)
+	test.isEqual(32, ar.forSamples(1, o).cpu)
+	test.isEqual(100, ar.forSamples(100, o).memGB)
+	test.isEqual(62, ar.forSamples(62, o).cpu)
+	test.isEqual(256, ar.forSamples(400, o).memGB)
+	test.isEqual(62, ar.forSamples(400, o).cpu)
+}

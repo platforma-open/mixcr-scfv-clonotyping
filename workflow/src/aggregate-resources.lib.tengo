@@ -1,0 +1,39 @@
+// Sample-count-scaled resource sizing for the cross-sample aggregation ptabler runs.
+// Every aggregate-* template concatenates one frame per sample before the groupBy,
+// so peak memory grows with cohort size — but the request must still fit one node.
+//
+// Upper bounds, and why these numbers:
+//   cpu    62  largest allocatable vCPU on the biggest AWS preset. Above this the
+//              job is silently unschedulable while still holding Kueue quota.
+//   mem   256  the shipped Helm chart's maxJobResources ceiling for a single job.
+//
+// These are deliberately the NO-REGRESSION caps: below them nothing changes, and
+// above them jobs that previously could not be scheduled at all now run. Tightening
+// them to save money is a separate, measurement-gated change — not this one.
+//
+// Clamp order matters: min(cap, max(floor, n)), so a floor above the cap is still
+// capped. The reverse, max(floor, min(cap, n)), would let a large floor through.
+
+math := import("math")
+
+// forSamples(numberOfSamples, opts) -> { memGB, cpu }
+//   floorMemGB  memory floor in GiB  (pass the call site's existing floor)
+//   floorCpu    cpu floor in cores   (pass the call site's existing floor)
+//   maxMemGB    upper clamp on memory (default 256)
+//   maxCpu      upper clamp on cpu    (default 62)
+forSamples := func(numberOfSamples, ...opts) {
+	o := len(opts) == 1 ? opts[0] : {}
+	floorMemGB := is_undefined(o.floorMemGB) ? 64 : o.floorMemGB
+	floorCpu := is_undefined(o.floorCpu) ? 32 : o.floorCpu
+	maxMemGB := is_undefined(o.maxMemGB) ? 256 : o.maxMemGB
+	maxCpu := is_undefined(o.maxCpu) ? 62 : o.maxCpu
+
+	return {
+		memGB: int(math.min(maxMemGB, math.max(floorMemGB, numberOfSamples))),
+		cpu: int(math.min(maxCpu, math.max(floorCpu, numberOfSamples)))
+	}
+}
+
+export {
+	forSamples: forSamples
+}

@@ -3,7 +3,7 @@ self := import("@platforma-sdk/workflow-tengo:tpl")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
 units := import("@platforma-sdk/workflow-tengo:units")
 pt := import("@platforma-sdk/workflow-tengo:pt")
-math := import("math")
+aggRes := import(":aggregate-resources")
 json := import("json")
 
 self.defineOutputs("tsv")
@@ -54,10 +54,11 @@ self.body(func(inputs) {
 	addSchema(mainAbundanceColumnUnnormalized, "String")
 	addSchema("clonotypeKey", "String")
 
+	res := aggRes.forSamples(numberOfSamples, { floorMemGB: 64, floorCpu: 32 })
 	wf := pt.workflow().
 		inMediumQueue().
-		mem(int(math.max(numberOfSamples, 64)) * units.GiB).
-		cpu(int(math.max(numberOfSamples, 32)))
+		mem(res.memGB * units.GiB).
+		cpu(res.cpu)
 
 	dataFrames := []
 	for sKey, inputFile in inputMap {
