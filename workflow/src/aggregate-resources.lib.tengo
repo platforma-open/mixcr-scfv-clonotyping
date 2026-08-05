@@ -3,8 +3,8 @@
 // so peak memory grows with cohort size — but the request must still fit one node.
 //
 // Upper bounds, and why these numbers:
-//   cpu    62  largest allocatable vCPU on the biggest AWS preset. Above this the
-//              job is silently unschedulable while still holding Kueue quota.
+//   cpu    62  largest allocatable vCPU on the biggest AWS preset. A request above
+//              this fits no node, so the job stays Pending rather than failing.
 //   mem   256  the shipped Helm chart's maxJobResources ceiling for a single job.
 //
 // These are deliberately the NO-REGRESSION caps: below them nothing changes, and above
