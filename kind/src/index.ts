@@ -171,7 +171,7 @@ function parseInitializationParams(value: unknown): BlockParams {
     stopCodonReplacements: optionalStopCodonReplacements(stopCodonReplacements),
 
     runMode: optionalEnum(runMode, RUN_MODES, "runMode"),
-    limitInput: optionalNumber(limitInput, "limitInput"),
+    limitInput: optionalReadLimit(limitInput),
   };
 }
 
@@ -211,12 +211,15 @@ function optionalBoolean(value: unknown, field: string): boolean | undefined {
   return value;
 }
 
-/** `Number.isFinite` rather than `typeof`: YAML admits `.nan` and `.inf`, and a
- *  read limit has nothing to do with either. */
-function optionalNumber(value: unknown, field: string): number | undefined {
+/** Reads per sample in a preview run. The panel's field admits whole numbers
+ *  from 1 up, and the value reaches MiXCR verbatim as `--limit-input`: 0 would
+ *  preview nothing, and a fraction or a negative count fails the command. Note
+ *  that `typeof` alone would let `.nan` and `.inf` through, both of which YAML
+ *  admits. */
+function optionalReadLimit(value: unknown): number | undefined {
   if (value === undefined) return undefined;
-  if (typeof value !== "number" || !Number.isFinite(value))
-    throw new Error(`'${field}' must be a finite number.`);
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1)
+    throw new Error("'limitInput' must be a whole number of reads, 1 or more.");
   return value;
 }
 
