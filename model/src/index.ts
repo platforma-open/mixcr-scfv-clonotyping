@@ -165,8 +165,10 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
 
     // `lightImputeSequence` is what makes the workflow impute; `imputeLight` on
     // its own only stops the light tag pattern from being required, which would
-    // leave the light chain neither extracted nor imputed.
-    if (data.imputeLight === true && !derived(data.lightImputeSequence))
+    // leave the light chain neither extracted nor imputed. Only the two custom
+    // modes are checked: the checkbox is theirs, and a `builtin` block carrying
+    // a stale `true` from a mode it has left offers no way to clear it.
+    if (mode !== "builtin" && data.imputeLight === true && !derived(data.lightImputeSequence))
       throw new Error("A light chain reference is required to impute the light chain");
 
     return {
