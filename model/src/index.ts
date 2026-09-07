@@ -153,24 +153,6 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
     if (data.runMode === "dry" && data.limitInput == null)
       throw new Error("Read limit is required for Preview mode");
 
-    // The workflow builds a custom library only out of the derived V/J FASTA
-    // strings and falls back to the built-in germline when there are none, so a
-    // non-builtin mode with nothing derived would run as `builtin` without
-    // saying so. One chain alone is a legitimate setup — neither is not.
-    const derived = (fasta: string | undefined) => fasta !== undefined && fasta !== "";
-    const heavyReference = derived(data.heavyVGenes) && derived(data.heavyJGenes);
-    const lightReference = derived(data.lightVGenes) && derived(data.lightJGenes);
-    if (mode !== "builtin" && !heavyReference && !lightReference)
-      throw new Error("A custom V/J reference is required");
-
-    // `lightImputeSequence` is what makes the workflow impute; `imputeLight` on
-    // its own only stops the light tag pattern from being required, which would
-    // leave the light chain neither extracted nor imputed. Only the two custom
-    // modes are checked: the checkbox is theirs, and a `builtin` block carrying
-    // a stale `true` from a mode it has left offers no way to clear it.
-    if (mode !== "builtin" && data.imputeLight === true && !derived(data.lightImputeSequence))
-      throw new Error("A light chain reference is required to impute the light chain");
-
     return {
       defaultBlockLabel: data.defaultBlockLabel,
       customBlockLabel: data.customBlockLabel,
