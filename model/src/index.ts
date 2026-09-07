@@ -12,19 +12,24 @@ import {
   isPColumnSpec,
   parseResourceMap,
 } from "@platforma-sdk/model";
+import type {
+  CloneClusteringMode,
+  CustomRefMode,
+  RunMode,
+  ScFvOrder,
+  StopCodonReplacements,
+  StopCodonType,
+} from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
+import { kind } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { ProgressPrefix } from "./progress";
 
 export * from "./progress";
 export * from "./reports";
 
-export type CloneClusteringMode = "relaxed" | "default" | "off";
-export type StopCodonType = "amber" | "ochre" | "opal";
-
-export type StopCodonReplacements = {
-  amber?: string;
-  ochre?: string;
-  opal?: string;
-};
+// The vocabulary lives in the kind: its init-params contract names these types
+// and a kind cannot import from the model. Re-exported so the UI keeps a single
+// import for both the block's own types and them.
+export type * from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 
 export type BlockArgs = {
   defaultBlockLabel?: string;
@@ -34,14 +39,14 @@ export type BlockArgs = {
   species?: string;
   linker?: string;
   hinge?: string;
-  order: "hl" | "lh";
+  order: ScFvOrder;
   heavyTagPattern?: string;
   heavyAssemblingFeature?: string;
   lightTagPattern?: string;
   lightAssemblingFeature?: string;
   limitInput?: number;
 
-  customRefMode: "builtin" | "scFv" | "separate";
+  customRefMode: CustomRefMode;
 
   scFvSequence?: string;
   heavyChainSequence?: string;
@@ -73,39 +78,60 @@ export type UiState = {
 
 export type BlockData = BlockArgs & {
   tableState: PlDataTableStateV2;
-  runMode: "dry" | "full";
+  runMode: RunMode;
 };
 
 type LegacyUiState = {
   tableState: PlDataTableStateV2;
 };
 
-const dataModel = new DataModelBuilder()
+const dataModel = new DataModelBuilder({ kind })
   .from<BlockData>("v1")
   .upgradeLegacy<BlockArgs, LegacyUiState>(({ args, uiState }) => ({
     ...args,
     tableState: uiState.tableState,
     runMode: (args.limitInput ?? 0) > 0 ? "dry" : "full",
   }))
-  .init(() => ({
+  // A block created from a template starts on the params its kind accepted; one
+  // created by hand gets the same defaults this function used to hand out
+  // unconditionally. The fields the contract leaves out are either machine-local
+  // (the two processes' memory and CPU), view state (`tableState`), or derived
+  // by the UI from what is here (`defaultBlockLabel`).
+  .init(({ params }) => ({
     defaultBlockLabel: "Select Dataset",
-    customBlockLabel: "",
-    heavyAssemblingFeature: "FR1:FR4",
-    lightAssemblingFeature: "FR1:FR4",
-    order: "hl",
-    hinge: "",
-    customRefMode: "builtin",
-    imputeLight: false,
+    customBlockLabel: params?.customBlockLabel ?? "",
+    input: params?.input,
+    species: params?.species,
+    linker: params?.linker,
+    hinge: params?.hinge ?? "",
+    order: params?.order ?? "hl",
+    heavyTagPattern: params?.heavyTagPattern,
+    heavyAssemblingFeature: params?.heavyAssemblingFeature ?? "FR1:FR4",
+    lightTagPattern: params?.lightTagPattern,
+    lightAssemblingFeature: params?.lightAssemblingFeature ?? "FR1:FR4",
+    customRefMode: params?.customRefMode ?? "builtin",
+    scFvSequence: params?.scFvSequence,
+    heavyChainSequence: params?.heavyChainSequence,
+    lightChainSequence: params?.lightChainSequence,
+    lightImputeSequence: params?.lightImputeSequence,
+    imputeLight: params?.imputeLight ?? false,
+    heavyVGenes: params?.heavyVGenes,
+    heavyJGenes: params?.heavyJGenes,
+    lightVGenes: params?.lightVGenes,
+    lightJGenes: params?.lightJGenes,
     mixcrMem: 32,
     mixcrCpu: 8,
     assembleScfvMem: 64,
     assembleScfvCpu: 4,
-    cloneClusteringMode: "relaxed",
+    cloneClusteringMode: params?.cloneClusteringMode ?? "relaxed",
+    stopCodonTypes: params?.stopCodonTypes,
+    stopCodonReplacements: params?.stopCodonReplacements,
     tableState: createPlDataTableStateV2(),
-    runMode: "full",
+    runMode: params?.runMode ?? "full",
+    limitInput: params?.limitInput,
   }));
 
-export const platforma = BlockModelV3.create(dataModel)
+export const platforma = BlockModelV3.create({ dataModel, kind })
 
   .args((data) => {
     const mode = data.customRefMode ?? "builtin";
@@ -160,6 +186,35 @@ export const platforma = BlockModelV3.create(dataModel)
       stopCodonReplacements: data.stopCodonReplacements,
     };
   })
+
+  // Inverse of the kind's init-params contract.
+  .templateParams((data) => ({
+    customBlockLabel: data.customBlockLabel,
+    input: data.input,
+    species: data.species,
+    customRefMode: data.customRefMode,
+    scFvSequence: data.scFvSequence,
+    heavyChainSequence: data.heavyChainSequence,
+    lightChainSequence: data.lightChainSequence,
+    imputeLight: data.imputeLight,
+    lightImputeSequence: data.lightImputeSequence,
+    heavyVGenes: data.heavyVGenes,
+    heavyJGenes: data.heavyJGenes,
+    lightVGenes: data.lightVGenes,
+    lightJGenes: data.lightJGenes,
+    linker: data.linker,
+    hinge: data.hinge,
+    order: data.order,
+    heavyTagPattern: data.heavyTagPattern,
+    heavyAssemblingFeature: data.heavyAssemblingFeature,
+    lightTagPattern: data.lightTagPattern,
+    lightAssemblingFeature: data.lightAssemblingFeature,
+    cloneClusteringMode: data.cloneClusteringMode,
+    stopCodonTypes: data.stopCodonTypes,
+    stopCodonReplacements: data.stopCodonReplacements,
+    runMode: data.runMode,
+    limitInput: data.limitInput,
+  }))
 
   .retentiveOutput("inputOptions", (ctx) => {
     return ctx.resultPool.getOptions((v) => {
