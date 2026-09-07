@@ -21,6 +21,7 @@ catalog:
   '@milaboratories/helpers': 1.14.5
   '@platforma-sdk/block-kind': 1.1.0
   '@milaboratories/pl-model-common': 1.48.0
+  'es-toolkit': 1.41.0
 
   # Common dependencies - can use ^ or ~
   'vue': 3.5.24

@@ -1,6 +1,7 @@
 import type { PlRef } from "@milaboratories/pl-model-common";
 import { isPlRef } from "@milaboratories/pl-model-common";
 import { assertParamsObject, defineBlockKind } from "@platforma-sdk/block-kind";
+import { isPlainObject } from "es-toolkit";
 import { name, version } from "../package.json" with { type: "json" };
 
 /** Orientation of the two variable domains inside the construct. */
@@ -195,8 +196,7 @@ const STOP_CODON_TYPES: readonly StopCodonType[] = ["amber", "ochre", "opal"];
  *  object, but names the field it was reading — the message goes to whoever
  *  wrote the file, and "params must be an object" would point at the wrong line. */
 function assertObjectAt(value: unknown, at: string): asserts value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new Error(`'${at}' must be an object.`);
+  if (!isPlainObject(value)) throw new Error(`'${at}' must be an object.`);
 }
 
 function optionalString(value: unknown, field: string): string | undefined {
