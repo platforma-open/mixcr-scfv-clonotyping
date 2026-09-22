@@ -1,9 +1,7 @@
 ll := import("@platforma-sdk/workflow-tengo:ll")
 self := import("@platforma-sdk/workflow-tengo:tpl")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
-units := import("@platforma-sdk/workflow-tengo:units")
 pt := import("@platforma-sdk/workflow-tengo:pt")
-math := import("math")
 json := import("json")
 
 self.defineOutputs("tsv")
@@ -12,7 +10,6 @@ self.body(func(inputs) {
 	inputData := inputs[pConstants.VALUE_FIELD_NAME]
 	inputDataMeta := inputData.getDataAsJson()
 	inputMap := inputData.inputs()
-	numberOfSamples := len(inputMap)
 
 	ll.assert(inputDataMeta.keyLength == 1, "unexpected number of aggregation axes")
 
@@ -54,10 +51,12 @@ self.body(func(inputs) {
 	addSchema(mainAbundanceColumnUnnormalized, "String")
 	addSchema("clonotypeKey", "String")
 
+	// The SDK sizes this run from the blob size of the input TSVs: 2 GiB + 6 per GiB.
+	// Measured need for this plan is 0.7 + 1.6 per GiB of summed TSV at 32 threads.
+	// The thread count sets the slope. The sample count does not.
 	wf := pt.workflow().
 		inMediumQueue().
-		mem(int(math.max(numberOfSamples, 64)) * units.GiB).
-		cpu(int(math.max(numberOfSamples, 32)))
+		cpu(8)
 
 	dataFrames := []
 	for sKey, inputFile in inputMap {
