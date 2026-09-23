@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.5.1
+
+### Patch Changes
+
+- cc9c8e0: Bump mixcr version to 4.7.0-365-develop
+- b17c099: Update block-tools and tengo-builder to the versions CI requires
+
 ## 3.5.0
 
 ### Minor Changes
