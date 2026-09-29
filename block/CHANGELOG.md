@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.5.2
+
+### Patch Changes
+
+- 8890a4a: Update SDK: PlAgDataTable no longer recreates its grid in an endless loop
+
 ## 3.5.1
 
 ### Patch Changes
