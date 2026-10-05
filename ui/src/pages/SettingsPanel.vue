@@ -58,6 +58,7 @@ watch(
 
 const speciesOptions: ListOption[] = [
   { label: "Alpaca", value: "alpaca" },
+  { label: "Chicken", value: "gallus" },
   { label: "Dog", value: "dog" },
   { label: "Homo sapiens", value: "hsa" },
   { label: "Lama glama", value: "lama" },
