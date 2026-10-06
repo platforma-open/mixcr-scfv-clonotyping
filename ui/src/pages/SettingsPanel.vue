@@ -59,7 +59,7 @@ watch(
 const speciesOptions: ListOption[] = [
   { label: "Alpaca (Vicugna pacos)", value: "alpaca" },
   { label: "Atlantic salmon (Salmo salar)", value: "salmon" },
-  { label: "Blind mole rat (Spalax)", value: "spalax" },
+  { label: "Blind mole rat (Spalax galili)", value: "spalax" },
   { label: "Chicken (Gallus gallus)", value: "gallus" },
   { label: "Cynomolgus macaque (Macaca fascicularis)", value: "mfas" },
   { label: "Dog (Canis lupus familiaris)", value: "dog" },
