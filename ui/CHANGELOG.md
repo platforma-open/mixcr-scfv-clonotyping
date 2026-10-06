@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.8.5
+
+### Patch Changes
+
+- da98edc: Add chicken, dog, pig and salmon to the species list
+
+  Show every species as its common name with the scientific name in parentheses
+
 ## 2.8.4
 
 ### Patch Changes
