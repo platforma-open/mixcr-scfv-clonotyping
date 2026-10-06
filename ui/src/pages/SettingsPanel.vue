@@ -57,16 +57,20 @@ watch(
 // no separate scFv hinge field; use general hinge in Analysis section
 
 const speciesOptions: ListOption[] = [
-  { label: "Homo sapiens", value: "hsa" },
-  { label: "Mus musculus", value: "mmu" },
-  { label: "Lama glama", value: "lama" },
-  { label: "Alpaca", value: "alpaca" },
-  { label: "Macaca fascicularis", value: "mfas" },
-  { label: "Macaca mulatta", value: "mmul" },
-  { label: "Rabbit", value: "rabbit" },
-  { label: "Rat", value: "rat" },
-  { label: "Sheep", value: "sheep" },
-  { label: "Spalax", value: "spalax" },
+  { label: "Alpaca (Vicugna pacos)", value: "alpaca" },
+  { label: "Atlantic salmon (Salmo salar)", value: "salmon" },
+  { label: "Blind mole rat (Spalax galili)", value: "spalax" },
+  { label: "Chicken (Gallus gallus)", value: "gallus" },
+  { label: "Cynomolgus macaque (Macaca fascicularis)", value: "mfas" },
+  { label: "Dog (Canis lupus familiaris)", value: "dog" },
+  { label: "Human (Homo sapiens)", value: "hsa" },
+  { label: "Llama (Lama glama)", value: "lama" },
+  { label: "Mouse (Mus musculus)", value: "mmu" },
+  { label: "Pig (Sus scrofa)", value: "pig" },
+  { label: "Rabbit (Oryctolagus cuniculus)", value: "rabbit" },
+  { label: "Rat (Rattus norvegicus)", value: "rat" },
+  { label: "Rhesus macaque (Macaca mulatta)", value: "mmul" },
+  { label: "Sheep (Ovis aries)", value: "sheep" },
 ];
 
 const assemblingFeatureOptions: ListOption[] = [
