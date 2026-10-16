@@ -1,0 +1,102 @@
+// Memory and CPU of each exec the block runs, as one table keyed by step.
+//
+// Every row grants
+//
+//     ram = max(floor, memIntercept + memSlope x input GiB), rounded up to a whole GiB
+//
+// where `input GiB` is the stored size of the files the exec stages under INPUT_TAG, summed, and
+// `floor` is the row's memFloor raised to the user's memory setting for that step, when one is set.
+// No row has a ceiling.
+//
+// Rows are fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at 0.1% and 0.5%
+// substitution and indel rates, run on MiXCR 4.7.0-403. analyze is sized to the 0.5% libraries,
+// which need about 3x the memory of 0.1% libraries of the same size.
+
+exec := import("@platforma-sdk/workflow-tengo:exec")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+text := import("text")
+
+f := exec.formula
+
+// The tag every sized exec puts on the files it is sized from.
+INPUT_TAG := "input"
+
+// Backends that cannot evaluate resource formulas get max(floor, this).
+_FALLBACK_GIB := 64
+
+// Uncompressed FASTQ is this many times larger than the same reads gzipped.
+_GZIP_RATIO := 3
+
+// memSlope is GiB per GiB of input. analyze rows are per GiB of gzipped reads.
+_ROWS := {
+	// One chain of `mixcr analyze`; the peak is the assemble step inside it.
+	analyzeHeavy: { cpu: 8, memFloor: 16, memIntercept: 16, memSlope: 40 },
+	analyzeLight: { cpu: 8, memFloor: 16, memIntercept: 14, memSlope: 34 },
+
+	// Sized from the chain's .clna.
+	exportClones: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 1.1 },
+	exportAlignments: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 0 },
+
+	// Reads the report header of every sample's .clna.
+	exportReports: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0 },
+
+	// assembleScfv is sized from the four TSVs it reads, construct-annotations from the TSV
+	// assembleScfv wrote.
+	assembleScfv: { cpu: 4, memFloor: 4, memIntercept: 4, memSlope: 5 },
+	annotateScfv: { cpu: 4, memFloor: 2, memIntercept: 2, memSlope: 2.5 }
+}
+
+// row returns the row of a step. An optional floorGiB, when set and larger, raises its memFloor.
+row := func(step, ...floor) {
+	ll.assert(len(floor) <= 1, "row takes one optional floor")
+	floorGiB := len(floor) == 1 ? floor[0] : undefined
+	r := _ROWS[step]
+	ll.assert(!is_undefined(r), "no resources row for step %v", step)
+	r = copy(r)
+	if !is_undefined(floorGiB) && floorGiB > r.memFloor {
+		r.memFloor = floorGiB
+	}
+	return r
+}
+
+// analyzeRow returns the analyze row of a chain, with its slope per GiB of the reads as stored.
+analyzeRow := func(chain, fileExtension, floorGiB) {
+	r := row(chain == "IGHeavy" ? "analyzeHeavy" : "analyzeLight", floorGiB)
+	if !text.has_suffix(fileExtension, ".gz") {
+		r.memSlope = float(r.memSlope) / _GZIP_RATIO
+	}
+	return r
+}
+
+// ram returns the memory request of a row: a fixed amount when its slope is 0, an exec.formula
+// over the INPUT_TAG files otherwise.
+ram := func(r) {
+	if r.memSlope == 0 {
+		gib := r.memIntercept > r.memFloor ? r.memIntercept : r.memFloor
+		return string(gib) + "GiB"
+	}
+	// The formula takes integers only, so the slope goes in as hundredths.
+	slopeHundredths := int(r.memSlope * 100 + 0.5)
+	formula := f.gib(r.memIntercept).
+		plus(f.size(INPUT_TAG).times(slopeHundredths).dividedBy(100)).
+		dividedBy(f.gib(1)).times(f.gib(1)). // dividedBy ceils, so this rounds up to a whole GiB
+		atLeast(f.gib(r.memFloor))
+	fallback := r.memFloor > _FALLBACK_GIB ? r.memFloor : _FALLBACK_GIB
+	return formula.staticFallback(f.gib(fallback))
+}
+
+// apply sets the CPU and memory of a row on an exec builder. cpuOverride, when set, replaces the
+// row's CPU.
+apply := func(cmd, r, cpuOverride) {
+	cpu := is_undefined(cpuOverride) ? r.cpu : cpuOverride
+	cmd.resources({ onCPU: { cpu: cpu, ram: ram(r) } })
+	return cmd
+}
+
+export {
+	INPUT_TAG: INPUT_TAG,
+	row: row,
+	analyzeRow: analyzeRow,
+	ram: ram,
+	apply: apply
+}
