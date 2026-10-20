@@ -1,5 +1,13 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui
 
+## 2.8.6
+
+### Patch Changes
+
+- d6b48af: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+- Updated dependencies [d6b48af]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.8.1
+
 ## 2.8.5
 
 ### Patch Changes
