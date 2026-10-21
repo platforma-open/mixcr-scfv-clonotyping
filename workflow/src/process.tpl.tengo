@@ -5,14 +5,9 @@ self := import("@platforma-sdk/workflow-tengo:tpl")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
-smart := import("@platforma-sdk/workflow-tengo:smart")
 slices := import("@platforma-sdk/workflow-tengo:slices")
 maps := import("@platforma-sdk/workflow-tengo:maps")
-file := import("@platforma-sdk/workflow-tengo:file")
-llPFrames := import("@platforma-sdk/workflow-tengo:pframes.ll")
-pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
-pUtil := import("@platforma-sdk/workflow-tengo:pframes.util")
-pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
+anonymize := import("@platforma-sdk/workflow-tengo:anonymize")
 
 mixcrExports := import(":mixcr-exports")
 
@@ -24,6 +19,7 @@ mixcrAnalyzeTpl := assets.importTemplate(":mixcr-analyze")
 aggClonesTpl := assets.importTemplate(":agg-clones")
 exportReportTpl := assets.importTemplate(":export-report")
 stopCodonReplaceTpl := assets.importTemplate(":stop-codon-replace")
+qcReportTableTpl := assets.importTemplate(":qc-report-table")
 
 self.awaitState("InputsLocked")
 self.awaitState("inputSpec", "ResourceReady")
@@ -472,7 +468,7 @@ self.body(func(inputs) {
 		aggClonesTpl,
 		aggregationOutputs,
 		{
-			aggregate: ["pl7.app/sampleId"],
+			aggregate: [{ name: "pl7.app/sampleId", anonymize: true }],
 			extra: {
 				mainAbundanceColumnNormalized: mainAbundanceColumnNormalized,
 				mainAbundanceColumnUnnormalized: mainAbundanceColumnUnnormalized,
@@ -490,21 +486,28 @@ self.body(func(inputs) {
 	aggByCloneKey.addXsvOutputToBuilder(clonotypes, "cloneProps", "cloneProps/")
 	clonotypes = clonotypes.build()
 
-	// Create QC report table
-	sampleIdAxisSpec := inputSpec.axesSpec[0]
-	hasUmi := inputs.hasUMIs
-	chains := ["IGHeavy", "IGLight"]
-	
-	qcReportTable := render.create(exportReportTpl, {
+	// QC report table, built from sample-anonymized inputs
+	anonymized := anonymize.anonymizePKeys({
 		clnsDataHeavy: mixcrResults.outputData("clnsIGHeavy"),
 		clnsDataLight: mixcrResults.outputData("clnsIGLight"),
-		sampleIdAxisSpec: sampleIdAxisSpec,
-		chains: chains,
-		clonotypeTablesData: clonotypeTableData,
-		hasUmi: hasUmi,
-		suppressLight: lightSuppressed, 
+		clonotypeTablesData: clonotypeTableData
+	}, [0])
+
+	qcReport := render.create(exportReportTpl, {
+		clnsDataHeavy: anonymized.result["clnsDataHeavy"],
+		clnsDataLight: anonymized.result["clnsDataLight"],
+		clonotypeTablesData: anonymized.result["clonotypeTablesData"],
+		suppressLight: lightSuppressed,
 		lightLibrary: inputs.referenceLibraryLight,
 		heavyLibrary: inputs.referenceLibraryHeavy
+	})
+
+	qcReportTable := render.create(qcReportTableTpl, {
+		tsv: qcReport.output("tsv"),
+		chainsWithData: qcReport.output("chainsWithData"),
+		mapping: anonymized.mapping,
+		hasUmi: hasUMIs,
+		sampleIdAxisSpec: inputSpec.axesSpec[0]
 	})
 
 	result := {}

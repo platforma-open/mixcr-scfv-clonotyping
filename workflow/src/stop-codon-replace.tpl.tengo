@@ -1,7 +1,13 @@
-ll := import("@platforma-sdk/workflow-tengo:ll")
+// Identity of this template for the platform's deduplication: the template's inputs, their
+// values and this UUID decide whether a result is reused. The UUID covers every template this one
+// renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
+// the next block update.
+//tengo:hash_override 39B98130-C79B-4ADD-AA9C-5CAE36C67D6D
+
 self := import("@platforma-sdk/workflow-tengo:tpl.light")
 pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
 pt := import("@platforma-sdk/workflow-tengo:pt")
+maps := import("@platforma-sdk/workflow-tengo:maps")
 text := import("text")
 
 self.defineOutputs("clonotypesTableTsv")
@@ -89,7 +95,8 @@ applyStopCodonReplacementsPt := func(df, opts) {
 	translateNtToAaExpr := func(ntExpr, codonMap) {
 		seq := ntExpr.fillNull("").strToUpper()
 		seq = seq.strReplace("(.{3})", "$1|", { replaceAll: true })
-		for codon, aa in codonMap {
+		for codon in maps.getKeys(codonMap) {
+			aa := codonMap[codon]
 			seq = seq.strReplace(codon + "|", aa + "|", { replaceAll: true, literal: true })
 		}
 		seq = seq.strReplace("\\|$", "", { replaceAll: false })
@@ -141,9 +148,7 @@ self.body(func(inputs) {
 	params := inputs.params
 
 	wf := pt.workflow().
-		inMediumQueue().
-		mem("8GB").
-		cpu(2)
+		inMediumQueue()
 
 	df := wf.frame({ file: inputTsv, xsvType: "tsv", inferSchema: true })
 	df = applyStopCodonReplacementsPt(df, {

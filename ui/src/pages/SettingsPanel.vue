@@ -784,12 +784,16 @@ heavy-seq + linker + light-seq (or reverse)"
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.mixcrMem"
-      label="MiXCR Memory (GiB)"
+      label="MiXCR Minimum Memory (GiB)"
+      placeholder="Sized from input"
+      clearable
       :min-value="1"
       :step="1"
-      :max-value="1012"
     >
-      <template #tooltip> Sets the amount of memory to use for the MiXCR alignment. </template>
+      <template #tooltip>
+        MiXCR memory is sized from the size of the input reads. Set this to give it at least this
+        much.
+      </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
@@ -802,12 +806,16 @@ heavy-seq + linker + light-seq (or reverse)"
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvMem"
-      label="Assemble scFv Memory (GiB)"
+      label="Assemble scFv Minimum Memory (GiB)"
+      placeholder="Sized from input"
+      clearable
       :min-value="1"
       :step="1"
-      :max-value="1012"
     >
-      <template #tooltip> Sets the amount of memory to use for the scFv assembly. </template>
+      <template #tooltip>
+        scFv assembly memory is sized from the size of the exported clones and alignments. Set this
+        to give it at least this much.
+      </template>
     </PlNumberField>
   </PlAccordionSection>
 </template>
