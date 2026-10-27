@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.11.9
+
+### Patch Changes
+
+- 1b23694: Update MiXCR, RepSeq.IO to the versions with the rebuilt Docker images. The old images trust the compromised eMudhra intermediate CAs.
+
 ## 3.11.8
 
 ### Patch Changes
