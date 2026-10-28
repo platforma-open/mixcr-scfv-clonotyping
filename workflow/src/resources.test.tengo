@@ -1,0 +1,79 @@
+test := import("@platforma-sdk/workflow-tengo:test")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+
+resources := import(":resources")
+
+f := exec.formula
+GIB := 1073741824
+
+// ramGiB evaluates the memory request of a row for input files of the given total size.
+ramGiB := func(r, inputBytes) {
+	v := resources.ram(r)
+	if !f.isFormula(v) {
+		return v
+	}
+	ast := f.resolveAst(f.astOf(v), { input: ["in"] }, ["in"])
+	resolver := { size: func(files) { return inputBytes } }
+	return f.evaluateResource(ast, resolver, "test") / GIB
+}
+
+TestAnalyzeHeavyGzip := func() {
+	r := resources.analyzeRow("IGHeavy", "fastq.gz", undefined)
+	test.isEqual(16 + 40, ramGiB(r, GIB))
+	test.isEqual(16 + 40 * 5, ramGiB(r, 5 * GIB))
+	test.isEqual(16, ramGiB(r, 0))
+}
+
+TestAnalyzeLightGzip := func() {
+	r := resources.analyzeRow("IGLight", "fastq.gz", undefined)
+	test.isEqual(14 + 34 * 5, ramGiB(r, 5 * GIB))
+}
+
+TestAnalyzeUncompressedSlope := func() {
+	r := resources.analyzeRow("IGHeavy", "fastq", undefined)
+	// 40 / 3 per GiB, so 3 GiB of plain FASTQ takes what 1 GiB gzipped does
+	test.isEqual(16 + 40, ramGiB(r, 3 * GIB))
+}
+
+TestFloorRaisesSmallInputs := func() {
+	r := resources.analyzeRow("IGHeavy", "fastq.gz", 100)
+	test.isEqual(100, ramGiB(r, GIB))
+	test.isEqual(16 + 40 * 5, ramGiB(r, 5 * GIB))
+}
+
+TestFloorBelowRowFloorIsIgnored := func() {
+	r := resources.row("assembleScfv", 1)
+	test.isEqual(4, r.memFloor)
+}
+
+TestNoCeiling := func() {
+	r := resources.analyzeRow("IGHeavy", "fastq.gz", undefined)
+	test.isEqual(16 + 40 * 50, ramGiB(r, 50 * GIB))
+}
+
+TestExportClones := func() {
+	r := resources.row("exportClones")
+	// 4 + 1.1 x 10 GiB of .clna
+	test.isEqual(15, ramGiB(r, 10 * GIB))
+}
+
+TestFlatRows := func() {
+	test.isEqual("4GiB", ramGiB(resources.row("exportAlignments"), 0))
+	test.isEqual("8GiB", ramGiB(resources.row("exportReports"), 0))
+}
+
+TestPythonSteps := func() {
+	test.isEqual(4 + 5 * 7, ramGiB(resources.row("assembleScfv"), 7 * GIB))
+	test.isEqual(32, ramGiB(resources.row("annotateScfv"), 12 * GIB))
+	test.isEqual(64, ramGiB(resources.row("assembleScfv", 64), GIB))
+}
+
+TestRoundsUpToWholeGiB := func() {
+	// 4 + 1.1 x 1 GiB = 5.1, rounded up
+	test.isEqual(6, ramGiB(resources.row("exportClones"), GIB))
+}
+
+TestStaticFallback := func() {
+	test.isEqual(64 * GIB, f.fallbackOf(resources.ram(resources.row("assembleScfv"))))
+	test.isEqual(100 * GIB, f.fallbackOf(resources.ram(resources.analyzeRow("IGHeavy", "fastq.gz", 100))))
+}

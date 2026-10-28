@@ -1,21 +1,22 @@
+// Identity of this template for the platform's deduplication: the template's inputs, their
+// values and this UUID decide whether a result is reused. The UUID covers every template this one
+// renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
+// the next block update.
+//tengo:hash_override F0F91EFC-7589-4317-9180-E269A932E7C7
+
 self := import("@platforma-sdk/workflow-tengo:tpl")
 smart := import("@platforma-sdk/workflow-tengo:smart")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
-pcolumn := import("@platforma-sdk/workflow-tengo:pframes.pcolumn")
-times := import("times")
-text := import("text")
-pframes := import("@platforma-sdk/workflow-tengo:pframes")
-xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
-slices := import("@platforma-sdk/workflow-tengo:slices")
-pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
 pt := import("@platforma-sdk/workflow-tengo:pt")
-qcReportColumns := import(":qc-report-columns")
+maps := import("@platforma-sdk/workflow-tengo:maps")
 
 json := import("json")
 
-self.defineOutputs("qcReportTable")
+resources := import(":resources")
+
+self.defineOutputs("tsv", "chainsWithData")
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
 
@@ -23,10 +24,7 @@ mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:
 self.body(func(inputs) {
     clnsDataHeavy := inputs.clnsDataHeavy
     clnsDataLight := inputs.clnsDataLight
-    sampleIdAxisSpec := inputs.sampleIdAxisSpec
-    chains := inputs.chains
     clonotypeTablesData := inputs.clonotypeTablesData
-    hasUmi := inputs.hasUmi
 
     // Get all clna files from both chains
     clnaFilesHeavy := clnsDataHeavy.inputs()
@@ -36,13 +34,15 @@ self.body(func(inputs) {
     heavyRawTsv := undefined
     if len(clnaFilesHeavy) > 0 {
         exportReportCmdHeavy := exec.builder().
+            name("scfv: exportReports heavy").
             software(mixcrSw).
             env("MI_USE_SYSTEM_CA", "true").
             secret("MI_LICENSE", "MI_LICENSE").
             env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
             arg("exportReportsTable")
 
-        for i, clnaFile in clnaFilesHeavy {
+        for i in maps.getKeys(clnaFilesHeavy) {
+            clnaFile := clnaFilesHeavy[i]
             fileName := json.decode(i)[0] + "_heavy.clna"
             exportReportCmdHeavy.addFile(fileName, clnaFile)
             exportReportCmdHeavy.arg(fileName)
@@ -52,6 +52,7 @@ self.body(func(inputs) {
         if !is_undefined(inputs.heavyLibrary) {
             exportReportCmdHeavy.addFile("heavyLibrary.json", inputs.heavyLibrary)
         }
+        resources.apply(exportReportCmdHeavy, resources.row("exportReports"), undefined)
         resultHeavy := exportReportCmdHeavy.run()
         heavyRawTsv = resultHeavy.getFile("qc-report-heavy.tsv")
     }
@@ -59,13 +60,15 @@ self.body(func(inputs) {
     lightRawTsv := undefined
     if !inputs.suppressLight {
         exportReportCmdLight := exec.builder().
+            name("scfv: exportReports light").
             software(mixcrSw).
             env("MI_USE_SYSTEM_CA", "true").
             secret("MI_LICENSE", "MI_LICENSE").
             env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
             arg("exportReportsTable")
 
-        for i, clnaFile in clnaFilesLight {
+        for i in maps.getKeys(clnaFilesLight) {
+            clnaFile := clnaFilesLight[i]
             fileName := json.decode(i)[0] + "_light.clna"
             exportReportCmdLight.addFile(fileName, clnaFile)
             exportReportCmdLight.arg(fileName)
@@ -75,15 +78,14 @@ self.body(func(inputs) {
         if !is_undefined(inputs.lightLibrary) {
             exportReportCmdLight.addFile("lightLibrary.json", inputs.lightLibrary)
         }
+        resources.apply(exportReportCmdLight, resources.row("exportReports"), undefined)
         resultLight := exportReportCmdLight.run()
         lightRawTsv = resultLight.getFile("qc-report-light.tsv")
     }
     
     // Use pt to process the TSV files
     wf := pt.workflow().
-        inMediumQueue().
-        mem("8GiB").
-        cpu(2)
+        inMediumQueue()
     
     // Process heavy chain separately
     processChain := func(rawTsvFile, suffix) {
@@ -262,7 +264,9 @@ self.body(func(inputs) {
     // Calculate real number of exported (productive) clonotypes per sample from clonotype tables
     countDfs := []
     if !is_undefined(clonotypeTablesData) {
-        for key, clonesFile in clonotypeTablesData.inputs() {
+        clonesFiles := clonotypeTablesData.inputs()
+        for key in maps.getKeys(clonesFiles) {
+            clonesFile := clonesFiles[key]
             sampleId := json.decode(key)[0]
             dfCountSource := wf.frame(clonesFile, { xsvType: "tsv", inferSchema: false, schema: [ { column: "readCount", type: "Double" } ] })
             dfCount := dfCountSource.select(
@@ -303,22 +307,9 @@ self.body(func(inputs) {
     // Run the pt workflow
     wfResult := wf.run()
     
-    tsvFile := wfResult.getFile("qc-report-processed.tsv")
-
-    // Only generate column spec for chains that actually have data
-    qcReportColumnsResult := qcReportColumns(hasUmi, sampleIdAxisSpec, chainsWithData)
-    reportColumnsSpec := qcReportColumnsResult.reportColumnsSpec
-
-    qcReportTable := xsv.importFile(
-		tsvFile,
-		"tsv",
-		reportColumnsSpec,
-		{ cpu: 1, mem: "16GiB" }
-	)
-
-    
     return {
-        qcReportTable: qcReportTable
+        tsv: wfResult.getFile("qc-report-processed.tsv"),
+        chainsWithData: smart.createJsonResource(chainsWithData)
     }
 })
 

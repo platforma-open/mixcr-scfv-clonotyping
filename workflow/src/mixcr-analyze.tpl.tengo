@@ -1,3 +1,9 @@
+// Identity of this template for the platform's deduplication: the template's inputs, their
+// values and this UUID decide whether a result is reused. The UUID covers every template this one
+// renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
+// the next block update.
+//tengo:hash_override 9337DED0-1632-46A8-BA46-E7DAD13FBAC4
+
 // mixcr analyze
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
@@ -6,15 +12,14 @@ pConstants := import("@platforma-sdk/workflow-tengo:pframes.constants")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
-render := import("@platforma-sdk/workflow-tengo:render")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 pcolumn := import("@platforma-sdk/workflow-tengo:pframes.pcolumn")
-xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
-file := import("@platforma-sdk/workflow-tengo:file")
 times := import("times")
 text := import("text")
 
 json := import("json")
+
+resources := import(":resources")
 
 self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv", "clnsIGHeavy", "clnsIGLight"])
 
@@ -61,19 +66,23 @@ self.body(func(inputs) {
 			fileTxt: "result.assemble.report.txt"
 		} ]
 
+	inputTag := { tag: resources.INPUT_TAG }
+	chainName := { IGHeavy: "heavy", IGLight: "light" }
+
 	// run single MiXCR command for single chain
 	runMixcr := func(chain, assemblingFeature, tagPattern, exportArgs) {
 
 		mixcrCmdBuilder := exec.builder().
+			name("scfv: analyze " + chainName[chain]).
 			printErrStreamToStdout().
 			env("MI_PROGRESS_PREFIX", progressPrefix).
 			software(mixcrSw).
-			cpu(inputs.mixcrCpu).
-			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("analyze").
-			arg("--use-local-temp")
+			arg("--use-local-temp").
+			arg("--threads").argExpr("{system.cpu}")
+		resources.apply(mixcrCmdBuilder, resources.analyzeRow(chain, fileExtension, inputs.mixcrMem), inputs.mixcrCpu)
 
 		if hasUMIs {
 			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
@@ -126,7 +135,7 @@ self.body(func(inputs) {
 			inputFile := inputData.inputs()["[]"]
 			ll.assert(!is_undefined(inputFile), "unexpected agg group structure")
 			inputFileName := "input." + fileExtension
-			mixcrCmdBuilder.addFile(inputFileName, inputFile)
+			mixcrCmdBuilder.addFile(inputFileName, inputFile, inputTag)
 			mixcrCmdBuilder.arg(inputFileName)
 		} else if inputDataMeta.keyLength == 1 {
 			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
@@ -139,7 +148,7 @@ self.body(func(inputs) {
 				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
 					ll.panic("malformed read index: %v", r)
 				}
-				mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile)
+				mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile, inputTag)
 			}
 			mixcrCmdBuilder.arg("input_{{R}}." + fileExtension)
 		} else if inputDataMeta.keyLength == 2 {
@@ -157,7 +166,7 @@ self.body(func(inputs) {
 				if is_undefined(int(lane)) {
 					ll.panic("malformed lane: %v", lane)
 				}
-				mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile)
+				mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile, inputTag)
 			}
 			mixcrCmdBuilder.arg("input_L{{n}}_{{R}}." + fileExtension)
 		} else {
@@ -180,10 +189,9 @@ self.body(func(inputs) {
 
 		// run export alignments
 		alignments := exec.builder().
+			name("scfv: exportAligns " + chainName[chain]).
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(2).
-			mem(string(inputs.mixcrMem) + "GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportAlignments")
@@ -205,7 +213,8 @@ self.body(func(inputs) {
 			alignments = alignments.arg(clnaFileName).
 			arg("alignments.tsv").
 			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
-			saveFile("alignments.tsv").
+			saveFile("alignments.tsv")
+		alignments = resources.apply(alignments, resources.row("exportAlignments"), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("alignments.tsv")
@@ -213,10 +222,9 @@ self.body(func(inputs) {
 
 		// run export clones
 		clones := exec.builder().
+			name("scfv: exportClones " + chainName[chain]).
 			printErrStreamToStdout().
 			software(mixcrSw).
-			cpu(2).
-			mem("16GiB").
 			secret("MI_LICENSE", "MI_LICENSE").
 			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportClones").
@@ -246,8 +254,9 @@ self.body(func(inputs) {
 		clones = clones.
 			arg(clnaFileName).
 			arg("clones.tsv").
-			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
-			saveFile("clones.tsv").
+			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName), inputTag).
+			saveFile("clones.tsv")
+		clones = resources.apply(clones, resources.row("exportClones"), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("clones.tsv")
@@ -285,6 +294,7 @@ self.body(func(inputs) {
 
 
     assembleScFv := exec.builder().
+		name("scfv: assembleScfv").
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
@@ -292,30 +302,29 @@ self.body(func(inputs) {
 	if !is_undefined(inputs.lightImputeSequence) {
 		assembleScFv = assembleScFv.arg("--light-impute").arg(inputs.lightImputeSequence).arg("--no-light")
 	}
-    assembleScFv = assembleScFv.addFile("hc.clones.tsv", heavy.clones).
-        addFile("hc.alignments.tsv", heavy.alignments)
+    assembleScFv = assembleScFv.addFile("hc.clones.tsv", heavy.clones, inputTag).
+        addFile("hc.alignments.tsv", heavy.alignments, inputTag)
     if is_undefined(inputs.lightImputeSequence) {
         assembleScFv = assembleScFv.
-            addFile("lc.clones.tsv", light.clones).
-            addFile("lc.alignments.tsv", light.alignments)
+            addFile("lc.clones.tsv", light.clones, inputTag).
+            addFile("lc.alignments.tsv", light.alignments, inputTag)
     }
-	assembleScFv = assembleScFv.saveFile("result.tsv").
-		cpu(inputs.assembleScfvCpu).
-		mem(string(inputs.assembleScfvMem) + "GiB").
+	assembleScFv = resources.apply(assembleScFv, resources.row("assembleScfv", inputs.assembleScfvMem), inputs.assembleScfvCpu).
+		saveFile("result.tsv").
 		cache(48 * times.hour).
 		run()
 
 	annotateScFv := exec.builder().
+		name("scfv: annotateScfv").
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:construct-annotations")).
 		arg("--input_tsv").arg("input.tsv").
 		arg("--output_tsv").arg("result.tsv").
 		arg("--order").arg(inputs.order).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
-		addFile("input.tsv", assembleScFv.getFile("result.tsv")).
-		saveFile("result.tsv").
-		cpu(inputs.assembleScfvCpu).
-		mem(string(inputs.assembleScfvMem) + "GiB").
+		addFile("input.tsv", assembleScFv.getFile("result.tsv"), inputTag).
+		saveFile("result.tsv")
+	annotateScFv = resources.apply(annotateScFv, resources.row("annotateScfv", inputs.assembleScfvMem), inputs.assembleScfvCpu).
 		cache(48 * times.hour).
 		run()
 

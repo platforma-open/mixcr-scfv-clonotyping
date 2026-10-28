@@ -63,8 +63,10 @@ export type BlockArgs = {
   lightVGenes?: string;
   lightJGenes?: string;
 
+  // GiB. The least memory each chain's MiXCR analyze gets; unset leaves it to the input size.
   mixcrMem?: number;
   mixcrCpu?: number;
+  // GiB. The least memory scFv assembly and annotation get; unset leaves it to the input size.
   assembleScfvMem?: number;
   assembleScfvCpu?: number;
   cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
@@ -91,6 +93,13 @@ const dataModel = new DataModelBuilder({ kind })
     ...args,
     tableState: uiState.tableState,
     runMode: (args.limitInput ?? 0) > 0 ? "dry" : "full",
+  }))
+  // The memory settings are floors under a size-based request. 32 and 64 GiB are the v1
+  // defaults; a block holding them gets no floor.
+  .migrate<BlockData>("v2", (data) => ({
+    ...data,
+    mixcrMem: data.mixcrMem === 32 ? undefined : data.mixcrMem,
+    assembleScfvMem: data.assembleScfvMem === 64 ? undefined : data.assembleScfvMem,
   }))
   // A block created from a template starts on the params its kind accepted; one
   // created by hand gets the same defaults this function used to hand out
@@ -119,9 +128,7 @@ const dataModel = new DataModelBuilder({ kind })
     heavyJGenes: params?.heavyJGenes,
     lightVGenes: params?.lightVGenes,
     lightJGenes: params?.lightJGenes,
-    mixcrMem: 32,
     mixcrCpu: 8,
-    assembleScfvMem: 64,
     assembleScfvCpu: 4,
     cloneClusteringMode: params?.cloneClusteringMode ?? "relaxed",
     stopCodonTypes: params?.stopCodonTypes,
