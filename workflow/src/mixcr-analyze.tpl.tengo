@@ -117,6 +117,13 @@ self.body(func(inputs) {
 			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters=null")
 		}
 
+		// Assembly quality threshold
+		badQualityThreshold := inputs.badQualityThreshold
+		if !is_undefined(badQualityThreshold) {
+			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.badQualityThreshold=" + string(int(badQualityThreshold)))
+			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.minimalQuality=" + string(int(badQualityThreshold)))
+		}
+
 		if !is_undefined(inputs.limitInput) {
 			mixcrCmdBuilder.arg("--limit-input").arg(string(inputs.limitInput))
 		}

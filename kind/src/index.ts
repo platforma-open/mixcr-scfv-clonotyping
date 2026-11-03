@@ -83,6 +83,7 @@ export type BlockParams = {
   lightAssemblingFeature?: string;
 
   cloneClusteringMode?: CloneClusteringMode;
+  badQualityThreshold?: number;
   stopCodonTypes?: StopCodonType[];
   stopCodonReplacements?: StopCodonReplacements;
 
@@ -132,6 +133,7 @@ function parseInitializationParams(value: unknown): BlockParams {
     lightTagPattern,
     lightAssemblingFeature,
     cloneClusteringMode,
+    badQualityThreshold,
     stopCodonTypes,
     stopCodonReplacements,
     runMode,
@@ -167,6 +169,7 @@ function parseInitializationParams(value: unknown): BlockParams {
       CLONE_CLUSTERING_MODES,
       "cloneClusteringMode",
     ),
+    badQualityThreshold: optionalQualityThreshold(badQualityThreshold),
     stopCodonTypes: optionalStopCodonTypes(stopCodonTypes),
     stopCodonReplacements: optionalStopCodonReplacements(stopCodonReplacements),
 
@@ -220,6 +223,13 @@ function optionalReadLimit(value: unknown): number | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1)
     throw new Error("'limitInput' must be a whole number of reads, 1 or more.");
+  return value;
+}
+
+function optionalQualityThreshold(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0)
+    throw new Error("'badQualityThreshold' must be a whole number of 0 or more.");
   return value;
 }
 
