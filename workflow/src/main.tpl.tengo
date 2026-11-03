@@ -95,6 +95,7 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 		assembleScfvMem: args.assembleScfvMem,
 		lightImputeSequence: args.lightImputeSequence,
 		cloneClusteringMode: args.cloneClusteringMode,
+		badQualityThreshold: args.badQualityThreshold,
 		stopCodonTypes: args.stopCodonTypes,
 		stopCodonReplacements: args.stopCodonReplacements
 	})

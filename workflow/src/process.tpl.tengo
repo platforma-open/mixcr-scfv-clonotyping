@@ -412,7 +412,8 @@ self.body(func(inputs) {
 				referenceLibraryHeavy: inputs.referenceLibraryHeavy,
 				referenceLibraryLight: inputs.referenceLibraryLight,
 				truncateFR4: truncateFR4,
-				cloneClusteringMode: inputs.cloneClusteringMode
+				cloneClusteringMode: inputs.cloneClusteringMode,
+				badQualityThreshold: inputs.badQualityThreshold
 			},
 
 			// by passing those parameters as meta fields we allow for recovery and deduplication mechanisms

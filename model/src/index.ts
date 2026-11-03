@@ -68,6 +68,7 @@ export type BlockArgs = {
   assembleScfvMem?: number;
   assembleScfvCpu?: number;
   cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
+  badQualityThreshold?: number;
   stopCodonTypes?: StopCodonType[];
   stopCodonReplacements?: StopCodonReplacements;
 };
@@ -124,6 +125,7 @@ const dataModel = new DataModelBuilder({ kind })
     assembleScfvMem: 64,
     assembleScfvCpu: 4,
     cloneClusteringMode: params?.cloneClusteringMode ?? "relaxed",
+    badQualityThreshold: params?.badQualityThreshold,
     stopCodonTypes: params?.stopCodonTypes,
     stopCodonReplacements: params?.stopCodonReplacements,
     tableState: createPlDataTableStateV2(),
@@ -182,6 +184,7 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       assembleScfvMem: data.assembleScfvMem,
       assembleScfvCpu: data.assembleScfvCpu,
       cloneClusteringMode: data.cloneClusteringMode,
+      badQualityThreshold: data.badQualityThreshold,
       stopCodonTypes: data.stopCodonTypes,
       stopCodonReplacements: data.stopCodonReplacements,
     };
@@ -210,6 +213,7 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
     lightTagPattern: data.lightTagPattern,
     lightAssemblingFeature: data.lightAssemblingFeature,
     cloneClusteringMode: data.cloneClusteringMode,
+    badQualityThreshold: data.badQualityThreshold,
     stopCodonTypes: data.stopCodonTypes,
     stopCodonReplacements: data.stopCodonReplacements,
     runMode: data.runMode,

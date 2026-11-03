@@ -742,6 +742,23 @@ heavy-seq + linker + light-seq (or reverse)"
         </ul>
       </template>
     </PlDropdown>
+    <PlNumberField
+      v-model="app.model.data.badQualityThreshold"
+      :clearable="() => 15"
+      label="Assembly quality threshold"
+      placeholder="15 (default)"
+      :min-value="0"
+      :step="1"
+      :validate="(v) => (Number.isInteger(v) ? undefined : 'Value must be an integer')"
+    >
+      <template #tooltip>
+        Per-position base quality threshold for clonotype assembly. Reads where all positions meet
+        this threshold directly seed new clonotypes; reads with any position below it are deferred
+        and mapped to existing clonotypes instead. Increase this value (e.g. 20–25) for long-read
+        data (ONT, PacBio) to reduce memory usage and prevent erroneous reads from creating spurious
+        clonotypes. Leave empty to use the MiXCR default (15).
+      </template>
+    </PlNumberField>
     <PlSectionSeparator>Stop codon replacement</PlSectionSeparator>
     <PlDropdownMulti
       v-model="stopCodonSelection"
