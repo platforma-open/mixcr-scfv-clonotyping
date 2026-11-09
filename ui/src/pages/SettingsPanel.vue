@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { PlRef } from "@platforma-sdk/model";
-import { plRefsEqual } from "@platforma-sdk/model";
 import type { ListOption } from "@platforma-sdk/ui-vue";
 import {
   PlAccordionSection,
@@ -125,10 +124,6 @@ function _plRefsEqual(ref1: PlRef, ref2: PlRef) {
 
 function setInput(inputRef?: PlRef) {
   app.model.data.input = inputRef;
-  const picked = inputRef
-    ? inputOptions.value?.find((o) => plRefsEqual(o.ref, inputRef))
-    : undefined;
-  app.model.data.subtitleLabel = picked?.label ?? "";
 }
 
 const orderOptions: ListOption[] = [

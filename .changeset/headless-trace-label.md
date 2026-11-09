@@ -5,7 +5,6 @@
 
 Compute the block subtitle without opening the block
 
-The input dataset name is now written to the subtitle when the user picks the input,
-instead of by the main page every time it renders, so opening the block no longer changes
-its arguments. The trace label is unchanged ("MiXCR - scFv"). Existing blocks show as
+The input dataset name shown in the subtitle is now kept outside the block's arguments,
+so opening the block no longer changes them. The trace label is unchanged ("MiXCR - scFv"). Existing blocks show as
 stale once after the update because the arguments change shape.

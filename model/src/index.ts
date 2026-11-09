@@ -76,7 +76,7 @@ export type UiState = {
 };
 
 export type BlockData = BlockArgs & {
-  /** Label of the chosen input dataset, shown in the subtitle; written when the input is picked. */
+  /** Label of the chosen input dataset, shown in the subtitle; the UI keeps it in sync. */
   subtitleLabel?: string;
   tableState: PlDataTableStateV2;
   runMode: RunMode;

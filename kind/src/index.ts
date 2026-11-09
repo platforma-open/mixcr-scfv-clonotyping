@@ -47,7 +47,7 @@ export type StopCodonReplacements = {
  *   against the library being analysed.
  * - **View state.** `tableState` holds the QC grid's sort and filters.
  * - **Derived labels.** `subtitleLabel` is the label of the selected dataset,
- *   rewritten whenever the dataset is picked, and `title` is a constant.
+ *   kept in sync by the UI, and `title` is a constant.
  *
  * The per-chain V/J FASTA strings (`heavy{V,J}Genes`, `light{V,J}Genes`) and
  * `lightImputeSequence` are derived from the pasted sequences, but they are
