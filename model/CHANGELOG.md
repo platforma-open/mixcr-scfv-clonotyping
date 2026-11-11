@@ -1,5 +1,21 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.model
 
+## 2.8.2
+
+### Patch Changes
+
+- 33d3f97: Keep pool text out of the block arguments
+
+  The input dataset name shown in the subtitle is now kept outside the block's arguments,
+  so opening the block no longer changes them. The trace label is unchanged ("MiXCR - scFv"). Existing blocks show as
+  stale once after the update because the arguments change shape.
+
+## 2.8.1
+
+### Patch Changes
+
+- d6b48af: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+
 ## 2.8.0
 
 ### Minor Changes

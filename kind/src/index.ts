@@ -46,8 +46,8 @@ export type StopCodonReplacements = {
  *   `assembleScfvCpu` size two processes against the machine that runs them, not
  *   against the library being analysed.
  * - **View state.** `tableState` holds the QC grid's sort and filters.
- * - **Derived labels.** `defaultBlockLabel` is recomputed from the selected
- *   dataset every time the main page renders, and `title` is a constant.
+ * - **Derived labels.** `subtitleLabel` is the label of the selected dataset,
+ *   kept in sync by the UI, and `title` is a constant.
  *
  * The per-chain V/J FASTA strings (`heavy{V,J}Genes`, `light{V,J}Genes`) and
  * `lightImputeSequence` are derived from the pasted sequences, but they are

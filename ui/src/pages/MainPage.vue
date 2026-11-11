@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { AgGridVue } from "ag-grid-vue3";
 
-import { plRefsEqual } from "@platforma-sdk/model";
 import type { PlAgHeaderComponentParams } from "@platforma-sdk/ui-vue";
 import {
   AgGridTheme,
@@ -19,7 +18,7 @@ import {
 } from "@platforma-sdk/ui-vue";
 import type { ColDef, GridApi, GridOptions, GridReadyEvent } from "ag-grid-enterprise";
 import { ClientSideRowModelModule, ModuleRegistry } from "ag-grid-enterprise";
-import { computed, reactive, shallowRef, watch, watchEffect } from "vue";
+import { computed, reactive, shallowRef, watch } from "vue";
 import { getAlignmentChartSettings } from "../charts/alignmentChartSettings";
 // import { ScFvResult } from '../results';
 import { useApp } from "../app";
@@ -32,21 +31,6 @@ import { ExportRawBtn } from "../ExportRawBtn";
 // import SettingsPanel from './SettingsPanel.vue';
 
 const app = useApp();
-
-// updating defaultBlockLabel
-watchEffect(() => {
-  const parts: string[] = [];
-  // Add dataset name if available
-  if (app.model.data.input) {
-    const inputOption = app.model.outputs.inputOptions?.find(
-      (p) => app.model.data.input && plRefsEqual(p.ref, app.model.data.input),
-    );
-    if (inputOption?.label) {
-      parts.push(inputOption.label);
-    }
-  }
-  app.model.data.defaultBlockLabel = parts.filter(Boolean).join(" - ") || "Select Dataset";
-});
 
 const rows = computed(() => (resultMap.value ? [...resultMap.value.values()] : undefined));
 

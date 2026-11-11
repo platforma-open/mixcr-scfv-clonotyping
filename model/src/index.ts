@@ -35,7 +35,6 @@ export * from "./reports";
 export type * from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 
 export type BlockArgs = {
-  defaultBlockLabel?: string;
   customBlockLabel?: string;
   title?: "MiXCR scFv Alignment";
   input?: PlRef;
@@ -82,24 +81,35 @@ export type UiState = {
 };
 
 export type BlockData = BlockArgs & {
+  /** Label of the chosen input dataset, shown in the subtitle; the UI keeps it in sync. */
+  subtitleLabel?: string;
   tableState: PlDataTableStateV2;
   runMode: RunMode;
 };
+
+type BlockDataV1 = Omit<BlockData, "subtitleLabel"> & { defaultBlockLabel?: string };
+
+type LegacyBlockArgs = BlockArgs & { defaultBlockLabel?: string };
 
 type LegacyUiState = {
   tableState: PlDataTableStateV2;
 };
 
 const dataModel = new DataModelBuilder({ kind })
-  .from<BlockData>("v1")
-  .upgradeLegacy<BlockArgs, LegacyUiState>(({ args, uiState }) => ({
+  .from<BlockDataV1>("v1")
+  .upgradeLegacy<LegacyBlockArgs, LegacyUiState>(({ args, uiState }) => ({
     ...args,
     tableState: uiState.tableState,
     runMode: (args.limitInput ?? 0) > 0 ? "dry" : "full",
   }))
-  // The memory settings are floors under a size-based request. 32 and 64 GiB are the v1
+  // "Select Dataset" was the placeholder shown before any input was picked, not a dataset label.
+  .migrate<BlockData>("v2", ({ defaultBlockLabel, ...rest }) => ({
+    ...rest,
+    subtitleLabel: defaultBlockLabel === "Select Dataset" ? "" : defaultBlockLabel,
+  }))
+  // The memory settings are floors under a size-based request. 32 and 64 GiB are the old
   // defaults; a block holding them gets no floor.
-  .migrate<BlockData>("v2", (data) => ({
+  .migrate<BlockData>("v3", (data) => ({
     ...data,
     mixcrMem: data.mixcrMem === 32 ? undefined : data.mixcrMem,
     assembleScfvMem: data.assembleScfvMem === 64 ? undefined : data.assembleScfvMem,
@@ -108,9 +118,8 @@ const dataModel = new DataModelBuilder({ kind })
   // created by hand gets the same defaults this function used to hand out
   // unconditionally. The fields the contract leaves out are either machine-local
   // (the two processes' memory and CPU), view state (`tableState`), or derived
-  // by the UI from what is here (`defaultBlockLabel`).
+  // from the input picked in the UI (`subtitleLabel`).
   .init(({ params }) => ({
-    defaultBlockLabel: "Select Dataset",
     customBlockLabel: params?.customBlockLabel ?? "",
     input: params?.input,
     species: params?.species,
@@ -226,7 +235,6 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       throw new Error("Read limit is required for Preview mode");
 
     return {
-      defaultBlockLabel: data.defaultBlockLabel,
       customBlockLabel: data.customBlockLabel,
       title: data.title,
       input: data.input,
@@ -420,7 +428,12 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
 
   .title(() => "MiXCR scFv Alignment")
 
-  .subtitle((ctx) => ctx.data.customBlockLabel || ctx.data.defaultBlockLabel || "")
+  .subtitle(
+    (ctx) =>
+      ctx.data.customBlockLabel ||
+      ctx.data.subtitleLabel ||
+      (ctx.data.input ? "" : "Select Dataset"),
+  )
 
   .done();
 
