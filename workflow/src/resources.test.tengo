@@ -17,38 +17,122 @@ ramGiB := func(r, inputBytes) {
 	return f.evaluateResource(ast, resolver, "test") / GIB
 }
 
-TestAnalyzeHeavyGzip := func() {
-	r := resources.analyzeRow("IGHeavy", "fastq.gz", undefined)
+// applied returns the onCPU request `resources.apply` sets on a builder.
+applied := func(r, cpuOverride, ...fixedRam) {
+	got := undefined
+	cmd := { resources: func(req) { got = req.onCPU } }
+	resources.apply(cmd, r, cpuOverride, fixedRam...)
+	return got
+}
+
+// MiXCR steps
+
+TestStepRowPrefersTheClassRowThenTheStepRowThenTheDefault := func() {
+	test.isEqual("umi", resources.stepRow("assemble", "umi", undefined).class)
+	test.isEqual("none", resources.stepRow("assemble", "none", undefined).class)
+	test.isEqual("any", resources.stepRow("refineTagsAndSort", "umi", undefined).class)
+	test.isEqual("findAlleles", resources.stepRow("findAlleles", "none", undefined).step)
+	test.isEqual(resources.DEFAULT.memSlope, resources.stepRow("findAlleles", "none", undefined).memSlope)
+}
+
+TestPlanAndAlignAreFlat := func() {
+	test.isEqual("4GiB", ramGiB(resources.stepRow("plan", "none", undefined), 100 * GIB))
+	test.isEqual("16GiB", ramGiB(resources.stepRow("align", "none", undefined), 100 * GIB))
+}
+
+TestVdjcaAssembleHasNoCeiling := func() {
+	r := resources.stepRow("assemble", "none", undefined)
 	test.isEqual(16 + 40, ramGiB(r, GIB))
-	test.isEqual(16 + 40 * 5, ramGiB(r, 5 * GIB))
+	test.isEqual(16 + 40 * 50, ramGiB(r, 50 * GIB))
 	test.isEqual(16, ramGiB(r, 0))
 }
 
-TestAnalyzeLightGzip := func() {
-	r := resources.analyzeRow("IGLight", "fastq.gz", undefined)
-	test.isEqual(14 + 34 * 5, ramGiB(r, 5 * GIB))
+// The whole-chain analyze fit is 16 + 40 per GiB of gzipped reads (heavy), 14 + 34 (light). A
+// .vdjca-sized row must not grant less per GiB of .vdjca.
+TestVdjcaRowsAreNoSmallerThanTheAnalyzeFit := func() {
+	for step in [["assemble", "none"], ["assemble", "umi"], ["refineTagsAndSort", "umi"], ["findAlleles", "none"]] {
+		r := resources.stepRow(step[0], step[1], undefined)
+		test.isTrue(r.memIntercept >= 16)
+		test.isTrue(r.memSlope >= 40)
+	}
 }
 
-TestAnalyzeUncompressedSlope := func() {
-	r := resources.analyzeRow("IGHeavy", "fastq", undefined)
-	// 40 / 3 per GiB, so 3 GiB of plain FASTQ takes what 1 GiB gzipped does
-	test.isEqual(16 + 40, ramGiB(r, 3 * GIB))
+TestQcIsSizedFromTheClna := func() {
+	r := resources.stepRow("qc", "none", undefined)
+	test.isEqual(8, ramGiB(r, 0))
+	test.isEqual(8 + 4 * 10, ramGiB(r, 10 * GIB))
 }
 
-TestFloorRaisesSmallInputs := func() {
-	r := resources.analyzeRow("IGHeavy", "fastq.gz", 100)
+TestMemSettingRaisesEveryStepFloor := func() {
+	test.isEqual("100GiB", ramGiB(resources.stepRow("align", "none", 100), 0))
+	r := resources.stepRow("assemble", "none", 100)
 	test.isEqual(100, ramGiB(r, GIB))
 	test.isEqual(16 + 40 * 5, ramGiB(r, 5 * GIB))
+	test.isEqual(16, resources.stepRow("assemble", "none", 4).memFloor)
 }
+
+TestPlanTakesNoSetting := func() {
+	r := resources.stepRow("plan", "none", 100)
+	test.isEqual(4, r.memFloor)
+	test.isEqual(1, applied(r, 32).cpu)
+}
+
+TestCpuSettingReplacesTheStepCpu := func() {
+	r := resources.stepRow("assemble", "none", undefined)
+	test.isEqual(8, applied(r, undefined).cpu)
+	test.isEqual(32, applied(r, 32).cpu)
+	test.isEqual(32, applied(resources.stepRow("align", "umi", undefined), 32).cpu)
+}
+
+// Clone-estimate sizing
+
+TestOnlyBulkAssembleHasACloneRow := func() {
+	test.isFalse(is_undefined(resources.cloneRow("assemble", "none")))
+	test.isTrue(is_undefined(resources.cloneRow("assemble", "umi")))
+	test.isTrue(is_undefined(resources.cloneRow("align", "none")))
+	test.isTrue(is_undefined(resources.cloneRow("qc", "none")))
+}
+
+TestCloneRowIsThePlaceholder := func() {
+	r := resources.cloneRow("assemble", "none")
+	test.isEqual([32, 10, 16, 0.32], [r.memFloor, r.memIntercept, r.memPerMClones, r.memPerMReads])
+}
+
+TestRamFromReport := func() {
+	r := resources.reportRow("assemble", "none", undefined)
+	// 10 + 16 x 2 + 0.32 x 10 = 45.2, rounded up
+	test.isEqual("46GiB", resources.ramFromReport(r, { estimatedInitialClones: 2000000, aligned: 10000000 }))
+	// below the floor
+	test.isEqual("32GiB", resources.ramFromReport(r, { estimatedInitialClones: 10000, aligned: 100000 }))
+	// no `aligned`: the read term is 0
+	test.isEqual("42GiB", resources.ramFromReport(r, { estimatedInitialClones: 2000000 }))
+}
+
+TestNoEstimateFallsBackToInputSizing := func() {
+	r := resources.reportRow("assemble", "none", undefined)
+	test.isTrue(is_undefined(resources.ramFromReport(r, { aligned: 10000000 })))
+	test.isTrue(is_undefined(resources.ramFromReport(r, undefined)))
+}
+
+TestMemSettingRaisesTheCloneRowFloor := func() {
+	r := resources.reportRow("assemble", "none", 200)
+	test.isEqual("200GiB", resources.ramFromReport(r, { estimatedInitialClones: 2000000, aligned: 10000000 }))
+	test.isEqual(32, resources.reportRow("assemble", "none", 8).memFloor)
+	// the row in the table keeps its floor
+	test.isEqual(32, resources.cloneRow("assemble", "none").memFloor)
+}
+
+TestFixedRamReplacesTheRowMemory := func() {
+	r := resources.stepRow("assemble", "none", undefined)
+	test.isEqual("46GiB", applied(r, undefined, "46GiB").ram)
+	test.isTrue(f.isFormula(applied(r, undefined, undefined).ram))
+}
+
+// The execs outside the plan
 
 TestFloorBelowRowFloorIsIgnored := func() {
 	r := resources.row("assembleScfv", 1)
 	test.isEqual(4, r.memFloor)
-}
-
-TestNoCeiling := func() {
-	r := resources.analyzeRow("IGHeavy", "fastq.gz", undefined)
-	test.isEqual(16 + 40 * 50, ramGiB(r, 50 * GIB))
 }
 
 TestExportClones := func() {
@@ -75,5 +159,5 @@ TestRoundsUpToWholeGiB := func() {
 
 TestStaticFallback := func() {
 	test.isEqual(64 * GIB, f.fallbackOf(resources.ram(resources.row("assembleScfv"))))
-	test.isEqual(100 * GIB, f.fallbackOf(resources.ram(resources.analyzeRow("IGHeavy", "fastq.gz", 100))))
+	test.isEqual(100 * GIB, f.fallbackOf(resources.ram(resources.stepRow("assemble", "none", 100))))
 }
