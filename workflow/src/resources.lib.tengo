@@ -14,7 +14,9 @@
 // `assemble` of class "none" takes its memory from align's clone estimate (_CLONE_ROWS) when the
 // align report carries one.
 //
-// Every number marked PLACEHOLDER is a guess awaiting a fit to scFv data.
+// scFv runs the same MiXCR steps as mixcr-clonotyping. Rows without scFv measurements of their
+// own (CPU, refineTagsAndSort, assemble with UMIs, qc, DEFAULT) take mixcr-clonotyping's
+// per-step rows.
 
 exec := import("@platforma-sdk/workflow-tengo:exec")
 ll := import("@platforma-sdk/workflow-tengo:ll")
@@ -46,13 +48,6 @@ _ROWS := {
 	annotateScfv: { cpu: 4, memFloor: 2, memIntercept: 2, memSlope: 2.5 }
 }
 
-// The .vdjca-sized rows reuse the whole-chain `analyze` fit, whose peak is assemble: 16 GiB + 40
-// GiB per GiB of gzipped reads (heavy; light is 14 + 34). Per GiB of .vdjca they are no smaller
-// as long as a chain's .vdjca is no smaller than its gzipped reads; align saves every aligned
-// read (`saveOriginalReads`).
-_VDJCA_INTERCEPT := 16 // PLACEHOLDER: whole-chain analyze fit, heavy
-_VDJCA_SLOPE := 40 // PLACEHOLDER: whole-chain analyze fit, heavy, per GiB of .vdjca
-
 // The steps of the MiXCR plan. A row with `override: false` takes no user setting.
 _STEP_ROWS := [
 	// `analyze --dry-run-json` resolves the preset and writes the step list; it reads no data.
@@ -60,19 +55,24 @@ _STEP_ROWS := [
 
 	// `align` streams its input, so the grant does not grow with the sample: peak RSS 2.2-4.8 GiB
 	// at 1M-20M scFv reads.
-	{ step: "align", class: "any", cpu: 8, memFloor: 16, memIntercept: 16, memSlope: 0 }, // PLACEHOLDER: cpu
+	{ step: "align", class: "any", cpu: 16, memFloor: 16, memIntercept: 16, memSlope: 0 },
 
 	// Sized from the .vdjca.
-	{ step: "refineTagsAndSort", class: "any", cpu: 8, memFloor: 16, memIntercept: _VDJCA_INTERCEPT, memSlope: _VDJCA_SLOPE }, // PLACEHOLDER: cpu, memFloor
-	{ step: "assemble", class: "none", cpu: 8, memFloor: 16, memIntercept: _VDJCA_INTERCEPT, memSlope: _VDJCA_SLOPE }, // PLACEHOLDER: cpu, memFloor
-	{ step: "assemble", class: "umi", cpu: 8, memFloor: 16, memIntercept: _VDJCA_INTERCEPT, memSlope: _VDJCA_SLOPE }, // PLACEHOLDER: cpu, memFloor
+	{ step: "refineTagsAndSort", class: "any", cpu: 16, memFloor: 32, memIntercept: 6, memSlope: 14 },
+	{ step: "assemble", class: "umi", cpu: 16, memFloor: 32, memIntercept: 0, memSlope: 10 },
 
-	// Sized from the .clna it reads; exportClones reads the same clones at 4 + 1.1 per GiB.
-	{ step: "qc", class: "any", cpu: 4, memFloor: 8, memIntercept: 8, memSlope: 4 } // PLACEHOLDER: cpu, memFloor, memIntercept, memSlope
+	// Without a clone estimate: the whole-chain scFv `analyze` fit, whose peak is assemble, 16 GiB
+	// + 40 GiB per GiB of gzipped reads (heavy; light is 14 + 34). Per GiB of .vdjca it is no
+	// smaller as long as a chain's .vdjca is no smaller than its gzipped reads; align saves every
+	// aligned read (`saveOriginalReads`).
+	{ step: "assemble", class: "none", cpu: 16, memFloor: 32, memIntercept: 16, memSlope: 40 },
+
+	// Sized from the .clna it reads.
+	{ step: "qc", class: "any", cpu: 4, memFloor: 32, memIntercept: 8, memSlope: 16 }
 ]
 
-// A step the table does not list: the .vdjca-sized assemble row.
-DEFAULT := { step: "default", class: "any", cpu: 8, memFloor: 16, memIntercept: _VDJCA_INTERCEPT, memSlope: _VDJCA_SLOPE } // PLACEHOLDER: cpu, memFloor
+// A step the table does not list.
+DEFAULT := { step: "default", class: "any", cpu: 16, memFloor: 64, memIntercept: 0, memSlope: 4 }
 
 // The memory of `assemble` from the align report:
 //

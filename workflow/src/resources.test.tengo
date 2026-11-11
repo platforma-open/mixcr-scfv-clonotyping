@@ -44,23 +44,31 @@ TestVdjcaAssembleHasNoCeiling := func() {
 	r := resources.stepRow("assemble", "none", undefined)
 	test.isEqual(16 + 40, ramGiB(r, GIB))
 	test.isEqual(16 + 40 * 50, ramGiB(r, 50 * GIB))
-	test.isEqual(16, ramGiB(r, 0))
+	test.isEqual(32, ramGiB(r, 0))
 }
 
-// The whole-chain analyze fit is 16 + 40 per GiB of gzipped reads (heavy), 14 + 34 (light). A
-// .vdjca-sized row must not grant less per GiB of .vdjca.
-TestVdjcaRowsAreNoSmallerThanTheAnalyzeFit := func() {
-	for step in [["assemble", "none"], ["assemble", "umi"], ["refineTagsAndSort", "umi"], ["findAlleles", "none"]] {
-		r := resources.stepRow(step[0], step[1], undefined)
-		test.isTrue(r.memIntercept >= 16)
-		test.isTrue(r.memSlope >= 40)
-	}
+// Without a clone estimate, assemble keeps the whole-chain analyze fit: 16 + 40 per GiB of
+// gzipped reads (heavy), 14 + 34 (light).
+TestAssembleWithoutEstimateIsNoSmallerThanTheAnalyzeFit := func() {
+	r := resources.stepRow("assemble", "none", undefined)
+	test.isTrue(r.memIntercept >= 16)
+	test.isTrue(r.memSlope >= 40)
+}
+
+// The steps scFv has no measurements of its own for take mixcr-clonotyping's rows.
+TestUnmeasuredStepsTakeTheClonotypingRows := func() {
+	test.isEqual(6 + 14 * 10, ramGiB(resources.stepRow("refineTagsAndSort", "umi", undefined), 10 * GIB))
+	test.isEqual(32, ramGiB(resources.stepRow("refineTagsAndSort", "umi", undefined), 0))
+	test.isEqual(10 * 10, ramGiB(resources.stepRow("assemble", "umi", undefined), 10 * GIB))
+	test.isEqual(32, ramGiB(resources.stepRow("assemble", "umi", undefined), GIB))
+	test.isEqual(64, ramGiB(resources.stepRow("findAlleles", "none", undefined), GIB))
+	test.isEqual(4 * 100, ramGiB(resources.stepRow("findAlleles", "none", undefined), 100 * GIB))
 }
 
 TestQcIsSizedFromTheClna := func() {
 	r := resources.stepRow("qc", "none", undefined)
-	test.isEqual(8, ramGiB(r, 0))
-	test.isEqual(8 + 4 * 10, ramGiB(r, 10 * GIB))
+	test.isEqual(32, ramGiB(r, 0))
+	test.isEqual(8 + 16 * 10, ramGiB(r, 10 * GIB))
 }
 
 TestMemSettingRaisesEveryStepFloor := func() {
@@ -68,7 +76,7 @@ TestMemSettingRaisesEveryStepFloor := func() {
 	r := resources.stepRow("assemble", "none", 100)
 	test.isEqual(100, ramGiB(r, GIB))
 	test.isEqual(16 + 40 * 5, ramGiB(r, 5 * GIB))
-	test.isEqual(16, resources.stepRow("assemble", "none", 4).memFloor)
+	test.isEqual(32, resources.stepRow("assemble", "none", 4).memFloor)
 }
 
 TestPlanTakesNoSetting := func() {
@@ -79,7 +87,7 @@ TestPlanTakesNoSetting := func() {
 
 TestCpuSettingReplacesTheStepCpu := func() {
 	r := resources.stepRow("assemble", "none", undefined)
-	test.isEqual(8, applied(r, undefined).cpu)
+	test.isEqual(16, applied(r, undefined).cpu)
 	test.isEqual(32, applied(r, 32).cpu)
 	test.isEqual(32, applied(resources.stepRow("align", "umi", undefined), 32).cpu)
 }
