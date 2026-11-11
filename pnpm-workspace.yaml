@@ -54,3 +54,5 @@ allowBuilds:
   esbuild: false
   protobufjs: false
   "@milaboratories/pframes-rs-node": true
+  "@platforma-open/milaboratories.software-mixcr": true
+  "@platforma-open/milaboratories.software-repseqio": true
