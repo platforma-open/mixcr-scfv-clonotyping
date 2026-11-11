@@ -1,12 +1,15 @@
 import type {
   InferHrefType,
   InferOutputsType,
+  PColumnResourceMapData,
   PlDataTableStateV2,
   PlRef,
+  TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
   BlockModelV3,
   DataModelBuilder,
+  RT_RESOURCE_MAP,
   createPlDataTableV2,
   createPlDataTableStateV2,
   isPColumnSpec,
@@ -137,6 +140,68 @@ const dataModel = new DataModelBuilder({ kind })
     runMode: params?.runMode ?? "full",
     limitInput: params?.limitInput,
   }));
+
+type LogKey = PColumnResourceMapData<unknown>["data"][number]["key"];
+
+/**
+ * The input field `field` of `map`, or undefined while it is unset or when it carries an error.
+ * A step that failed, or the steps that never ran after it, must not hide the logs of the others.
+ */
+function resolveUnlessErrored(map: TreeNodeAccessor, field: string): TreeNodeAccessor | undefined {
+  try {
+    return map.resolve({ field, assertFieldType: "Input" });
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reads a chain's per-sample log column. A sample's value is one log stream, or a map of streams
+ * keyed by MiXCR step for a run split into one command per step. A run that waits for the align
+ * report nests the map of the later steps as one entry of that map; it is flattened here.
+ * Entries are keyed [sampleId] or [sampleId, step].
+ */
+function parseSampleLogs<T>(
+  acc: TreeNodeAccessor | undefined,
+  parse: (acc: TreeNodeAccessor) => T | undefined,
+): PColumnResourceMapData<NonNullable<T>> | undefined {
+  if (acc === undefined) return undefined;
+  const data: { key: LogKey; value: NonNullable<T> }[] = [];
+  // Adds the streams of a step map under `prefix`; returns whether every step is in.
+  const addSteps = (steps: TreeNodeAccessor, prefix: LogKey): boolean => {
+    let complete = steps.getInputsLocked();
+    for (const stepKey of steps.listInputFields()) {
+      const step = resolveUnlessErrored(steps, stepKey);
+      if (step === undefined) {
+        complete = false;
+      } else if (step.resourceType.name === RT_RESOURCE_MAP) {
+        complete = addSteps(step, prefix) && complete;
+      } else {
+        const value = parse(step);
+        if (value === undefined || value === null) complete = false;
+        else data.push({ key: [...prefix, ...(JSON.parse(stepKey) as LogKey)], value });
+      }
+    }
+    return complete;
+  };
+  let isComplete = acc.getInputsLocked();
+  for (const sampleKey of acc.listInputFields()) {
+    const sample = resolveUnlessErrored(acc, sampleKey);
+    if (sample === undefined) {
+      isComplete = false;
+      continue;
+    }
+    const key = JSON.parse(sampleKey) as LogKey;
+    if (sample.resourceType.name === RT_RESOURCE_MAP) {
+      isComplete = addSteps(sample, key) && isComplete;
+    } else {
+      const value = parse(sample);
+      if (value === undefined || value === null) isComplete = false;
+      else data.push({ key, value });
+    }
+  }
+  return { isComplete, data };
+}
 
 export const platforma = BlockModelV3.create({ dataModel, kind })
 
@@ -292,37 +357,27 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       });
   })
 
-  .output("logsIGHeavy", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGHeavy"),
-      (acc) => acc.getLogHandle(),
-      false,
-    );
-  })
+  // Keys are [sampleId] for the single log of a result from before the split, and
+  // [sampleId, step] for a split run.
+  .output("logsIGHeavy", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGHeavy"), (acc) => acc.getLogHandle()),
+  )
 
-  .output("logsIGLight", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGLight"),
-      (acc) => acc.getLogHandle(),
-      false,
-    );
-  })
+  .output("logsIGLight", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGLight"), (acc) => acc.getLogHandle()),
+  )
 
-  .output("progressIGHeavy", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGHeavy"),
-      (acc) => acc.getProgressLog(ProgressPrefix),
-      false,
-    );
-  })
+  .output("progressIGHeavy", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGHeavy"), (acc) =>
+      acc.getProgressLog(ProgressPrefix),
+    ),
+  )
 
-  .output("progressIGLight", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGLight"),
-      (acc) => acc.getProgressLog(ProgressPrefix),
-      false,
-    );
-  })
+  .output("progressIGLight", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGLight"), (acc) =>
+      acc.getProgressLog(ProgressPrefix),
+    ),
+  )
 
   .output("started", (ctx) => ctx.outputs !== undefined)
 
