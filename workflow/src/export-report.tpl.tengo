@@ -2,21 +2,22 @@
 // values and this UUID decide whether a result is reused. The UUID covers every template this one
 // renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
 // the next block update.
-//tengo:hash_override F0F91EFC-7589-4317-9180-E269A932E7C7
+//tengo:hash_override B73B32C4-6964-4215-A6FB-1D1FD5B24069
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
-smart := import("@platforma-sdk/workflow-tengo:smart")
 ll := import("@platforma-sdk/workflow-tengo:ll")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 pt := import("@platforma-sdk/workflow-tengo:pt")
 maps := import("@platforma-sdk/workflow-tengo:maps")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 
 json := import("json")
 
 resources := import(":resources")
+qcReportColumns := import(":qc-report-columns")
 
-self.defineOutputs("tsv", "chainsWithData")
+self.defineOutputs("qcReportTable")
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
 
@@ -25,6 +26,8 @@ self.body(func(inputs) {
     clnsDataHeavy := inputs.clnsDataHeavy
     clnsDataLight := inputs.clnsDataLight
     clonotypeTablesData := inputs.clonotypeTablesData
+    sampleIdAxisSpec := inputs.sampleIdAxisSpec
+    hasUmi := inputs.hasUmi
 
     // Get all clna files from both chains
     clnaFilesHeavy := clnsDataHeavy.inputs()
@@ -307,9 +310,11 @@ self.body(func(inputs) {
     // Run the pt workflow
     wfResult := wf.run()
     
+    // Only generate column spec for chains that actually have data
+    spec := qcReportColumns(hasUmi, sampleIdAxisSpec, chainsWithData).reportColumnsSpec
+
     return {
-        tsv: wfResult.getFile("qc-report-processed.tsv"),
-        chainsWithData: smart.createJsonResource(chainsWithData)
+        qcReportTable: xsv.importFile(wfResult.getFile("qc-report-processed.tsv"), "tsv", spec)
     }
 })
 
