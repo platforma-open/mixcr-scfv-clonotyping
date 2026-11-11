@@ -1,0 +1,18 @@
+test := import("@platforma-sdk/workflow-tengo:test")
+text := import("text")
+stepRunner := import(":step-runner")
+
+// The readable part of a k8s job name core/pl keeps, after sanitizing.
+_MAX_NAME := 26
+
+TestJobNamesFitTheK8sName := func() {
+	for step in ["plan", "align", "refineTagsAndSort", "assemble", "qc"] {
+		for chain in ["heavy", "light"] {
+			name := stepRunner.jobName(step, chain)
+			test.isTrue(len(name) <= _MAX_NAME)
+			test.isTrue(text.has_prefix(name, "scfv: "))
+		}
+	}
+	test.isEqual("scfv: refine light", stepRunner.jobName("refineTagsAndSort", "light"))
+	test.isEqual("scfv: assemble heavy", stepRunner.jobName("assemble", "heavy"))
+}

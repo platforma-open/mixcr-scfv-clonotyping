@@ -16,6 +16,16 @@ INTERMEDIATE_CACHE_PERIOD := 36 * times.hour
 // The entry of a split run's log that holds the log of :run-steps-after-align.
 AFTER_ALIGN_LOG_KEY := "after-align"
 
+// Short step names for job names; `scfv: <step> <chain>` must sanitize to 26 characters or fewer,
+// the room core/pl leaves for the readable part of a k8s job name.
+_JOB_STEP_NAMES := { refineTagsAndSort: "refine" }
+
+// jobName returns the job name of a step of the chain `chainName`.
+jobName := func(stepKey, chainName) {
+	short := _JOB_STEP_NAMES[stepKey]
+	return "scfv: " + (is_undefined(short) ? stepKey : short) + " " + chainName
+}
+
 // One stream per step, keyed by its run position and name (`003:assemble`).
 _stepLogs := func(logs) {
 	stepLogs := pcolumn.resourceMapBuilder( /* keyLength */ 1 )
@@ -81,7 +91,7 @@ run := func(plan, from, ctx) {
 		}
 
 		// The name is the job's label on the backend (the k8s job name, the failure message).
-		cmd := mixcrCmd.builder(ctx.sw).name("scfv: " + ctx.chainName + " " + c.key).arg(c.args[0])
+		cmd := mixcrCmd.builder(ctx.sw).name(jobName(c.key, ctx.chainName)).arg(c.args[0])
 		if c.key == "align" {
 			// `--threads` reads the granted count back from the placeholder, so the flag and the
 			// request cannot diverge.
@@ -151,5 +161,6 @@ export {
 	run: run,
 	outputs: outputs,
 	checkReports: checkReports,
-	splitLog: splitLog
+	splitLog: splitLog,
+	jobName: jobName
 }

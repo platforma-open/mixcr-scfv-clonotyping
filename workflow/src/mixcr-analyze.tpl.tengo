@@ -150,7 +150,7 @@ self.body(func(inputs) {
 		// own grant. The plan reads the reads only to check that they exist, so empty files
 		// under their names stand in for them.
 		planCmd := mixcrCmd.builder(mixcrStepSw).
-			name("scfv: " + chainName[chain] + " plan").
+			name("scfv: plan " + chainName[chain]).
 			arg("analyze").
 			arg("--dry-run-json").arg(mixcrSteps.STEPS_FILE).
 			arg("--use-local-temp")
