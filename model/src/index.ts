@@ -166,8 +166,9 @@ function resolveUnlessErrored(map: TreeNodeAccessor, field: string): TreeNodeAcc
 
 /**
  * Reads a chain's per-sample log column. A sample's value is one log stream, or a map of streams
- * keyed by MiXCR step for a run split into one command per step. A run that waits for the align
- * report nests the map of the later steps as one entry of that map; it is flattened here.
+ * keyed by MiXCR step for a run split into one command per step: the planner's stream, with the
+ * planned steps' map nested beside it, and the steps after align nested again when the run waits
+ * for the align report. Nested maps are flattened here.
  * Entries are keyed [sampleId] or [sampleId, step].
  */
 function parseSampleLogs<T>(
