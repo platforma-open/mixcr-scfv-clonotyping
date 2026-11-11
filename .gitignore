@@ -13,3 +13,5 @@ software/*.tgz
 software/**/*.tgz
 .DS_Store
 test-dry-run.json
+__pycache__/
+.pytest_cache/
