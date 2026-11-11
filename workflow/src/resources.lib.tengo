@@ -58,8 +58,9 @@ _STEP_ROWS := [
 	// `analyze --dry-run-json` resolves the preset and writes the step list; it reads no data.
 	{ step: "plan", class: "any", cpu: 1, memFloor: 4, memIntercept: 0, memSlope: 0, override: false },
 
-	// `align` streams its input, so the grant does not grow with the sample.
-	{ step: "align", class: "any", cpu: 8, memFloor: 16, memIntercept: 16, memSlope: 0 }, // PLACEHOLDER: cpu, memFloor, memIntercept
+	// `align` streams its input, so the grant does not grow with the sample: peak RSS 2.2-4.8 GiB
+	// at 1M-20M scFv reads.
+	{ step: "align", class: "any", cpu: 8, memFloor: 16, memIntercept: 16, memSlope: 0 }, // PLACEHOLDER: cpu
 
 	// Sized from the .vdjca.
 	{ step: "refineTagsAndSort", class: "any", cpu: 8, memFloor: 16, memIntercept: _VDJCA_INTERCEPT, memSlope: _VDJCA_SLOPE }, // PLACEHOLDER: cpu, memFloor
@@ -80,8 +81,13 @@ DEFAULT := { step: "default", class: "any", cpu: 8, memFloor: 16, memIntercept: 
 // rounded up to a whole GiB, where `M clones` is the report's estimatedInitialClones and
 // `M aligned reads` its `aligned`, in millions. scFv assembles by a custom feature range, so
 // every row has feature "any". Class "umi" has no row and stays on .vdjca sizing.
+//
+// Fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at two error profiles, HiFi
+// and error-rich. The row grants at least 1.6x every measured need: the bisect floor at 1M and
+// 4M reads, the peak under a fixed grant at 10M and 20M. The cost per clone spans 8.7-23 GiB per
+// M clones; the error-rich libraries set the slope, so HiFi data is over-granted 1.6-3.6x.
 _CLONE_ROWS := [
-	{ class: "none", feature: "any", memFloor: 32, memIntercept: 10, memPerMClones: 16, memPerMReads: 0.32 } // PLACEHOLDER: every coefficient
+	{ class: "none", feature: "any", memFloor: 32, memIntercept: 0, memPerMClones: 37, memPerMReads: 0 }
 ]
 
 _stepByKey := {}

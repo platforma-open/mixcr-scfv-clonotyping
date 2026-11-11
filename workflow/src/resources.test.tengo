@@ -93,19 +93,25 @@ TestOnlyBulkAssembleHasACloneRow := func() {
 	test.isTrue(is_undefined(resources.cloneRow("qc", "none")))
 }
 
-TestCloneRowIsThePlaceholder := func() {
+TestCloneRowIs37GiBPerMillionClones := func() {
 	r := resources.cloneRow("assemble", "none")
-	test.isEqual([32, 10, 16, 0.32], [r.memFloor, r.memIntercept, r.memPerMClones, r.memPerMReads])
+	test.isEqual([32, 0, 37, 0], [r.memFloor, r.memIntercept, r.memPerMClones, r.memPerMReads])
 }
 
 TestRamFromReport := func() {
 	r := resources.reportRow("assemble", "none", undefined)
-	// 10 + 16 x 2 + 0.32 x 10 = 45.2, rounded up
-	test.isEqual("46GiB", resources.ramFromReport(r, { estimatedInitialClones: 2000000, aligned: 10000000 }))
-	// below the floor
-	test.isEqual("32GiB", resources.ramFromReport(r, { estimatedInitialClones: 10000, aligned: 100000 }))
-	// no `aligned`: the read term is 0
-	test.isEqual("42GiB", resources.ramFromReport(r, { estimatedInitialClones: 2000000 }))
+	// 37 x 2.913473 = 107.8, rounded up
+	test.isEqual("108GiB", resources.ramFromReport(r, { estimatedInitialClones: 2913473, aligned: 4000000 }))
+	// 37 x 0.5 = 18.5, below the floor
+	test.isEqual("32GiB", resources.ramFromReport(r, { estimatedInitialClones: 500000, aligned: 1000000 }))
+	// the read count adds nothing
+	test.isEqual("108GiB", resources.ramFromReport(r, { estimatedInitialClones: 2913473 }))
+}
+
+TestMemSettingOf64RaisesOnlyTheFloor := func() {
+	r := resources.reportRow("assemble", "none", 64)
+	test.isEqual("64GiB", resources.ramFromReport(r, { estimatedInitialClones: 500000 }))
+	test.isEqual("108GiB", resources.ramFromReport(r, { estimatedInitialClones: 2913473 }))
 }
 
 TestNoEstimateFallsBackToInputSizing := func() {
