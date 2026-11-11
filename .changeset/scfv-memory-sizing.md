@@ -14,4 +14,4 @@ Size memory from the input instead of fixed amounts, and deduplicate across proj
 - PTabler and table-import steps use the SDK's size-based defaults.
 - Every command carries a `scfv: ` name, shown in errors and backend job names.
 - Results are reused across projects with different sample names: the clonotype aggregation and QC report run on anonymized samples, and template identities are pinned.
-- The SDK is updated to workflow-tengo 6.16.0.
+- The SDK is updated to workflow-tengo 6.22.2 and model/ui-vue 1.88.16.
