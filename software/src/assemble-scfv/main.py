@@ -286,8 +286,18 @@ result = result.with_columns(
     isProductive=is_productive_expr
 )
 
+# Representative row per construct-aa: most UMIs (if present), then most reads,
+# then smallest construct-nt, then smallest clone ids. The order is total, so
+# sums and first() below do not depend on the input row order.
+count_cols = (['umiCount'] if 'umiCount' in result.columns else []) + ['readCount']
+tie_cols = ['construct-nt', 'cloneId-IGHeavy', 'cloneId-IGLight']
+result = result.sort(
+    ['construct-aa'] + count_cols + tie_cols,
+    descending=[False] + [True] * len(count_cols) + [False] * len(tie_cols),
+)
+
 # Group by 'construct-aa' and aggregate
-# Sum readCount and readFraction, take first value for all other columns
+# Sum readCount and readFraction, take the representative row for all other columns
 agg_expressions = [
     pl.sum('readCount'),
     pl.sum('readFraction')
@@ -303,7 +313,7 @@ other_cols = [col for col in result.columns if col not in [
 agg_expressions.extend([pl.first(col) for col in other_cols])
 
 # Perform the groupby operation
-result = result.group_by('construct-aa').agg(agg_expressions)
+result = result.group_by('construct-aa', maintain_order=True).agg(agg_expressions)
 
 result = result.sort("construct-nt")
 

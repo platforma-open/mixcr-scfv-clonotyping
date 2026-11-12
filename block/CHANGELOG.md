@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.5.7
+
+### Patch Changes
+
+- 60eabbf: The scFv assembly keeps the most-read nucleotide variant of each amino-acid construct (most UMIs first when UMIs are present), so results no longer change between runs.
+
 ## 3.5.6
 
 ### Patch Changes
