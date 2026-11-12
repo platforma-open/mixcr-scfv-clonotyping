@@ -1,0 +1,199 @@
+// Memory and CPU of each exec the block runs.
+//
+// Every row grants
+//
+//     ram = max(floor, memIntercept + memSlope x input GiB), rounded up to a whole GiB
+//
+// where `input GiB` is the stored size of the files the exec stages under INPUT_TAG, summed, and
+// `floor` is the row's memFloor raised to the user's memory setting for that step, when one is set.
+// No row has a ceiling.
+//
+// MiXCR runs one exec per step of the plan `analyze --dry-run-json` writes, per chain. A step
+// takes its (step, class) row of _STEP_ROWS, then its (step, "any") row, then DEFAULT. The class
+// comes from the preset: "none" for generic-amplicon, "umi" for generic-amplicon-with-umi.
+// `assemble` of class "none" takes its memory from align's clone estimate (_CLONE_ROW) when the
+// align report carries one.
+//
+// scFv runs the same MiXCR steps as mixcr-clonotyping. Rows without scFv measurements of their
+// own (CPU, refineTagsAndSort, assemble with UMIs, qc, DEFAULT) take mixcr-clonotyping's
+// per-step rows.
+
+exec := import("@platforma-sdk/workflow-tengo:exec")
+ll := import("@platforma-sdk/workflow-tengo:ll")
+math := import("math")
+
+f := exec.formula
+
+// The tag every sized exec puts on the files it is sized from.
+INPUT_TAG := "input"
+
+// Backends that cannot evaluate resource formulas get max(floor, this).
+_FALLBACK_GIB := 64
+
+// The execs outside the MiXCR plan. memSlope is GiB per GiB of input.
+//
+// Rows are fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at 0.1% and 0.5%
+// substitution and indel rates, run on MiXCR 4.7.0-403.
+_ROWS := {
+	// Sized from the chain's .clna.
+	exportClones: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 1.1 },
+	exportAlignments: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 0 },
+
+	// Reads the report header of every sample's .clna.
+	exportReports: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0 },
+
+	// assembleScfv is sized from the four TSVs it reads, construct-annotations from the TSV
+	// assembleScfv wrote.
+	assembleScfv: { cpu: 4, memFloor: 4, memIntercept: 4, memSlope: 5 },
+	annotateScfv: { cpu: 4, memFloor: 2, memIntercept: 2, memSlope: 2.5 }
+}
+
+// The steps of the MiXCR plan. A row with `override: false` takes no user setting.
+_STEP_ROWS := [
+	// `analyze --dry-run-json` resolves the preset and writes the step list; it reads no data.
+	{ step: "plan", class: "any", cpu: 1, memFloor: 4, memIntercept: 0, memSlope: 0, override: false },
+
+	// `align` streams its input, so the grant does not grow with the sample: peak RSS 2.2-4.8 GiB
+	// at 1M-20M scFv reads.
+	{ step: "align", class: "any", cpu: 16, memFloor: 16, memIntercept: 16, memSlope: 0 },
+
+	// Sized from the .vdjca.
+	{ step: "refineTagsAndSort", class: "any", cpu: 16, memFloor: 32, memIntercept: 6, memSlope: 14 },
+	{ step: "assemble", class: "umi", cpu: 16, memFloor: 32, memIntercept: 0, memSlope: 10 },
+
+	// Without a clone estimate: the whole-chain scFv `analyze` fit, whose peak is assemble, 16 GiB
+	// + 40 GiB per GiB of gzipped reads (heavy; light is 14 + 34). Per GiB of .vdjca it is no
+	// smaller as long as a chain's .vdjca is no smaller than its gzipped reads; align saves every
+	// aligned read (`saveOriginalReads`).
+	{ step: "assemble", class: "none", cpu: 16, memFloor: 32, memIntercept: 16, memSlope: 40 },
+
+	// Sized from the .clna it reads.
+	{ step: "qc", class: "any", cpu: 4, memFloor: 32, memIntercept: 8, memSlope: 16 }
+]
+
+// A step the table does not list.
+DEFAULT := { step: "default", class: "any", cpu: 16, memFloor: 64, memIntercept: 0, memSlope: 4 }
+
+// The memory of `assemble` of class "none" from the align report:
+//
+//     ram = max(memFloor, memIntercept + memPerMClones x M clones)
+//
+// rounded up to a whole GiB, where `M clones` is the report's estimatedInitialClones in
+// millions. Class "umi" has no clone row and stays on .vdjca sizing.
+//
+// Fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at two error profiles, HiFi
+// and error-rich. The row grants at least 1.6x every measured need: the bisect floor at 1M and
+// 4M reads, the peak under a fixed grant at 10M and 20M. The cost per clone spans 8.7-23 GiB per
+// M clones; the error-rich libraries set the slope, so HiFi data is over-granted 1.6-3.6x.
+_CLONE_ROW := { step: "assemble", class: "none", memFloor: 32, memIntercept: 0, memPerMClones: 37 }
+
+_stepByKey := {}
+for r in _STEP_ROWS {
+	_stepByKey[r.step + "/" + r.class] = r
+}
+
+// _raiseFloor returns a copy of `r` with its memFloor raised to floorGiB, when that is set and
+// larger.
+_raiseFloor := func(r, floorGiB) {
+	r = copy(r)
+	if !is_undefined(floorGiB) && r.override != false {
+		floorGiB = int(math.ceil(floorGiB))
+		if floorGiB > r.memFloor {
+			r.memFloor = floorGiB
+		}
+	}
+	return r
+}
+
+// row returns the row of an exec outside the MiXCR plan. An optional floorGiB, when set and
+// larger, raises its memFloor.
+row := func(step, ...floor) {
+	ll.assert(len(floor) <= 1, "row takes one optional floor")
+	r := _ROWS[step]
+	ll.assert(!is_undefined(r), "no resources row for step %v", step)
+	return _raiseFloor(r, len(floor) == 1 ? floor[0] : undefined)
+}
+
+// stepRow returns the row a MiXCR step of class `cls` takes, its memFloor raised to floorGiB
+// when that is set and larger.
+stepRow := func(step, cls, floorGiB) {
+	r := _stepByKey[step + "/" + cls]
+	if is_undefined(r) {
+		r = _stepByKey[step + "/any"]
+	}
+	if is_undefined(r) {
+		ll.print("step %v used the default grant", step)
+		r = copy(DEFAULT)
+		r.step = step
+	}
+	return _raiseFloor(r, floorGiB)
+}
+
+// cloneRow returns _CLONE_ROW when `step` of class `cls` is sized from the align report, or
+// undefined when the step is sized from its input alone.
+cloneRow := func(step, cls) {
+	if step == _CLONE_ROW.step && cls == _CLONE_ROW.class {
+		return _CLONE_ROW
+	}
+	return undefined
+}
+
+// reportRow returns the cloneRow of `step`, its memFloor raised to floorGiB when that is set and
+// larger. A memory setting raises the floor; it never takes the step off report sizing.
+reportRow := func(step, cls, floorGiB) {
+	r := cloneRow(step, cls)
+	if is_undefined(r) {
+		return undefined
+	}
+	return _raiseFloor(r, floorGiB)
+}
+
+// ramFromReport returns the memory request of a cloneRow for the parsed align report, or
+// undefined when the report carries no clone estimate.
+ramFromReport := func(r, report) {
+	if !is_map(report) || is_undefined(report.estimatedInitialClones) {
+		return undefined
+	}
+	clones := float(report.estimatedInitialClones) / 1000000.0
+	gib := int(math.ceil(r.memIntercept + r.memPerMClones * clones))
+	return string(gib > r.memFloor ? gib : r.memFloor) + "GiB"
+}
+
+// ram returns the memory request of a row: a fixed amount when its slope is 0, an exec.formula
+// over the INPUT_TAG files otherwise.
+ram := func(r) {
+	if r.memSlope == 0 {
+		gib := r.memIntercept > r.memFloor ? r.memIntercept : r.memFloor
+		return string(gib) + "GiB"
+	}
+	// The formula takes integers only, so the slope goes in as hundredths.
+	slopeHundredths := int(r.memSlope * 100 + 0.5)
+	formula := f.gib(r.memIntercept).
+		plus(f.size(INPUT_TAG).times(slopeHundredths).dividedBy(100)).
+		dividedBy(f.gib(1)).times(f.gib(1)). // dividedBy ceils, so this rounds up to a whole GiB
+		atLeast(f.gib(r.memFloor))
+	fallback := r.memFloor > _FALLBACK_GIB ? r.memFloor : _FALLBACK_GIB
+	return formula.staticFallback(f.gib(fallback))
+}
+
+// apply sets the CPU and memory of a row on an exec builder. cpuOverride, when set, replaces the
+// row's CPU, except on a row with `override: false`. fixedRam, when given and set, replaces the
+// row's memory.
+apply := func(cmd, r, cpuOverride, ...fixedRam) {
+	cpu := is_undefined(cpuOverride) || r.override == false ? r.cpu : cpuOverride
+	mem := len(fixedRam) > 0 && !is_undefined(fixedRam[0]) ? fixedRam[0] : ram(r)
+	cmd.resources({ onCPU: { cpu: cpu, ram: mem } })
+	return cmd
+}
+
+export {
+	INPUT_TAG: INPUT_TAG,
+	DEFAULT: DEFAULT,
+	row: row,
+	stepRow: stepRow,
+	cloneRow: cloneRow,
+	reportRow: reportRow,
+	ramFromReport: ramFromReport,
+	ram: ram,
+	apply: apply
+}

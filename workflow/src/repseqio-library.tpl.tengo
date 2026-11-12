@@ -1,3 +1,9 @@
+// Identity of this template for the platform's deduplication: the template's inputs, their
+// values and this UUID decide whether a result is reused. The UUID covers every template this one
+// renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
+// the next block update.
+//tengo:hash_override A2DAD3B6-3240-46C6-B3FE-61BE84CFE51B
+
 // repseqio-library template for generating reference library from V and J FASTA files
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
@@ -14,6 +20,7 @@ self.body(func(inputs) {
     chains := inputs.chains // e.g. "IGH" or "IGK"
 
     repseqioVgeneCmd := exec.builder().
+        name("scfv: ref " + chains + " fromFasta V").
         software(repseqioSw).
         arg("fromFasta").
         arg("--chain").arg(chains).
@@ -32,6 +39,7 @@ self.body(func(inputs) {
     referenceLibraryVgene := repseqioVgeneResult.getFile("vGene.json")
 
     repseqioJgeneCmd := exec.builder().
+        name("scfv: ref " + chains + " fromFasta J").
         software(repseqioSw).
         arg("fromFasta").
         arg("--chain").arg(chains).
@@ -50,6 +58,7 @@ self.body(func(inputs) {
     referenceLibraryJgene := repseqioJgeneResult.getFile("jGene.json")
 
     repseqioMergeCmd := exec.builder().
+        name("scfv: ref " + chains + " merge").
         software(repseqioSw).
         arg("merge").
         addFile("vGene.json", referenceLibraryVgene).
@@ -67,6 +76,7 @@ self.body(func(inputs) {
 
     // inferPoints for V
     repseqioInferPointsVCmd := exec.builder().
+        name("scfv: ref " + chains + " inferPoints V").
         software(repseqioSw).
         arg("inferPoints").
         arg("--gene-feature").arg("VRegion").
@@ -86,6 +96,7 @@ self.body(func(inputs) {
 
     // inferPoints for J
     repseqioInferPointsJCmd := exec.builder().
+        name("scfv: ref " + chains + " inferPoints J").
         software(repseqioSw).
         arg("inferPoints").
         arg("--gene-feature").arg("JRegion").
@@ -105,6 +116,7 @@ self.body(func(inputs) {
 
     // compile the library
     repseqioCompileCmd := exec.builder().
+        name("scfv: ref " + chains + " compile").
         software(repseqioSw).
         arg("compile").
         arg("--force").

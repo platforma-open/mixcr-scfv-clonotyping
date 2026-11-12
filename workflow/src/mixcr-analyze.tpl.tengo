@@ -1,4 +1,12 @@
-// mixcr analyze
+// Identity of this template for the platform's deduplication: the template's inputs, their
+// values and this UUID decide whether a result is reused. The UUID covers every template this one
+// renders. Rotate it when the template's results change; a rotated UUID re-runs every result on
+// the next block update.
+//tengo:hash_override 8E5A4091-90A2-4D48-807B-101286708E88
+
+// MiXCR for one sample, per chain: `mixcr analyze --dry-run-json` plans the run with the
+// arguments `analyze` would get, and :run-steps runs the steps it lists, one exec per step, each
+// with its CPU and memory from :resources. Then the exports, assembleScfv and its annotation.
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
 smart := import("@platforma-sdk/workflow-tengo:smart")
@@ -7,20 +15,29 @@ ll := import("@platforma-sdk/workflow-tengo:ll")
 exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 render := import("@platforma-sdk/workflow-tengo:render")
-pframes := import("@platforma-sdk/workflow-tengo:pframes")
+maps := import("@platforma-sdk/workflow-tengo:maps")
 pcolumn := import("@platforma-sdk/workflow-tengo:pframes.pcolumn")
-xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
-file := import("@platforma-sdk/workflow-tengo:file")
 times := import("times")
 text := import("text")
 
 json := import("json")
 
+resources := import(":resources")
+mixcrCmd := import(":mixcr-cmd")
+mixcrSteps := import(":mixcr-steps")
+
 self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv", "clnsIGHeavy", "clnsIGLight"])
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
+// The planned steps size the JVM heap from the memory each one is granted.
+mixcrStepSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:memory-from-limits")
+runStepsTpl := assets.importTemplate(":run-steps")
 
-progressPrefix := "[==PROGRESS==]"
+CACHE_PERIOD := 48 * times.hour
+
+// The keys of a chain's log map: the planner's stream sorts before every planned step.
+PLAN_LOG_KEY := "000:plan"
+STEPS_LOG_KEY := "steps"
 
 /** Formats the assembling feature for MiXCR. */
 formatAssemblingFeature := func(assemblingFeature, truncateFR4) {
@@ -61,76 +78,29 @@ self.body(func(inputs) {
 			fileTxt: "result.assemble.report.txt"
 		} ]
 
-	// run single MiXCR command for single chain
-	runMixcr := func(chain, assemblingFeature, tagPattern, exportArgs) {
+	inputTag := { tag: resources.INPUT_TAG }
+	chainName := { IGHeavy: "heavy", IGLight: "light" }
 
-		mixcrCmdBuilder := exec.builder().
-			printErrStreamToStdout().
-			env("MI_PROGRESS_PREFIX", progressPrefix).
-			software(mixcrSw).
-			cpu(inputs.mixcrCpu).
-			mem(string(inputs.mixcrMem) + "GiB").
-			secret("MI_LICENSE", "MI_LICENSE").
-			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
-			arg("analyze").
-			arg("--use-local-temp")
+	// The class :resources sizes the steps by: generic-amplicon-with-umi refines tags.
+	stepClass := hasUMIs ? "umi" : "none"
 
-		if hasUMIs {
-			mixcrCmdBuilder.arg("generic-amplicon-with-umi")
-		} else {
-			mixcrCmdBuilder.arg("generic-amplicon")
-		}
-		
-		// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
-		if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
-			mixcrCmdBuilder.arg("--species").arg("custom")
-		} else {
-			mixcrCmdBuilder.arg("--species").arg(inputs.species)
-		}
-
-		mixcrCmdBuilder = mixcrCmdBuilder.arg("--rna").
-			arg("--rigid-left-alignment-boundary").
-			arg("--rigid-right-alignment-boundary")
-
-		// attach per-chain custom reference if provided
-		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
-			mixcrCmdBuilder.arg("--library").arg("heavyLibrary.json").addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
-		}
-		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
-			mixcrCmdBuilder.arg("--library").arg("lightLibrary.json").addFile("lightLibrary.json", inputs.referenceLibraryLight)
-		}
-
-		mixcrCmdBuilder.
-			arg("--tag-pattern").arg(tagPattern).
-			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature, truncateFR4)).
-			arg("-Malign.tagUnstranded=true").
-			arg("-Malign.parameters.saveOriginalReads=true").
-			// force J alignment to the end of the read
-			arg("-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000").
-			arg("-Massemble.clnaOutput=true")
-
-		// Clone clustering tuning
-		cloneClusteringMode := inputs.cloneClusteringMode
-		if cloneClusteringMode == "relaxed" {
-			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters.searchParameters=oneMismatchOrIndel")
-		} else if cloneClusteringMode == "off" {
-			mixcrCmdBuilder.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters=null")
-		}
-
-		if !is_undefined(inputs.limitInput) {
-			mixcrCmdBuilder.arg("--limit-input").arg(string(inputs.limitInput))
-		}
-		
+	// The sample's read files by the names the plan and the steps stage them under, and the
+	// pattern that names them all.
+	readFiles := func() {
+		files := {}
+		pattern := undefined
+		inputMap := inputData.inputs()
 		if inputDataMeta.keyLength == 0 {
 			ll.assert(aggregationAxesNames == [], "unexpected aggregation axes names")
-			inputFile := inputData.inputs()["[]"]
+			inputFile := inputMap["[]"]
 			ll.assert(!is_undefined(inputFile), "unexpected agg group structure")
 			inputFileName := "input." + fileExtension
-			mixcrCmdBuilder.addFile(inputFileName, inputFile)
-			mixcrCmdBuilder.arg(inputFileName)
+			files[inputFileName] = inputFile
+			pattern = inputFileName
 		} else if inputDataMeta.keyLength == 1 {
 			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
-			for sKey, inputFile in inputData.inputs() {
+			for sKey in maps.getKeys(inputMap) {
+				inputFile := inputMap[sKey]
 				key := json.decode(sKey)
 				if len(key) != 1 {
 					ll.panic("malformed key: %v", sKey)
@@ -139,12 +109,13 @@ self.body(func(inputs) {
 				if (r[0] != 'R' && r[0] != "I") || (r[1] != '1' && r[1] != '2') || len(r) != 2 {
 					ll.panic("malformed read index: %v", r)
 				}
-				mixcrCmdBuilder.addFile("input_" + r + "." + fileExtension, inputFile)
+				files["input_" + r + "." + fileExtension] = inputFile
 			}
-			mixcrCmdBuilder.arg("input_{{R}}." + fileExtension)
+			pattern = "input_{{R}}." + fileExtension
 		} else if inputDataMeta.keyLength == 2 {
 			ll.assert(aggregationAxesNames == ["pl7.app/sequencing/lane", "pl7.app/sequencing/readIndex"], "unexpected aggregation axes names")
-			for sKey, inputFile in inputData.inputs() {
+			for sKey in maps.getKeys(inputMap) {
+				inputFile := inputMap[sKey]
 				key := json.decode(sKey)
 				if len(key) != 2 {
 					ll.panic("malformed key: %v", sKey)
@@ -157,68 +128,145 @@ self.body(func(inputs) {
 				if is_undefined(int(lane)) {
 					ll.panic("malformed lane: %v", lane)
 				}
-				mixcrCmdBuilder.addFile("input_L" + lane + "_" + r + "." + fileExtension, inputFile)
+				files["input_L" + lane + "_" + r + "." + fileExtension] = inputFile
 			}
-			mixcrCmdBuilder.arg("input_L{{n}}_{{R}}." + fileExtension)
+			pattern = "input_L{{n}}_{{R}}." + fileExtension
 		} else {
 			ll.panic("too many axes / not supported")
 		}
+		return { files: files, names: maps.getKeys(files), pattern: pattern }
+	}
+	reads := readFiles()
 
-		mixcrCmdBuilder.arg("result")
-
-		mixcrCmdBuilder.saveFile("result.qc.json")
-		mixcrCmdBuilder.saveFile(clnaFileName)
-
-		for report in reports {
-			mixcrCmdBuilder.saveFile(report.fileJson)
-			mixcrCmdBuilder.saveFile(report.fileTxt)
+	// runs MiXCR for a single chain, one exec per planned step
+	runMixcr := func(chain, assemblingFeature, tagPattern, exportArgs) {
+		libraryFile := undefined
+		library := undefined
+		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
+			libraryFile = "heavyLibrary.json"
+			library = inputs.referenceLibraryHeavy
+		}
+		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
+			libraryFile = "lightLibrary.json"
+			library = inputs.referenceLibraryLight
 		}
 
-		mixcrCmdBuilder = mixcrCmdBuilder.cache(48 * times.hour).
-			saveStdoutStream()
-		mixcrCmd := mixcrCmdBuilder.run()
+		// The arguments of the whole-chain `analyze`, less `--threads`, which align gets from its
+		// own grant. The plan reads the reads only to check that they exist, so empty files
+		// under their names stand in for them.
+		planCmd := mixcrCmd.builder(mixcrStepSw).
+			name("scfv: plan " + chainName[chain]).
+			arg("analyze").
+			arg("--dry-run-json").arg(mixcrSteps.STEPS_FILE).
+			arg("--use-local-temp")
+
+		if hasUMIs {
+			planCmd.arg("generic-amplicon-with-umi")
+		} else {
+			planCmd.arg("generic-amplicon")
+		}
+
+		// Use custom species when custom libraries are provided OR species is not set (custom reference modes)
+		if !is_undefined(inputs.referenceLibraryHeavy) || !is_undefined(inputs.referenceLibraryLight) {
+			planCmd.arg("--species").arg("custom")
+		} else {
+			planCmd.arg("--species").arg(inputs.species)
+		}
+
+		planCmd.arg("--rna").
+			arg("--rigid-left-alignment-boundary").
+			arg("--rigid-right-alignment-boundary")
+
+		// attach per-chain custom reference if provided
+		if !is_undefined(library) {
+			planCmd.arg("--library").arg(libraryFile).addFile(libraryFile, library)
+		}
+
+		planCmd.
+			arg("--tag-pattern").arg(tagPattern).
+			arg("--assemble-clonotypes-by").arg(formatAssemblingFeature(assemblingFeature, truncateFR4)).
+			arg("-Malign.tagUnstranded=true").
+			arg("-Malign.parameters.saveOriginalReads=true").
+			// force J alignment to the end of the read
+			arg("-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000").
+			arg("-Massemble.clnaOutput=true")
+
+		// Clone clustering tuning
+		cloneClusteringMode := inputs.cloneClusteringMode
+		if cloneClusteringMode == "relaxed" {
+			planCmd.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters.searchParameters=oneMismatchOrIndel")
+		} else if cloneClusteringMode == "off" {
+			planCmd.arg("-Massemble.cloneAssemblerParameters.cloneClusteringParameters=null")
+		}
+
+		if !is_undefined(inputs.limitInput) {
+			planCmd.arg("--limit-input").arg(string(inputs.limitInput))
+		}
+
+		for name in reads.names {
+			planCmd.writeFile(name, "")
+		}
+		planCmd.arg(reads.pattern).arg(mixcrSteps.OUTPUT_PREFIX).saveFileContent(mixcrSteps.STEPS_FILE)
+		resources.apply(planCmd, resources.stepRow("plan", stepClass, undefined), undefined)
+		planRun := planCmd.cache(CACHE_PERIOD).run()
+
+		// The block files the steps may stage by name: the reads and the chain's library.
+		files := smart.mapBuilder()
+		for name in reads.names {
+			files.addRef(name, reads.files[name])
+		}
+		if !is_undefined(library) {
+			files.addRef(libraryFile, library)
+		}
+
+		// The settings go in as metaInputs, out of the deduplication key: a change to them must
+		// not re-run the chain.
+		stepsRun := render.create(
+			runStepsTpl,
+			{
+				steps: planRun.getFileContent(mixcrSteps.STEPS_FILE),
+				files: files.lockAndBuild(),
+				chainName: chainName[chain],
+				readNames: reads.names,
+				readsPattern: reads.pattern,
+				stepClass: stepClass,
+				reports: reports
+			},
+			{ metaInputs: { mixcrMem: inputs.mixcrMem, mixcrCpu: inputs.mixcrCpu } }
+		)
+		clna := stepsRun.output("clns", CACHE_PERIOD)
 
 		// run export alignments
-		alignments := exec.builder().
+		alignments := mixcrCmd.base(mixcrSw).
+			name("scfv: exportAligns " + chainName[chain]).
 			printErrStreamToStdout().
-			software(mixcrSw).
-			cpu(2).
-			mem(string(inputs.mixcrMem) + "GiB").
-			secret("MI_LICENSE", "MI_LICENSE").
-			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportAlignments")
-			
+
 		if hasUMIs {
 			alignments = alignments.arg("-tags").arg("Molecule")
-		} 
+		}
 
 		alignments = alignments.
 			arg("-cloneId").
 			arg("-descrR1").
 			arg("--drop-default-fields")
-			if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
-				alignments = alignments.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
-			}
-			if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
-				alignments = alignments.addFile("lightLibrary.json", inputs.referenceLibraryLight)
-			}
-			alignments = alignments.arg(clnaFileName).
+		if !is_undefined(library) {
+			alignments = alignments.addFile(libraryFile, library)
+		}
+		alignments = alignments.arg(clnaFileName).
 			arg("alignments.tsv").
-			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
-			saveFile("alignments.tsv").
+			addFile(clnaFileName, clna).
+			saveFile("alignments.tsv")
+		alignments = resources.apply(alignments, resources.row("exportAlignments", inputs.mixcrMem), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("alignments.tsv")
 
 
 		// run export clones
-		clones := exec.builder().
+		clones := mixcrCmd.base(mixcrSw).
+			name("scfv: exportClones " + chainName[chain]).
 			printErrStreamToStdout().
-			software(mixcrSw).
-			cpu(2).
-			mem("16GiB").
-			secret("MI_LICENSE", "MI_LICENSE").
-			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportClones").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
@@ -236,36 +284,35 @@ self.body(func(inputs) {
 			}
 		}
 
-		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
-			clones = clones.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
-		}
-		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
-			clones = clones.addFile("lightLibrary.json", inputs.referenceLibraryLight)
+		if !is_undefined(library) {
+			clones = clones.addFile(libraryFile, library)
 		}
 
 		clones = clones.
 			arg(clnaFileName).
 			arg("clones.tsv").
-			addFile(clnaFileName, mixcrCmd.getFile(clnaFileName)).
-			saveFile("clones.tsv").
+			addFile(clnaFileName, clna, inputTag).
+			saveFile("clones.tsv")
+		clones = resources.apply(clones, resources.row("exportClones", inputs.mixcrMem), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("clones.tsv")
 
 
-		reportsMap := pcolumn.resourceMapBuilder( /* keyLength */ 2 )
-		for report in reports {
-			reportsMap.add([report.id, "json"], mixcrCmd.getFile(report.fileJson))
-			reportsMap.add([report.id, "txt"], mixcrCmd.getFile(report.fileTxt))
-		}
-
 		result := {
-			qc: mixcrCmd.getFile("result.qc.json"),
-			log: mixcrCmd.getStdoutStream(),
-			reports: reportsMap.build(),
+			qc: stepsRun.output("qc", CACHE_PERIOD),
+			// One stream per step, keyed by `003:assemble`: the planner's under PLAN_LOG_KEY, the
+			// planned steps' nested under STEPS_LOG_KEY, and the steps after align nested again
+			// under `after-align` when assemble is sized from the align report. The planner's
+			// stream shows when planning fails and no step starts.
+			log: pcolumn.resourceMapBuilder( /* keyLength */ 1 ).
+				add([PLAN_LOG_KEY], planRun.getStdoutStream()).
+				add([STEPS_LOG_KEY], stepsRun.output("log", CACHE_PERIOD)).
+				build(),
+			reports: stepsRun.output("reports", CACHE_PERIOD),
 			alignments: alignments,
 			clones: clones,
-			clns: mixcrCmd.getFile(clnaFileName)
+			clns: clna
 		}
 
 		return result
@@ -285,6 +332,7 @@ self.body(func(inputs) {
 
 
     assembleScFv := exec.builder().
+		name("scfv: assembleScfv").
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:main")).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
@@ -292,30 +340,29 @@ self.body(func(inputs) {
 	if !is_undefined(inputs.lightImputeSequence) {
 		assembleScFv = assembleScFv.arg("--light-impute").arg(inputs.lightImputeSequence).arg("--no-light")
 	}
-    assembleScFv = assembleScFv.addFile("hc.clones.tsv", heavy.clones).
-        addFile("hc.alignments.tsv", heavy.alignments)
+    assembleScFv = assembleScFv.addFile("hc.clones.tsv", heavy.clones, inputTag).
+        addFile("hc.alignments.tsv", heavy.alignments, inputTag)
     if is_undefined(inputs.lightImputeSequence) {
         assembleScFv = assembleScFv.
-            addFile("lc.clones.tsv", light.clones).
-            addFile("lc.alignments.tsv", light.alignments)
+            addFile("lc.clones.tsv", light.clones, inputTag).
+            addFile("lc.alignments.tsv", light.alignments, inputTag)
     }
-	assembleScFv = assembleScFv.saveFile("result.tsv").
-		cpu(inputs.assembleScfvCpu).
-		mem(string(inputs.assembleScfvMem) + "GiB").
+	assembleScFv = resources.apply(assembleScFv, resources.row("assembleScfv", inputs.assembleScfvMem), inputs.assembleScfvCpu).
+		saveFile("result.tsv").
 		cache(48 * times.hour).
 		run()
 
 	annotateScFv := exec.builder().
+		name("scfv: annotateScfv").
 		software(assets.importSoftware("@platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv:construct-annotations")).
 		arg("--input_tsv").arg("input.tsv").
 		arg("--output_tsv").arg("result.tsv").
 		arg("--order").arg(inputs.order).
 		arg("--linker").arg(inputs.linker).
 		arg("--hinge").arg(inputs.hinge).
-		addFile("input.tsv", assembleScFv.getFile("result.tsv")).
-		saveFile("result.tsv").
-		cpu(inputs.assembleScfvCpu).
-		mem(string(inputs.assembleScfvMem) + "GiB").
+		addFile("input.tsv", assembleScFv.getFile("result.tsv"), inputTag).
+		saveFile("result.tsv")
+	annotateScFv = resources.apply(annotateScFv, resources.row("annotateScfv", inputs.assembleScfvMem), inputs.assembleScfvCpu).
 		cache(48 * times.hour).
 		run()
 
