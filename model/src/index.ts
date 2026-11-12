@@ -65,11 +65,13 @@ export type BlockArgs = {
   lightVGenes?: string;
   lightJGenes?: string;
 
-  // GiB. The least memory each chain's MiXCR analyze gets; unset leaves it to the input size.
+  // GiB. The least memory each MiXCR step and export gets; unset leaves it to the input size.
   mixcrMem?: number;
+  // The CPU of every MiXCR step; unset leaves each step its own.
   mixcrCpu?: number;
   // GiB. The least memory scFv assembly and annotation get; unset leaves it to the input size.
   assembleScfvMem?: number;
+  // The CPU of scFv assembly and annotation; unset leaves each its own.
   assembleScfvCpu?: number;
   cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
   stopCodonTypes?: StopCodonType[];
@@ -107,12 +109,15 @@ const dataModel = new DataModelBuilder({ kind })
     ...rest,
     subtitleLabel: defaultBlockLabel === "Select Dataset" ? "" : defaultBlockLabel,
   }))
-  // The memory settings are floors under a size-based request. 32 and 64 GiB are the old
-  // defaults; a block holding them gets no floor.
+  // The memory settings are floors under a size-based request, and the CPU settings replace
+  // each step's own CPU. 32 and 64 GiB, 8 and 4 CPUs are the old defaults; a block holding them
+  // gets no floor and keeps each step's own CPU.
   .migrate<BlockData>("v3", (data) => ({
     ...data,
     mixcrMem: data.mixcrMem === 32 ? undefined : data.mixcrMem,
+    mixcrCpu: data.mixcrCpu === 8 ? undefined : data.mixcrCpu,
     assembleScfvMem: data.assembleScfvMem === 64 ? undefined : data.assembleScfvMem,
+    assembleScfvCpu: data.assembleScfvCpu === 4 ? undefined : data.assembleScfvCpu,
   }))
   // A block created from a template starts on the params its kind accepted; one
   // created by hand gets the same defaults this function used to hand out
@@ -140,8 +145,6 @@ const dataModel = new DataModelBuilder({ kind })
     heavyJGenes: params?.heavyJGenes,
     lightVGenes: params?.lightVGenes,
     lightJGenes: params?.lightJGenes,
-    mixcrCpu: 8,
-    assembleScfvCpu: 4,
     cloneClusteringMode: params?.cloneClusteringMode ?? "relaxed",
     stopCodonTypes: params?.stopCodonTypes,
     stopCodonReplacements: params?.stopCodonReplacements,

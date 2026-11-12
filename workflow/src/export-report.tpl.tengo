@@ -6,7 +6,6 @@
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
 ll := import("@platforma-sdk/workflow-tengo:ll")
-exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
 pt := import("@platforma-sdk/workflow-tengo:pt")
 maps := import("@platforma-sdk/workflow-tengo:maps")
@@ -15,11 +14,35 @@ xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 json := import("json")
 
 resources := import(":resources")
+mixcrCmd := import(":mixcr-cmd")
 qcReportColumns := import(":qc-report-columns")
 
 self.defineOutputs("qcReportTable")
 
 mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
+
+// exportReports runs `exportReportsTable` over the .clna files of one chain ("heavy" or "light")
+// and returns the table it writes. `library` is the chain's custom library, or undefined.
+exportReports := func(chain, clnaFiles, library) {
+    cmd := mixcrCmd.base(mixcrSw).
+        name("scfv: exportReports " + chain).
+        env("MI_USE_SYSTEM_CA", "true").
+        arg("exportReportsTable")
+
+    for i in maps.getKeys(clnaFiles) {
+        fileName := json.decode(i)[0] + "_" + chain + ".clna"
+        cmd.addFile(fileName, clnaFiles[i])
+        cmd.arg(fileName)
+    }
+
+    tsvName := "qc-report-" + chain + ".tsv"
+    cmd.arg(tsvName).saveFile(tsvName)
+    if !is_undefined(library) {
+        cmd.addFile(chain + "Library.json", library)
+    }
+    resources.apply(cmd, resources.row("exportReports"), undefined)
+    return cmd.run().getFile(tsvName)
+}
 
 
 self.body(func(inputs) {
@@ -36,54 +59,13 @@ self.body(func(inputs) {
     // Generate raw TSV files for each chain separately
     heavyRawTsv := undefined
     if len(clnaFilesHeavy) > 0 {
-        exportReportCmdHeavy := exec.builder().
-            name("scfv: exportReports heavy").
-            software(mixcrSw).
-            env("MI_USE_SYSTEM_CA", "true").
-            secret("MI_LICENSE", "MI_LICENSE").
-            env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
-            arg("exportReportsTable")
-
-        for i in maps.getKeys(clnaFilesHeavy) {
-            clnaFile := clnaFilesHeavy[i]
-            fileName := json.decode(i)[0] + "_heavy.clna"
-            exportReportCmdHeavy.addFile(fileName, clnaFile)
-            exportReportCmdHeavy.arg(fileName)
-        }
-        
-        exportReportCmdHeavy.arg("qc-report-heavy.tsv").saveFile("qc-report-heavy.tsv")
-        if !is_undefined(inputs.heavyLibrary) {
-            exportReportCmdHeavy.addFile("heavyLibrary.json", inputs.heavyLibrary)
-        }
-        resources.apply(exportReportCmdHeavy, resources.row("exportReports"), undefined)
-        resultHeavy := exportReportCmdHeavy.run()
-        heavyRawTsv = resultHeavy.getFile("qc-report-heavy.tsv")
+        heavyRawTsv = exportReports("heavy", clnaFilesHeavy, inputs.heavyLibrary)
     }
-    
+
+    // A suppressed light chain still has a null resource per sample, so it is gated on the flag.
     lightRawTsv := undefined
     if !inputs.suppressLight {
-        exportReportCmdLight := exec.builder().
-            name("scfv: exportReports light").
-            software(mixcrSw).
-            env("MI_USE_SYSTEM_CA", "true").
-            secret("MI_LICENSE", "MI_LICENSE").
-            env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
-            arg("exportReportsTable")
-
-        for i in maps.getKeys(clnaFilesLight) {
-            clnaFile := clnaFilesLight[i]
-            fileName := json.decode(i)[0] + "_light.clna"
-            exportReportCmdLight.addFile(fileName, clnaFile)
-            exportReportCmdLight.arg(fileName)
-        }
-        
-        exportReportCmdLight.arg("qc-report-light.tsv").saveFile("qc-report-light.tsv")
-        if !is_undefined(inputs.lightLibrary) {
-            exportReportCmdLight.addFile("lightLibrary.json", inputs.lightLibrary)
-        }
-        resources.apply(exportReportCmdLight, resources.row("exportReports"), undefined)
-        resultLight := exportReportCmdLight.run()
-        lightRawTsv = resultLight.getFile("qc-report-light.tsv")
+        lightRawTsv = exportReports("light", clnaFilesLight, inputs.lightLibrary)
     }
     
     // Use pt to process the TSV files

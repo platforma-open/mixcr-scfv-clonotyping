@@ -103,7 +103,7 @@ TestOnlyBulkAssembleHasACloneRow := func() {
 
 TestCloneRowIs37GiBPerMillionClones := func() {
 	r := resources.cloneRow("assemble", "none")
-	test.isEqual([32, 0, 37, 0], [r.memFloor, r.memIntercept, r.memPerMClones, r.memPerMReads])
+	test.isEqual([32, 0, 37], [r.memFloor, r.memIntercept, r.memPerMClones])
 }
 
 TestRamFromReport := func() {
@@ -158,6 +158,13 @@ TestExportClones := func() {
 TestFlatRows := func() {
 	test.isEqual("4GiB", ramGiB(resources.row("exportAlignments"), 0))
 	test.isEqual("8GiB", ramGiB(resources.row("exportReports"), 0))
+}
+
+TestMemSettingRaisesTheExportFloors := func() {
+	test.isEqual("48GiB", ramGiB(resources.row("exportAlignments", 48), 0))
+	test.isEqual(48, ramGiB(resources.row("exportClones", 48), 10 * GIB))
+	// above the floor, exportClones keeps its input sizing
+	test.isEqual(59, ramGiB(resources.row("exportClones", 48), 50 * GIB))
 }
 
 TestPythonSteps := func() {

@@ -237,45 +237,36 @@ self.body(func(inputs) {
 		clna := stepsRun.output("clns", CACHE_PERIOD)
 
 		// run export alignments
-		alignments := exec.builder().
+		alignments := mixcrCmd.base(mixcrSw).
 			name("scfv: exportAligns " + chainName[chain]).
 			printErrStreamToStdout().
-			software(mixcrSw).
-			secret("MI_LICENSE", "MI_LICENSE").
-			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportAlignments")
-			
+
 		if hasUMIs {
 			alignments = alignments.arg("-tags").arg("Molecule")
-		} 
+		}
 
 		alignments = alignments.
 			arg("-cloneId").
 			arg("-descrR1").
 			arg("--drop-default-fields")
-			if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
-				alignments = alignments.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
-			}
-			if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
-				alignments = alignments.addFile("lightLibrary.json", inputs.referenceLibraryLight)
-			}
-			alignments = alignments.arg(clnaFileName).
+		if !is_undefined(library) {
+			alignments = alignments.addFile(libraryFile, library)
+		}
+		alignments = alignments.arg(clnaFileName).
 			arg("alignments.tsv").
 			addFile(clnaFileName, clna).
 			saveFile("alignments.tsv")
-		alignments = resources.apply(alignments, resources.row("exportAlignments"), undefined).
+		alignments = resources.apply(alignments, resources.row("exportAlignments", inputs.mixcrMem), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("alignments.tsv")
 
 
 		// run export clones
-		clones := exec.builder().
+		clones := mixcrCmd.base(mixcrSw).
 			name("scfv: exportClones " + chainName[chain]).
 			printErrStreamToStdout().
-			software(mixcrSw).
-			secret("MI_LICENSE", "MI_LICENSE").
-			env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
 			arg("exportClones").
 			arg("--dont-split-files").
 			arg("--drop-default-fields")
@@ -293,11 +284,8 @@ self.body(func(inputs) {
 			}
 		}
 
-		if chain == "IGHeavy" && !is_undefined(inputs.referenceLibraryHeavy) {
-			clones = clones.addFile("heavyLibrary.json", inputs.referenceLibraryHeavy)
-		}
-		if chain == "IGLight" && !is_undefined(inputs.referenceLibraryLight) {
-			clones = clones.addFile("lightLibrary.json", inputs.referenceLibraryLight)
+		if !is_undefined(library) {
+			clones = clones.addFile(libraryFile, library)
 		}
 
 		clones = clones.
@@ -305,7 +293,7 @@ self.body(func(inputs) {
 			arg("clones.tsv").
 			addFile(clnaFileName, clna, inputTag).
 			saveFile("clones.tsv")
-		clones = resources.apply(clones, resources.row("exportClones"), undefined).
+		clones = resources.apply(clones, resources.row("exportClones", inputs.mixcrMem), undefined).
 			cache(48 * times.hour).
 			run().
 			getFile("clones.tsv")

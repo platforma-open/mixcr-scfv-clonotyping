@@ -776,11 +776,15 @@ heavy-seq + linker + light-seq (or reverse)"
     <PlNumberField
       v-model="app.model.data.mixcrCpu"
       label="MiXCR CPU (cores)"
+      placeholder="Per step"
+      clearable
       :min-value="1"
       :step="1"
       :max-value="128"
     >
-      <template #tooltip> Sets the number of CPU cores to use for the MiXCR alignment. </template>
+      <template #tooltip>
+        Each MiXCR step gets its own number of CPU cores. Set this to give every step this many.
+      </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.mixcrMem"
@@ -791,18 +795,22 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
     >
       <template #tooltip>
-        MiXCR memory is sized from the size of the input reads. Set this to give it at least this
-        much.
+        Each MiXCR step and export is sized from the size of the files it reads. Set this to give
+        every one at least this much.
       </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"
+      placeholder="4"
+      clearable
       :min-value="1"
       :step="1"
       :max-value="128"
     >
-      <template #tooltip> Sets the number of CPU cores to use for the scFv assembly. </template>
+      <template #tooltip>
+        Sets the number of CPU cores for the scFv assembly and annotation. Unset, each gets 4.
+      </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvMem"

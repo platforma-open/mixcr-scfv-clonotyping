@@ -1,16 +1,22 @@
-// The exec shape of the planning command and of every planned MiXCR step.
+// The exec shape every MiXCR command of the block shares.
 
 exec := import("@platforma-sdk/workflow-tengo:exec")
 
 PROGRESS_PREFIX := "[==PROGRESS==]"
 
-// builder starts a MiXCR command: the MI_LICENSE secret and its debug switch, the progress
-// prefix, and stdout saved with stderr merged in, so the log carries the command's failure text.
-builder := func(mixcrSw) {
+// base starts a MiXCR command of any kind: the software, the MI_LICENSE secret and its debug
+// switch. Every MiXCR exec in the block builds on it.
+base := func(mixcrSw) {
 	return exec.builder().
 		software(mixcrSw).
 		secret("MI_LICENSE", "MI_LICENSE").
-		env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG").
+		env("MI_LICENSE_DEBUG", "MI_LICENSE_DEBUG")
+}
+
+// builder starts the planning command or a planned step: base, plus the progress prefix, and
+// stdout saved with stderr merged in, so the log carries the command's failure text.
+builder := func(mixcrSw) {
+	return base(mixcrSw).
 		env("MI_PROGRESS_PREFIX", PROGRESS_PREFIX).
 		printErrStreamToStdout().
 		saveStdoutStream()
@@ -18,5 +24,6 @@ builder := func(mixcrSw) {
 
 export {
 	PROGRESS_PREFIX: PROGRESS_PREFIX,
+	base: base,
 	builder: builder
 }

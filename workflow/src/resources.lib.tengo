@@ -11,7 +11,7 @@
 // MiXCR runs one exec per step of the plan `analyze --dry-run-json` writes, per chain. A step
 // takes its (step, class) row of _STEP_ROWS, then its (step, "any") row, then DEFAULT. The class
 // comes from the preset: "none" for generic-amplicon, "umi" for generic-amplicon-with-umi.
-// `assemble` of class "none" takes its memory from align's clone estimate (_CLONE_ROWS) when the
+// `assemble` of class "none" takes its memory from align's clone estimate (_CLONE_ROW) when the
 // align report carries one.
 //
 // scFv runs the same MiXCR steps as mixcr-clonotyping. Rows without scFv measurements of their
@@ -74,21 +74,18 @@ _STEP_ROWS := [
 // A step the table does not list.
 DEFAULT := { step: "default", class: "any", cpu: 16, memFloor: 64, memIntercept: 0, memSlope: 4 }
 
-// The memory of `assemble` from the align report:
+// The memory of `assemble` of class "none" from the align report:
 //
-//     ram = max(memFloor, memIntercept + memPerMClones x M clones + memPerMReads x M aligned reads)
+//     ram = max(memFloor, memIntercept + memPerMClones x M clones)
 //
-// rounded up to a whole GiB, where `M clones` is the report's estimatedInitialClones and
-// `M aligned reads` its `aligned`, in millions. scFv assembles by a custom feature range, so
-// every row has feature "any". Class "umi" has no row and stays on .vdjca sizing.
+// rounded up to a whole GiB, where `M clones` is the report's estimatedInitialClones in
+// millions. Class "umi" has no clone row and stays on .vdjca sizing.
 //
 // Fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at two error profiles, HiFi
 // and error-rich. The row grants at least 1.6x every measured need: the bisect floor at 1M and
 // 4M reads, the peak under a fixed grant at 10M and 20M. The cost per clone spans 8.7-23 GiB per
 // M clones; the error-rich libraries set the slope, so HiFi data is over-granted 1.6-3.6x.
-_CLONE_ROWS := [
-	{ class: "none", feature: "any", memFloor: 32, memIntercept: 0, memPerMClones: 37, memPerMReads: 0 }
-]
+_CLONE_ROW := { step: "assemble", class: "none", memFloor: 32, memIntercept: 0, memPerMClones: 37 }
 
 _stepByKey := {}
 for r in _STEP_ROWS {
@@ -132,16 +129,11 @@ stepRow := func(step, cls, floorGiB) {
 	return _raiseFloor(r, floorGiB)
 }
 
-// cloneRow returns the _CLONE_ROWS row `step` of class `cls` takes, or undefined when the step
-// is sized from its input alone.
+// cloneRow returns _CLONE_ROW when `step` of class `cls` is sized from the align report, or
+// undefined when the step is sized from its input alone.
 cloneRow := func(step, cls) {
-	if step != "assemble" {
-		return undefined
-	}
-	for r in _CLONE_ROWS {
-		if r.class == cls && r.feature == "any" {
-			return r
-		}
+	if step == _CLONE_ROW.step && cls == _CLONE_ROW.class {
+		return _CLONE_ROW
 	}
 	return undefined
 }
@@ -163,8 +155,7 @@ ramFromReport := func(r, report) {
 		return undefined
 	}
 	clones := float(report.estimatedInitialClones) / 1000000.0
-	aligned := is_undefined(report.aligned) ? 0.0 : float(report.aligned) / 1000000.0
-	gib := int(math.ceil(r.memIntercept + r.memPerMClones * clones + r.memPerMReads * aligned))
+	gib := int(math.ceil(r.memIntercept + r.memPerMClones * clones))
 	return string(gib > r.memFloor ? gib : r.memFloor) + "GiB"
 }
 
