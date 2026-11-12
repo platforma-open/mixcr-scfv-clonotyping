@@ -50,7 +50,7 @@
       "support": "mailto:support@milaboratories.com",
       "description": "Aligns and processes single-chain variable fragment (scFv) sequences using MiXCR.",
       "longDescription": "file:../docs/description.md",
-      "changelog": "file:../CHANGELOG.md",
+      "changelog": "file:./CHANGELOG.md",
       "tags": [
         "airr",
         "upstream",
