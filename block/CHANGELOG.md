@@ -5,6 +5,11 @@
 ### Patch Changes
 
 - 60eabbf: The scFv assembly keeps the most-read nucleotide variant of each amino-acid construct (most UMIs first when UMIs are present), so results no longer change between runs.
+- 33d3f97: Keep pool text out of the block arguments
+
+  The input dataset name shown in the subtitle is now kept outside the block's arguments,
+  so opening the block no longer changes them. The trace label is unchanged ("MiXCR - scFv"). Existing blocks show as
+  stale once after the update because the arguments change shape.
 
 ## 3.5.6
 
@@ -68,6 +73,7 @@
   SDK bumped: model 1.80.10 → 1.83.0, ui-vue 1.80.10 → 1.83.3, block-tools 2.12.9
   → 2.14.6, workflow-tengo 6.8.2 → 6.8.3, test 1.80.11 → 1.83.6; CI moved to node
   22.x.
+- 1e5fa48: Remove stale `pl-pkg prepublish` script left over from the structurer migration. The script survived migration because the structurer only deletes `prepublishOnly`, not the legacy `prepublish` name; with `@platforma-sdk/package-builder` no longer a dependency, `pl-pkg` was not found at publish time. Software build + push now happen in `block-tools software build`, so no prepublish step is needed.
 
 ## 3.4.11
 
@@ -89,6 +95,7 @@
 
 ### Patch Changes
 
+- a6261d3: Fix `FileNotFoundException: referenceLibrary.json (Permission denied)` when running on the localfs backend. The reference-library workflow invoked `repseqio inferPoints` and `repseqio compile` with the same path for input and output (`referenceLibrary.json`). On localfs, input files are mounted read-only, so the tool could read them but the final write back failed. The output is now written to a separate file (`referenceLibrary.out.json`).
 - Updated dependencies [a6261d3]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.11.2
 
@@ -96,6 +103,12 @@
 
 ### Patch Changes
 
+- 270390d: Input dropdown now requires a `pl7.app/sampleId` axis on the dataset — multiplexed (pre-demux) datasets, which carry a `pl7.app/sampleGroupId` axis instead, no longer appear as valid inputs.
+
+  When the dropdown would be empty, the settings panel now shows an inline hint:
+
+  - multiplexed FASTQ detected → suggest adding a `FASTQ Demultiplexing` block;
+  - no FASTQ at all → suggest adding/running a `Samples & Data` block.
 - Updated dependencies [270390d]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.7.1
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.8.1
@@ -104,6 +117,7 @@
 
 ### Patch Changes
 
+- 499b4cf: Bump mixr version to 4.7.0-347-develop (switch back to default GC)
 - Updated dependencies [499b4cf]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.11.1
 
@@ -111,6 +125,7 @@
 
 ### Patch Changes
 
+- 98e6acc: Migrate to BlockModelV3 with `DataModelBuilder` and add Preview / Dry run mode (100,000 reads per sample) so users can verify settings before launching a full analysis.
 - Updated dependencies [98e6acc]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.11.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.7.0
@@ -120,6 +135,7 @@
 
 ### Patch Changes
 
+- e227947: Upgrade MiXCR to 4.7.0-343-develop — packed NucleotideSequence storage for 4x memory reduction
 - Updated dependencies [e227947]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.10.5
 
@@ -137,6 +153,7 @@
 
 ### Patch Changes
 
+- f1d54dc: Upgrade MiXCR to 4.7.0-317-develop — increases JVM non-heap memory headroom to fix OOM on export
 - Updated dependencies [f1d54dc]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.10.3
 
@@ -144,6 +161,7 @@
 
 ### Patch Changes
 
+- 68c413a: Add new mutation columns
 - Updated dependencies [68c413a]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.10.2
 
@@ -151,6 +169,7 @@
 
 ### Patch Changes
 
+- 97ed624: Upgrade MiXCR to 4.7.0-300-develop, add MI_LICENSE_DEBUG env, use --use-local-temp, show loading spinner while sample list loads
 - Updated dependencies [97ed624]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.10.1
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.6.1
@@ -184,6 +203,7 @@
 
 ### Patch Changes
 
+- e08ddde: aggregated columns added (supporting samples, reads (umi))
 - Updated dependencies [e08ddde]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.8.0
 
@@ -191,6 +211,7 @@
 
 ### Patch Changes
 
+- f83e6a3: Fix FASTA generation
 - Updated dependencies [f83e6a3]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.7.0
 
@@ -224,6 +245,7 @@
 
 ### Patch Changes
 
+- c50b273: mixcr assemble options addded
 - Updated dependencies [c50b273]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.4.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.3.0
@@ -251,6 +273,7 @@
 
 ### Patch Changes
 
+- 253e280: isProductive column values changed to true or false, sdk update
 - Updated dependencies [253e280]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.3.0
 
@@ -264,6 +287,7 @@
 
 ### Patch Changes
 
+- 96faad3: added raw tables export button
 - Updated dependencies [96faad3]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.2.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.2.0
@@ -273,6 +297,7 @@
 
 ### Patch Changes
 
+- 99ea6c9: Support parquet format (update SDK)
 - Updated dependencies [99ea6c9]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.1.2
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.2.1
@@ -281,6 +306,7 @@
 
 ### Patch Changes
 
+- f69364b: Validation added for linker and hinge and bug fix
 - Updated dependencies [f69364b]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.2.0
 
@@ -306,6 +332,7 @@
 
 ### Patch Changes
 
+- c5df56e: support absence of light chain in data in case of using custom reference
 - Updated dependencies [c5df56e]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.1.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.1.0
@@ -326,11 +353,13 @@
 ### Patch Changes
 
 - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.0.2
+- 2567616: fix polars version
 
 ## 3.0.1
 
 ### Patch Changes
 
+- 3358e40: Fix CID conflict
 - Updated dependencies [3358e40]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@3.0.1
 
@@ -356,6 +385,7 @@
 ### Patch Changes
 
 - Updated dependencies [aaa2967]
+- a5fccbc: reference building from user defined sequences support
 - Updated dependencies [a5fccbc]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@2.3.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.4.0
@@ -365,6 +395,7 @@
 
 ### Patch Changes
 
+- dfc69e5: Columns with CDR3 length added
 - Updated dependencies [dfc69e5]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@2.2.0
 
@@ -372,6 +403,7 @@
 
 ### Patch Changes
 
+- f4bd7ab: support batch system
 - Updated dependencies [f4bd7ab]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@2.1.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@1.4.0
@@ -381,6 +413,7 @@
 ### Patch Changes
 
 - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@2.0.1
+- a95c520: Modify python script to drop clonotypes with "region_not_covered" to avoid errors downstream
 
 ## 2.2.0
 
@@ -392,6 +425,7 @@
 
 ### Patch Changes
 
+- 02cb719: chore: update deps
 - Updated dependencies [02cb719]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@2.0.0
 
@@ -399,6 +433,7 @@
 
 ### Patch Changes
 
+- b1a09b6: minor fixes
 - Updated dependencies [b1a09b6]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.5.3
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.3.1
@@ -408,6 +443,7 @@
 
 ### Patch Changes
 
+- 57c2526: Export chain column
 - Updated dependencies [57c2526]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.5.2
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@1.3.1
@@ -417,11 +453,13 @@
 ### Patch Changes
 
 - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.5.1
+- 14e7d67: Group by aa seq of construct
 
 ## 2.1.9
 
 ### Patch Changes
 
+- 17391c1: Ability to override imputed seq
 - Updated dependencies [17391c1]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.5.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.3.0
@@ -431,7 +469,9 @@
 
 ### Patch Changes
 
+- 5323f18: specs similar to mixcr-clonotyping single cell output
 - Updated dependencies [5323f18]
+- 8a502ce: update dependencies
 - Updated dependencies [8a502ce]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.4.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.2.2
@@ -442,11 +482,13 @@
 ### Patch Changes
 
 - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.3.2
+- 3e1e118: Fix productivity
 
 ## 2.1.6
 
 ### Patch Changes
 
+- 0a83f6a: update SDK
 - Updated dependencies [0a83f6a]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.3.1
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.2.1
@@ -456,6 +498,7 @@
 
 ### Patch Changes
 
+- 2eb837e: Added label for clonotype key
 - Updated dependencies [2eb837e]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.3.0
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.2.0
@@ -465,6 +508,7 @@
 
 ### Patch Changes
 
+- 3f073bb: Fix productivity filters
 - Updated dependencies [3f073bb]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.2.1
 
@@ -472,6 +516,7 @@
 
 ### Patch Changes
 
+- 9d700d8: Minor fixes
 - Updated dependencies [9d700d8]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.2.0
 
@@ -479,6 +524,7 @@
 
 ### Patch Changes
 
+- d1bfd67: add species
 - Updated dependencies [d1bfd67]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@1.2.0
 
@@ -486,6 +532,7 @@
 
 ### Patch Changes
 
+- 328f7a4: Add more columns and settings
 - Updated dependencies [328f7a4]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.1.1
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@1.1.1
@@ -543,6 +590,7 @@
 ### Patch Changes
 
 - @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow@1.0.1
+- 307bb4b: chore: change structure
 
 ## 1.0.1
 
