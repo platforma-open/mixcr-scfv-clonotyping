@@ -1,0 +1,69 @@
+// Inert while :mixcr-analyze carries its own override; must stay unique across templates.
+//tengo:hash_override AA5EA820-9B71-4591-9DA4-5A9C02CF5920
+
+// Runs the steps `mixcr analyze --dry-run-json` planned for one chain of one sample, one exec per
+// step, each with its CPU and memory from :resources. A step that has a clone row runs, with
+// every step after it, in :run-steps-after-align, which waits for the align report.
+//
+// A template cannot read the result of a command it started, so the planning command runs in
+// :mixcr-analyze and this template reads back the step list it wrote.
+//
+// mixcrMem and mixcrCpu arrive as meta inputs, out of the deduplication key: a change to them
+// must not re-run the chain.
+
+self := import("@platforma-sdk/workflow-tengo:tpl")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+render := import("@platforma-sdk/workflow-tengo:render")
+mixcrSteps := import(":mixcr-steps")
+stepRunner := import(":step-runner")
+
+self.defineOutputs("qc", "reports", "log", "clns")
+
+mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:memory-from-limits")
+afterAlignTpl := assets.importTemplate(":run-steps-after-align")
+
+self.body(func(inputs) {
+	// name -> file: the template base unmarshals the map input, set fields and pending alike.
+	files := inputs.files
+	plan := mixcrSteps.commands(mixcrSteps.stepsOf(inputs.steps.getDataAsJson()), files, inputs.readsPattern)
+	stepRunner.checkReports(plan, inputs.reports)
+
+	ctx := {
+		sw: mixcrSw,
+		chainName: inputs.chainName,
+		files: files,
+		readNames: inputs.readNames,
+		stepClass: inputs.stepClass,
+		mixcrMem: inputs.mixcrMem,
+		mixcrCpu: inputs.mixcrCpu,
+		written: {},
+		logs: {}
+	}
+	stop := stepRunner.run(plan, 0, ctx)
+	if is_undefined(stop.stopAt) {
+		return stepRunner.outputs(plan, ctx.written, ctx.logs, inputs.reports)
+	}
+
+	rest := render.createEphemeral(afterAlignTpl, {
+		steps: inputs.steps,
+		alignReport: stop.alignReport,
+		files: files,
+		written: ctx.written,
+		args: {
+			from: stop.stopAt,
+			chainName: inputs.chainName,
+			readNames: inputs.readNames,
+			readsPattern: inputs.readsPattern,
+			stepClass: inputs.stepClass,
+			reports: inputs.reports,
+			mixcrMem: inputs.mixcrMem,
+			mixcrCpu: inputs.mixcrCpu
+		}
+	})
+	return {
+		qc: rest.output("qc"),
+		log: stepRunner.splitLog(ctx.logs, rest.output("log")),
+		reports: rest.output("reports"),
+		clns: rest.output("clns")
+	}
+})
