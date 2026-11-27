@@ -15,6 +15,7 @@ import {
   PlTextField,
 } from "@platforma-sdk/ui-vue";
 import { computed, watch } from "vue";
+import { mixcrStepsFor } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model";
 import { useApp } from "../app";
 import { retentive } from "../retentive";
 import { parseFasta } from "../utils/fastaValidator";
@@ -403,6 +404,32 @@ watch(
   },
   { immediate: true, deep: true },
 );
+
+// The MiXCR steps a chain runs, from the tag patterns.
+const mixcrSteps = computed(() =>
+  mixcrStepsFor(app.model.data.heavyTagPattern, app.model.data.lightTagPattern),
+);
+
+function stepMemFloor(step: string): number | undefined {
+  return app.model.data.stepMemFloors?.[step];
+}
+
+function setStepMemFloor(step: string, v: number | undefined) {
+  const all = { ...app.model.data.stepMemFloors };
+  if (v === undefined) delete all[step];
+  else all[step] = v;
+  app.model.data.stepMemFloors = Object.keys(all).length === 0 ? undefined : all;
+}
+
+// What a step gets with no value of its own: the workflow's default floor, raised to MiXCR Minimum
+// Memory when that is larger. "default" until the prerun has published the defaults.
+function stepMemPlaceholder(step: string): string {
+  const cls = mixcrSteps.value.includes("refineTagsAndSort") ? "umi" : "none";
+  const d = app.model.outputs.stepDefaults?.[cls]?.[step];
+  if (d === undefined) return "default";
+  const floor = Math.max(d.memFloor, app.model.data.mixcrMem ?? 0);
+  return d.byCloneCount ? `by clone count (≥ ${floor})` : `default (${floor})`;
+}
 </script>
 
 <template>
@@ -774,40 +801,75 @@ heavy-seq + linker + light-seq (or reverse)"
     />
     <PlSectionSeparator>Resource Allocation</PlSectionSeparator>
     <PlNumberField
-      v-model="app.model.data.mixcrCpu"
-      label="MiXCR CPU (cores)"
-      :min-value="1"
-      :step="1"
-      :max-value="128"
-    >
-      <template #tooltip> Sets the number of CPU cores to use for the MiXCR alignment. </template>
-    </PlNumberField>
-    <PlNumberField
-      v-model="app.model.data.mixcrMem"
-      label="MiXCR Memory (GiB)"
-      :min-value="1"
-      :step="1"
-      :max-value="1012"
-    >
-      <template #tooltip> Sets the amount of memory to use for the MiXCR alignment. </template>
-    </PlNumberField>
-    <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"
+      placeholder="4"
+      clearable
       :min-value="1"
       :step="1"
       :max-value="128"
     >
-      <template #tooltip> Sets the number of CPU cores to use for the scFv assembly. </template>
+      <template #tooltip>
+        Sets the number of CPU cores for the scFv assembly and annotation. Unset, each gets 4.
+      </template>
     </PlNumberField>
     <PlNumberField
       v-model="app.model.data.assembleScfvMem"
-      label="Assemble scFv Memory (GiB)"
+      label="Assemble scFv Minimum Memory (GiB)"
+      placeholder="Sized from input"
+      clearable
       :min-value="1"
       :step="1"
-      :max-value="1012"
     >
-      <template #tooltip> Sets the amount of memory to use for the scFv assembly. </template>
+      <template #tooltip>
+        scFv assembly memory is sized from the size of the exported clones and alignments. Set this
+        to give it at least this much.
+      </template>
     </PlNumberField>
+    <PlNumberField
+      v-model="app.model.data.mixcrCpu"
+      label="MiXCR CPU (cores)"
+      placeholder="Per step"
+      clearable
+      :min-value="1"
+      :step="1"
+      :max-value="128"
+    >
+      <template #tooltip>
+        Each MiXCR step gets its own number of CPU cores. Set this to give every step this many.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.data.mixcrMem"
+      label="MiXCR Minimum Memory (GiB)"
+      placeholder="Sized from input"
+      clearable
+      :min-value="1"
+      :step="1"
+    >
+      <template #tooltip>
+        Each MiXCR step and the clone and alignment exports are sized from the size of the files
+        they read. Set this to give every one at least this much. A value under Per-step memory
+        replaces it for that step. The QC report export keeps its own fixed memory.
+      </template>
+    </PlNumberField>
+    <PlAccordionSection label="Per-step memory">
+      <PlNumberField
+        v-for="step in mixcrSteps"
+        :key="step"
+        :model-value="stepMemFloor(step)"
+        :label="`${step} minimum memory (GiB)`"
+        :placeholder="stepMemPlaceholder(step)"
+        clearable
+        :min-value="1"
+        :step="1"
+        @update:model-value="(v: number | undefined) => setStepMemFloor(step, v)"
+      >
+        <template #tooltip>
+          The least memory this step gets, whatever its input size; it replaces MiXCR Minimum Memory
+          for this step. The step still gets more when its input needs more.
+        </template>
+      </PlNumberField>
+    </PlAccordionSection>
   </PlAccordionSection>
 </template>

@@ -1,0 +1,104 @@
+test := import("@platforma-sdk/workflow-tengo:test")
+ms := import(":mixcr-steps")
+
+// Step lists in the format `mixcr analyze --dry-run-json` writes (milaboratory/mixcr#2156) for the
+// arguments :mixcr-analyze plans a heavy chain with, the reads `input.fastq.gz` and the output
+// prefix `result`. Written by hand from that format: the steps after align read the parameters
+// from the .vdjca header, and `-Massemble.clnaOutput=true` makes assemble write a .clna.
+_ALIGN_ARGS := ["--preset", "generic-amplicon", "--species", "custom", "--rna",
+	"--rigid-left-alignment-boundary", "--rigid-right-alignment-boundary", "--library", "heavyLibrary.json",
+	"--tag-pattern", "^(R1:*)", "--assemble-clonotypes-by", "{FR1Begin:FR4End}",
+	"-Malign.tagUnstranded=true", "-Malign.parameters.saveOriginalReads=true",
+	"-Malign.parameters.jParameters.parameters.scoring.gapOpenPenalty=-1000", "-Massemble.clnaOutput=true",
+	"--use-local-temp"]
+
+_align := func(output) {
+	return ["align", "--report", "result.align.report.txt", "--json-report", "result.align.report.json"] +
+		_ALIGN_ARGS + ["input.fastq.gz", output]
+}
+
+_GENERIC := [
+	_align("result.alignments.vdjca"),
+	["assemble", "--report", "result.assemble.report.txt", "--json-report", "result.assemble.report.json", "--use-local-temp", "result.alignments.vdjca", "result.clna"],
+	["qc", "--print-to-stdout", "result.clna", "result.qc.txt", "result.qc.json"],
+	["exportClones", "result.clna", "result.clones.tsv"]
+]
+
+_UMI := [
+	_align("result.alignments.vdjca"),
+	["refineTagsAndSort", "--report", "result.refine.report.txt", "--json-report", "result.refine.report.json", "result.alignments.vdjca", "result.refined.vdjca"],
+	["assemble", "--report", "result.assemble.report.txt", "--json-report", "result.assemble.report.json", "result.refined.vdjca", "result.clna"],
+	["qc", "--print-to-stdout", "result.clna", "result.qc.txt", "result.qc.json"],
+	["exportClones", "result.clna", "result.clones.tsv"]
+]
+
+_READS := { "input.fastq.gz": true }
+_HEAVY := { "input.fastq.gz": true, "heavyLibrary.json": true }
+
+_keys := func(plan) {
+	out := []
+	for c in plan.commands {
+		out = append(out, c.logKey)
+	}
+	return out
+}
+
+TestGenericAmpliconRunsAlignAssembleQc := func() {
+	plan := ms.commands(_GENERIC, _HEAVY, "input.fastq.gz")
+	test.isEqual(["001:align", "002:assemble", "003:qc"], _keys(plan))
+	align := plan.commands[0]
+	test.isTrue(align.stageReads)
+	test.isEqual([], align.stageSteps)
+	test.isEqual(["result.align.report.txt", "result.align.report.json", "result.alignments.vdjca"], align.save)
+	test.isEqual("result.align.report.json", align.jsonReport)
+	assemble := plan.commands[1]
+	test.isEqual(["result.alignments.vdjca"], assemble.stageSteps)
+	test.isFalse(assemble.stageReads)
+	test.isEqual(["result.assemble.report.txt", "result.assemble.report.json", "result.clna"], assemble.save)
+	test.isEqual("result.clna", plan.clns)
+	test.isEqual("result.qc.json", plan.qcJson)
+	test.isEqual([false, true, true], [plan.commands[0].writesFinalOutput, plan.commands[1].writesFinalOutput,
+		plan.commands[2].writesFinalOutput])
+}
+
+TestUmiRefinesBeforeAssemble := func() {
+	plan := ms.commands(_UMI, _READS, "input.fastq.gz")
+	test.isEqual(["001:align", "002:refineTagsAndSort", "003:assemble", "004:qc"], _keys(plan))
+	test.isEqual(["result.alignments.vdjca"], plan.commands[1].stageSteps)
+	test.isEqual(["result.refined.vdjca"], plan.commands[2].stageSteps)
+	test.isEqual("result.clna", plan.clns)
+}
+
+TestEveryStepGetsTheChainLibrary := func() {
+	for c in ms.commands(_GENERIC, _HEAVY, "input.fastq.gz").commands {
+		test.isEqual(["heavyLibrary.json"], c.stageBlock)
+	}
+	for c in ms.commands(_GENERIC, { "input.fastq.gz": true, "lightLibrary.json": true }, "input.fastq.gz").commands {
+		test.isEqual(["lightLibrary.json"], c.stageBlock)
+	}
+}
+
+TestNoLibraryStagesNoBlockFile := func() {
+	for c in ms.commands(_GENERIC, _READS, "input.fastq.gz").commands {
+		test.isEqual([], c.stageBlock)
+	}
+}
+
+TestExportStepsAreDropped := func() {
+	for c in ms.commands(_UMI, _READS, "input.fastq.gz").commands {
+		test.isFalse(c.key == "exportClones")
+	}
+}
+
+TestPairedReadsPatternStagesTheReads := func() {
+	steps := [["align", "input_{{R}}.fastq.gz", "result.vdjca"], ["assemble", "result.vdjca", "result.clna"],
+		["qc", "result.clna", "result.qc.json"]]
+	plan := ms.commands(steps, { "input_R1.fastq.gz": true, "input_R2.fastq.gz": true }, "input_{{R}}.fastq.gz")
+	test.isTrue(plan.commands[0].stageReads)
+	test.isTrue(is_undefined(plan.commands[0].jsonReport))
+}
+
+TestStepsOfChecksTheFormatVersion := func() {
+	test.isEqual(_GENERIC, ms.stepsOf({ formatVersion: 1, steps: _GENERIC }))
+	test.isTrue(ms.FORMAT_VERSION == 1)
+}

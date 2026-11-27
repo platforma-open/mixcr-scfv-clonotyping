@@ -1,0 +1,15 @@
+// Runs before the block: publishes the default memory floor of each MiXCR step, which the
+// settings show as placeholders. Reads no data.
+
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+smart := import("@platforma-sdk/workflow-tengo:smart")
+resources := import(":resources")
+
+wf.body(func(args) {
+	return {
+		outputs: {
+			stepDefaults: smart.createJsonResource(resources.stepDefaults())
+		},
+		exports: {}
+	}
+})

@@ -1,12 +1,15 @@
 import type {
   InferHrefType,
   InferOutputsType,
+  PColumnResourceMapData,
   PlDataTableStateV2,
   PlRef,
+  TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
   BlockModelV3,
   DataModelBuilder,
+  RT_RESOURCE_MAP,
   createPlDataTableV2,
   createPlDataTableStateV2,
   isPColumnSpec,
@@ -22,9 +25,11 @@ import type {
 } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { kind } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { ProgressPrefix } from "./progress";
+import { stepMemFloorsFor, type StepDefaults } from "./steps";
 
 export * from "./progress";
 export * from "./reports";
+export * from "./steps";
 
 // The vocabulary lives in the kind: its init-params contract names these types
 // and a kind cannot import from the model. Re-exported so the UI keeps a single
@@ -62,9 +67,17 @@ export type BlockArgs = {
   lightVGenes?: string;
   lightJGenes?: string;
 
+  // GiB. The least memory each MiXCR step and the clone and alignment exports get; unset leaves
+  // it to the input size. The QC report export keeps its own fixed memory.
   mixcrMem?: number;
+  // GiB by MiXCR step (align, refineTagsAndSort, assemble, qc). The least memory that step gets;
+  // it wins over mixcrMem for its step.
+  stepMemFloors?: Record<string, number>;
+  // The CPU of every MiXCR step; unset leaves each step its own.
   mixcrCpu?: number;
+  // GiB. The least memory scFv assembly and annotation get; unset leaves it to the input size.
   assembleScfvMem?: number;
+  // The CPU of scFv assembly and annotation; unset leaves each its own.
   assembleScfvCpu?: number;
   cloneClusteringMode?: CloneClusteringMode; // default: 'relaxed'
   stopCodonTypes?: StopCodonType[];
@@ -102,6 +115,16 @@ const dataModel = new DataModelBuilder({ kind })
     ...rest,
     subtitleLabel: defaultBlockLabel === "Select Dataset" ? "" : defaultBlockLabel,
   }))
+  // The memory settings are floors under a size-based request, and the CPU settings replace
+  // each step's own CPU. 32 and 64 GiB, 8 and 4 CPUs are the old defaults; a block holding them
+  // gets no floor and keeps each step's own CPU.
+  .migrate<BlockData>("v3", (data) => ({
+    ...data,
+    mixcrMem: data.mixcrMem === 32 ? undefined : data.mixcrMem,
+    mixcrCpu: data.mixcrCpu === 8 ? undefined : data.mixcrCpu,
+    assembleScfvMem: data.assembleScfvMem === 64 ? undefined : data.assembleScfvMem,
+    assembleScfvCpu: data.assembleScfvCpu === 4 ? undefined : data.assembleScfvCpu,
+  }))
   // A block created from a template starts on the params its kind accepted; one
   // created by hand gets the same defaults this function used to hand out
   // unconditionally. The fields the contract leaves out are either machine-local
@@ -128,10 +151,6 @@ const dataModel = new DataModelBuilder({ kind })
     heavyJGenes: params?.heavyJGenes,
     lightVGenes: params?.lightVGenes,
     lightJGenes: params?.lightJGenes,
-    mixcrMem: 32,
-    mixcrCpu: 8,
-    assembleScfvMem: 64,
-    assembleScfvCpu: 4,
     cloneClusteringMode: params?.cloneClusteringMode ?? "relaxed",
     stopCodonTypes: params?.stopCodonTypes,
     stopCodonReplacements: params?.stopCodonReplacements,
@@ -140,7 +159,73 @@ const dataModel = new DataModelBuilder({ kind })
     limitInput: params?.limitInput,
   }));
 
+type LogKey = PColumnResourceMapData<unknown>["data"][number]["key"];
+
+/**
+ * The input field `field` of `map`, or undefined while it is unset or when it carries an error.
+ * A step that failed, or the steps that never ran after it, must not hide the logs of the others.
+ */
+function resolveUnlessErrored(map: TreeNodeAccessor, field: string): TreeNodeAccessor | undefined {
+  try {
+    return map.resolve({ field, assertFieldType: "Input" });
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reads a chain's per-sample log column. A sample's value is one log stream, or a map of streams
+ * keyed by MiXCR step for a run split into one command per step: the planner's stream, with the
+ * planned steps' map nested beside it, and the steps after align nested again when the run waits
+ * for the align report. Nested maps are flattened here.
+ * Entries are keyed [sampleId] or [sampleId, step].
+ */
+function parseSampleLogs<T>(
+  acc: TreeNodeAccessor | undefined,
+  parse: (acc: TreeNodeAccessor) => T | undefined,
+): PColumnResourceMapData<NonNullable<T>> | undefined {
+  if (acc === undefined) return undefined;
+  const data: { key: LogKey; value: NonNullable<T> }[] = [];
+  // Adds the streams of a step map under `prefix`; returns whether every step is in.
+  const addSteps = (steps: TreeNodeAccessor, prefix: LogKey): boolean => {
+    let complete = steps.getInputsLocked();
+    for (const stepKey of steps.listInputFields()) {
+      const step = resolveUnlessErrored(steps, stepKey);
+      if (step === undefined) {
+        complete = false;
+      } else if (step.resourceType.name === RT_RESOURCE_MAP) {
+        complete = addSteps(step, prefix) && complete;
+      } else {
+        const value = parse(step);
+        if (value === undefined || value === null) complete = false;
+        else data.push({ key: [...prefix, ...(JSON.parse(stepKey) as LogKey)], value });
+      }
+    }
+    return complete;
+  };
+  let isComplete = acc.getInputsLocked();
+  for (const sampleKey of acc.listInputFields()) {
+    const sample = resolveUnlessErrored(acc, sampleKey);
+    if (sample === undefined) {
+      isComplete = false;
+      continue;
+    }
+    const key = JSON.parse(sampleKey) as LogKey;
+    if (sample.resourceType.name === RT_RESOURCE_MAP) {
+      isComplete = addSteps(sample, key) && isComplete;
+    } else {
+      const value = parse(sample);
+      if (value === undefined || value === null) isComplete = false;
+      else data.push({ key, value });
+    }
+  }
+  return { isComplete, data };
+}
+
 export const platforma = BlockModelV3.create({ dataModel, kind })
+
+  // The prerun reads no settings: it only publishes the step defaults.
+  .prerunArgs(() => ({}))
 
   .args((data) => {
     const mode = data.customRefMode ?? "builtin";
@@ -186,6 +271,11 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       lightVGenes: data.lightVGenes,
       lightJGenes: data.lightJGenes,
       mixcrMem: data.mixcrMem,
+      stepMemFloors: stepMemFloorsFor(
+        data.stepMemFloors,
+        data.heavyTagPattern,
+        data.lightTagPattern,
+      ),
       mixcrCpu: data.mixcrCpu,
       assembleScfvMem: data.assembleScfvMem,
       assembleScfvCpu: data.assembleScfvCpu,
@@ -293,39 +383,36 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       });
   })
 
-  .output("logsIGHeavy", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGHeavy"),
-      (acc) => acc.getLogHandle(),
-      false,
-    );
-  })
+  // Keys are [sampleId] for the single log of a result from before the split, and
+  // [sampleId, step] for a split run.
+  .output("logsIGHeavy", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGHeavy"), (acc) => acc.getLogHandle()),
+  )
 
-  .output("logsIGLight", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGLight"),
-      (acc) => acc.getLogHandle(),
-      false,
-    );
-  })
+  .output("logsIGLight", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGLight"), (acc) => acc.getLogHandle()),
+  )
 
-  .output("progressIGHeavy", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGHeavy"),
-      (acc) => acc.getProgressLog(ProgressPrefix),
-      false,
-    );
-  })
+  .output("progressIGHeavy", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGHeavy"), (acc) =>
+      acc.getProgressLog(ProgressPrefix),
+    ),
+  )
 
-  .output("progressIGLight", (ctx) => {
-    return parseResourceMap(
-      ctx.outputs?.resolve("logsIGLight"),
-      (acc) => acc.getProgressLog(ProgressPrefix),
-      false,
-    );
-  })
+  .output("progressIGLight", (ctx) =>
+    parseSampleLogs(ctx.outputs?.resolve("logsIGLight"), (acc) =>
+      acc.getProgressLog(ProgressPrefix),
+    ),
+  )
 
   .output("started", (ctx) => ctx.outputs !== undefined)
+
+  // The default memory floor of each MiXCR step, shown as the per-step placeholders.
+  .output("stepDefaults", (ctx) =>
+    ctx.prerun
+      ?.resolve({ field: "stepDefaults", assertFieldType: "Input", allowPermanentAbsence: true })
+      ?.getDataAsJson<StepDefaults>(),
+  )
 
   .output("qcIGHeavy", (ctx) => {
     const acc = ctx.outputs?.resolve("qcIGHeavy");
