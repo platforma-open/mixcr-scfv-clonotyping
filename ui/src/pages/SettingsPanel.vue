@@ -824,24 +824,6 @@ heavy-seq + linker + light-seq (or reverse)"
         every one at least this much. A value under Per-step memory replaces it for that step.
       </template>
     </PlNumberField>
-    <PlAccordionSection label="Per-step memory">
-      <PlNumberField
-        v-for="step in mixcrSteps"
-        :key="step"
-        :model-value="stepMemFloor(step)"
-        :label="`${step} minimum memory (GiB)`"
-        :placeholder="stepMemPlaceholder(step)"
-        clearable
-        :min-value="1"
-        :step="1"
-        @update:model-value="(v: number | undefined) => setStepMemFloor(step, v)"
-      >
-        <template #tooltip>
-          The least memory this step gets, whatever its input size; it replaces MiXCR Minimum Memory
-          for this step. The step still gets more when its input needs more.
-        </template>
-      </PlNumberField>
-    </PlAccordionSection>
     <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"
@@ -868,5 +850,23 @@ heavy-seq + linker + light-seq (or reverse)"
         to give it at least this much.
       </template>
     </PlNumberField>
+    <PlAccordionSection label="Per-step memory">
+      <PlNumberField
+        v-for="step in mixcrSteps"
+        :key="step"
+        :model-value="stepMemFloor(step)"
+        :label="`${step} minimum memory (GiB)`"
+        :placeholder="stepMemPlaceholder(step)"
+        clearable
+        :min-value="1"
+        :step="1"
+        @update:model-value="(v: number | undefined) => setStepMemFloor(step, v)"
+      >
+        <template #tooltip>
+          The least memory this step gets, whatever its input size; it replaces MiXCR Minimum Memory
+          for this step. The step still gets more when its input needs more.
+        </template>
+      </PlNumberField>
+    </PlAccordionSection>
   </PlAccordionSection>
 </template>
