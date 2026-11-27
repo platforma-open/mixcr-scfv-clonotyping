@@ -148,6 +148,7 @@ self.body(func(inputs) {
 	params := inputs.params
 
 	wf := pt.workflow().
+		name("scfv: stop codons").
 		inMediumQueue()
 
 	df := wf.frame({ file: inputTsv, xsvType: "tsv", inferSchema: true })

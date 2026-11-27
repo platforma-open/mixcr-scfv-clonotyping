@@ -59,6 +59,7 @@ self.body(func(inputs) {
 	addSchema("clonotypeKey", "String")
 
 	wf := pt.workflow().
+		name("scfv: aggregate clones").
 		inMediumQueue()
 
 	dataFrames := []

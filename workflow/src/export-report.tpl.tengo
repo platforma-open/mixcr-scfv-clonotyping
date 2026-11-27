@@ -70,6 +70,7 @@ self.body(func(inputs) {
     
     // Use pt to process the TSV files. A flat 8 GiB / 2 CPU, as in mixcr-clonotyping's report.
     wf := pt.workflow().
+        name("scfv: qc report table").
         inMediumQueue().
         mem("8GiB").
         cpu(2)
