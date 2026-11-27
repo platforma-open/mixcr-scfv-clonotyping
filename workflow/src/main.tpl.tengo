@@ -9,6 +9,8 @@ text := import("text")
 processTpl := assets.importTemplate(":process")
 repseqioLibraryTpl := assets.importTemplate(":repseqio-library")
 
+wf.setPreRun(assets.importTemplate(":prerun"))
+
 
 tagPatternHasUMIs := func(tagPattern) {
 	if is_undefined(tagPattern) {

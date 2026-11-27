@@ -25,7 +25,7 @@ import type {
 } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { kind } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { ProgressPrefix } from "./progress";
-import { stepMemFloorsFor } from "./steps";
+import { stepMemFloorsFor, type StepDefaults } from "./steps";
 
 export * from "./progress";
 export * from "./reports";
@@ -223,6 +223,9 @@ function parseSampleLogs<T>(
 
 export const platforma = BlockModelV3.create({ dataModel, kind })
 
+  // The prerun reads no settings: it only publishes the step defaults.
+  .prerunArgs(() => ({}))
+
   .args((data) => {
     const mode = data.customRefMode ?? "builtin";
     const speciesOk = mode === "builtin" ? data.species !== undefined : true;
@@ -402,6 +405,13 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
   )
 
   .output("started", (ctx) => ctx.outputs !== undefined)
+
+  // The default memory floor of each MiXCR step, shown as the per-step placeholders.
+  .output("stepDefaults", (ctx) =>
+    ctx.prerun
+      ?.resolve({ field: "stepDefaults", assertFieldType: "Input", allowPermanentAbsence: true })
+      ?.getDataAsJson<StepDefaults>(),
+  )
 
   .output("qcIGHeavy", (ctx) => {
     const acc = ctx.outputs?.resolve("qcIGHeavy");

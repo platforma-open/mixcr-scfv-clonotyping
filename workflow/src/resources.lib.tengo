@@ -195,6 +195,29 @@ ram := func(r) {
 	return formula.staticFallback(f.gib(fallback))
 }
 
+// stepDefaults returns, per class ("none", "umi"), the default memory floor of each MiXCR step a
+// user setting applies to: { <class>: { <step>: { memFloor, byCloneCount } } }. byCloneCount is
+// true when the step is sized from align's clone estimate. The UI shows these as placeholders.
+stepDefaults := func() {
+	res := {}
+	for cls in ["none", "umi"] {
+		steps := {}
+		for r in _STEP_ROWS {
+			if r.override == false || !is_undefined(steps[r.step]) {
+				continue
+			}
+			row := stepRow(r.step, cls, undefined)
+			clone := cloneRow(r.step, cls)
+			steps[r.step] = {
+				memFloor: is_undefined(clone) ? row.memFloor : clone.memFloor,
+				byCloneCount: !is_undefined(clone)
+			}
+		}
+		res[cls] = steps
+	}
+	return res
+}
+
 // queue returns the queue of a row.
 queue := func(r) {
 	return is_undefined(r.queue) ? _DEFAULT_QUEUE : r.queue
@@ -216,6 +239,7 @@ export {
 	row: row,
 	stepFloor: stepFloor,
 	stepRow: stepRow,
+	stepDefaults: stepDefaults,
 	cloneRow: cloneRow,
 	reportRow: reportRow,
 	ramFromReport: ramFromReport,

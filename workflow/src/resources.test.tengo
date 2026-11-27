@@ -221,6 +221,21 @@ TestRoundsUpToWholeGiB := func() {
 	test.isEqual(10, ramGiB(resources.row("exportClones"), GIB))
 }
 
+// Defaults shown in the settings
+
+TestStepDefaultsFollowTheRows := func() {
+	d := resources.stepDefaults()
+	test.isEqual(16, d.none.align.memFloor)
+	test.isTrue(d.none.assemble.byCloneCount)
+	test.isEqual(32, d.none.assemble.memFloor)
+	test.isFalse(d.umi.assemble.byCloneCount)
+	test.isEqual(32, d.umi.assemble.memFloor)
+	test.isEqual(32, d.umi.refineTagsAndSort.memFloor)
+	test.isEqual(32, d.none.qc.memFloor)
+	// plan takes no user setting
+	test.isTrue(is_undefined(d.none.plan))
+}
+
 // Queues
 
 TestQueuesFollowMixcrClonotyping := func() {

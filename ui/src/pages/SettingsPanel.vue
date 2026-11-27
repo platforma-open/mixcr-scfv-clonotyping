@@ -421,12 +421,14 @@ function setStepMemFloor(step: string, v: number | undefined) {
   app.model.data.stepMemFloors = Object.keys(all).length === 0 ? undefined : all;
 }
 
-// What a step gets with no value of its own.
+// What a step gets with no value of its own: the workflow's default floor, raised to MiXCR Minimum
+// Memory when that is larger. "default" until the prerun has published the defaults.
 function stepMemPlaceholder(step: string): string {
-  if (app.model.data.mixcrMem !== undefined) return `${app.model.data.mixcrMem} (MiXCR minimum)`;
-  if (step === "assemble" && !mixcrSteps.value.includes("refineTagsAndSort"))
-    return "Sized by clone count";
-  return "Sized from input";
+  const cls = mixcrSteps.value.includes("refineTagsAndSort") ? "umi" : "none";
+  const d = app.model.outputs.stepDefaults?.[cls]?.[step];
+  if (d === undefined) return "default";
+  const floor = Math.max(d.memFloor, app.model.data.mixcrMem ?? 0);
+  return d.byCloneCount ? `by clone count (≥ ${floor})` : `default (${floor})`;
 }
 </script>
 

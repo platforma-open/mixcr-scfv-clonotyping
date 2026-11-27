@@ -1,3 +1,8 @@
+// The default memory floor of each MiXCR step a user setting applies to, by step class: "none"
+// without UMIs, "umi" with them. Published by the workflow's prerun from its resource rows.
+export type StepDefault = { memFloor: number; byCloneCount: boolean };
+export type StepDefaults = Record<"none" | "umi", Record<string, StepDefault>>;
+
 // The MiXCR steps a chain runs. The tag patterns pick the preset and each preset has one step
 // list: generic-amplicon-with-umi refines tags before assembly. The UMI check matches the
 // workflow's (main.tpl.tengo).
