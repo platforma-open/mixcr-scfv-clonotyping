@@ -220,6 +220,5 @@ export {
 	reportRow: reportRow,
 	ramFromReport: ramFromReport,
 	ram: ram,
-	queue: queue,
 	apply: apply
 }

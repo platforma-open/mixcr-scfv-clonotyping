@@ -62,9 +62,9 @@ splitLog := func(logs, afterAlignLog) {
 // mixcrMem, stepMemFloors, mixcrCpu, written, logs, alignReport }: chainName ("heavy" or "light")
 // goes into each job's name, `files` holds the block files by name, mixcrMem and mixcrCpu are the
 // user's memory floor and CPU count for every step, stepMemFloors the user's memory floor by step
-// (it wins over mixcrMem for its steps), `written` and `logs` gain
-// the files each step writes (by name) and its stdout stream (by logKey), and `alignReport` is
-// the parsed align report, undefined until it is ready.
+// (it wins over mixcrMem for its steps), `written` and `logs` gain the files each step writes (by
+// name) and its stdout stream (by logKey), and `alignReport` is the parsed align report,
+// undefined until it is ready.
 //
 // Without ctx.alignReport, run stops before the first step that has a clone row and returns
 // { stopAt, alignReport }: that step's index and the report's content resource. It returns {}

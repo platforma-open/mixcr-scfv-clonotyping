@@ -15,6 +15,7 @@ import {
   PlTextField,
 } from "@platforma-sdk/ui-vue";
 import { computed, watch } from "vue";
+import { mixcrStepsFor } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.model";
 import { useApp } from "../app";
 import { retentive } from "../retentive";
 import { parseFasta } from "../utils/fastaValidator";
@@ -403,16 +404,10 @@ watch(
   },
   { immediate: true, deep: true },
 );
-// The MiXCR steps a chain runs. The tag patterns decide the preset, and each preset has one
-// step list: generic-amplicon-with-umi refines tags before assembly. Matches the workflow's
-// UMI check.
-const hasUmis = computed(() =>
-  [app.model.data.heavyTagPattern, app.model.data.lightTagPattern].some(
-    (p) => p !== undefined && /UMI|Umi|umi/.test(p),
-  ),
-);
+
+// The MiXCR steps a chain runs, from the tag patterns.
 const mixcrSteps = computed(() =>
-  hasUmis.value ? ["align", "refineTagsAndSort", "assemble", "qc"] : ["align", "assemble", "qc"],
+  mixcrStepsFor(app.model.data.heavyTagPattern, app.model.data.lightTagPattern),
 );
 
 function stepMemFloor(step: string): number | undefined {
@@ -429,7 +424,8 @@ function setStepMemFloor(step: string, v: number | undefined) {
 // What a step gets with no value of its own.
 function stepMemPlaceholder(step: string): string {
   if (app.model.data.mixcrMem !== undefined) return `${app.model.data.mixcrMem} (MiXCR minimum)`;
-  if (step === "assemble" && !hasUmis.value) return "Sized by clone count";
+  if (step === "assemble" && !mixcrSteps.value.includes("refineTagsAndSort"))
+    return "Sized by clone count";
   return "Sized from input";
 }
 </script>
@@ -825,7 +821,7 @@ heavy-seq + linker + light-seq (or reverse)"
     >
       <template #tooltip>
         Each MiXCR step and export is sized from the size of the files it reads. Set this to give
-        every one at least this much.
+        every one at least this much. A value under Per-step memory replaces it for that step.
       </template>
     </PlNumberField>
     <PlAccordionSection label="Per-step memory">

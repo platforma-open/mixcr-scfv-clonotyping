@@ -8,8 +8,8 @@
 // A template cannot read the result of a command it started, so the planning command runs in
 // :mixcr-analyze and this template reads back the step list it wrote.
 //
-// mixcrMem, stepMemFloors and mixcrCpu arrive as meta inputs, out of the deduplication key: a change to them
-// must not re-run the chain.
+// mixcrMem, stepMemFloors and mixcrCpu arrive as meta inputs, out of the deduplication key: a
+// change to them must not re-run the chain.
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
 assets := import("@platforma-sdk/workflow-tengo:assets")

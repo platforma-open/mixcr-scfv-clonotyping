@@ -25,9 +25,11 @@ import type {
 } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { kind } from "@platforma-open/milaboratories.mixcr-scfv-clonotyping.kind";
 import { ProgressPrefix } from "./progress";
+import { stepMemFloorsFor } from "./steps";
 
 export * from "./progress";
 export * from "./reports";
+export * from "./steps";
 
 // The vocabulary lives in the kind: its init-params contract names these types
 // and a kind cannot import from the model. Re-exported so the UI keeps a single
@@ -265,10 +267,11 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       lightVGenes: data.lightVGenes,
       lightJGenes: data.lightJGenes,
       mixcrMem: data.mixcrMem,
-      stepMemFloors:
-        data.stepMemFloors && Object.keys(data.stepMemFloors).length > 0
-          ? data.stepMemFloors
-          : undefined,
+      stepMemFloors: stepMemFloorsFor(
+        data.stepMemFloors,
+        data.heavyTagPattern,
+        data.lightTagPattern,
+      ),
       mixcrCpu: data.mixcrCpu,
       assembleScfvMem: data.assembleScfvMem,
       assembleScfvCpu: data.assembleScfvCpu,
