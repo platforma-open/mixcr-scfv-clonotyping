@@ -1,5 +1,22 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping.workflow
 
+## 3.12.0
+
+### Minor Changes
+
+- 63b7f07: Size memory from the input and reuse results across projects
+
+  - MiXCR runs as one job per step, each with its own log section and memory sized from its input, with no upper limit.
+  - Memory and CPU settings start unset; MiXCR memory now sets a minimum, and a new "Per-step memory" section sets one per step.
+  - Results are reused across projects with different sample names. The first update re-runs each sample once.
+  - MiXCR updated to 4.7.0-415.
+  - Small bug fixes and improvements.
+
+### Patch Changes
+
+- Updated dependencies [63b7f07]
+  - @platforma-open/milaboratories.mixcr-scfv-clonotyping.assemble-scfv@2.5.6
+
 ## 3.11.10
 
 ### Patch Changes

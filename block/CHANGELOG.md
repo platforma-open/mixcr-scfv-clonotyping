@@ -1,5 +1,17 @@
 # @platforma-open/milaboratories.mixcr-scfv-clonotyping
 
+## 3.12.0
+
+### Minor Changes
+
+- 63b7f07: Size memory from the input and reuse results across projects
+
+  - MiXCR runs as one job per step, each with its own log section and memory sized from its input, with no upper limit.
+  - Memory and CPU settings start unset; MiXCR memory now sets a minimum, and a new "Per-step memory" section sets one per step.
+  - Results are reused across projects with different sample names. The first update re-runs each sample once.
+  - MiXCR updated to 4.7.0-415.
+  - Small bug fixes and improvements.
+
 ## 3.5.8
 
 ### Patch Changes
@@ -79,6 +91,7 @@
   SDK bumped: model 1.80.10 → 1.83.0, ui-vue 1.80.10 → 1.83.3, block-tools 2.12.9
   → 2.14.6, workflow-tengo 6.8.2 → 6.8.3, test 1.80.11 → 1.83.6; CI moved to node
   22.x.
+
 - 1e5fa48: Remove stale `pl-pkg prepublish` script left over from the structurer migration. The script survived migration because the structurer only deletes `prepublishOnly`, not the legacy `prepublish` name; with `@platforma-sdk/package-builder` no longer a dependency, `pl-pkg` was not found at publish time. Software build + push now happen in `block-tools software build`, so no prepublish step is needed.
 
 ## 3.4.11
@@ -115,6 +128,7 @@
 
   - multiplexed FASTQ detected → suggest adding a `FASTQ Demultiplexing` block;
   - no FASTQ at all → suggest adding/running a `Samples & Data` block.
+
 - Updated dependencies [270390d]
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.model@2.7.1
   - @platforma-open/milaboratories.mixcr-scfv-clonotyping.ui@2.8.1
