@@ -17,12 +17,17 @@ ramGiB := func(r, inputBytes) {
 	return f.evaluateResource(ast, resolver, "test") / GIB
 }
 
-// applied returns the onCPU request `resources.apply` sets on a builder.
-applied := func(r, cpuOverride, ...fixedRam) {
+// request returns the request `resources.apply` sets on a builder.
+request := func(r, cpuOverride, ...fixedRam) {
 	got := undefined
-	cmd := { resources: func(req) { got = req.onCPU } }
+	cmd := { resources: func(req) { got = req } }
 	resources.apply(cmd, r, cpuOverride, fixedRam...)
 	return got
+}
+
+// applied returns the onCPU request `resources.apply` sets on a builder.
+applied := func(r, cpuOverride, ...fixedRam) {
+	return request(r, cpuOverride, fixedRam...).onCPU
 }
 
 // MiXCR steps
@@ -176,6 +181,22 @@ TestPythonSteps := func() {
 TestRoundsUpToWholeGiB := func() {
 	// 4 + 1.1 x 1 GiB = 5.1, rounded up
 	test.isEqual(6, ramGiB(resources.row("exportClones"), GIB))
+}
+
+// Queues
+
+TestQueuesFollowMixcrClonotyping := func() {
+	test.isEqual("light", request(resources.stepRow("plan", "none", undefined), undefined).queue)
+	test.isEqual("heavy", request(resources.stepRow("align", "none", undefined), undefined).queue)
+	test.isEqual("heavy", request(resources.stepRow("refineTagsAndSort", "umi", undefined), undefined).queue)
+	test.isEqual("heavy", request(resources.stepRow("assemble", "none", undefined), undefined).queue)
+	test.isEqual("medium", request(resources.stepRow("qc", "none", undefined), undefined).queue)
+	test.isEqual("heavy", request(resources.stepRow("findAlleles", "none", undefined), undefined).queue)
+	test.isEqual("medium", request(resources.row("exportClones"), undefined).queue)
+	test.isEqual("medium", request(resources.row("exportAlignments"), undefined).queue)
+	test.isEqual("medium", request(resources.row("exportReports"), undefined).queue)
+	test.isEqual("heavy", request(resources.row("assembleScfv"), undefined).queue)
+	test.isEqual("heavy", request(resources.row("annotateScfv"), undefined).queue)
 }
 
 TestStaticFallback := func() {

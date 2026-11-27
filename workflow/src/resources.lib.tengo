@@ -30,17 +30,21 @@ INPUT_TAG := "input"
 // Backends that cannot evaluate resource formulas get max(floor, this).
 _FALLBACK_GIB := 64
 
-// The execs outside the MiXCR plan. memSlope is GiB per GiB of input.
+// The queue of a row that names none.
+_DEFAULT_QUEUE := "heavy"
+
+// The execs outside the MiXCR plan. memSlope is GiB per GiB of input. `queue` is "heavy",
+// "medium" or "light"; a row without one takes _DEFAULT_QUEUE.
 //
 // Rows are fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at 0.1% and 0.5%
 // substitution and indel rates, run on MiXCR 4.7.0-403.
 _ROWS := {
 	// Sized from the chain's .clna.
-	exportClones: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 1.1 },
-	exportAlignments: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 0 },
+	exportClones: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 1.1, queue: "medium" },
+	exportAlignments: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 0, queue: "medium" },
 
 	// Reads the report header of every sample's .clna.
-	exportReports: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0 },
+	exportReports: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0, queue: "medium" },
 
 	// assembleScfv is sized from the four TSVs it reads, construct-annotations from the TSV
 	// assembleScfv wrote.
@@ -51,7 +55,7 @@ _ROWS := {
 // The steps of the MiXCR plan. A row with `override: false` takes no user setting.
 _STEP_ROWS := [
 	// `analyze --dry-run-json` resolves the preset and writes the step list; it reads no data.
-	{ step: "plan", class: "any", cpu: 1, memFloor: 4, memIntercept: 0, memSlope: 0, override: false },
+	{ step: "plan", class: "any", cpu: 1, memFloor: 4, memIntercept: 0, memSlope: 0, queue: "light", override: false },
 
 	// `align` streams its input, so the grant does not grow with the sample: peak RSS 2.2-4.8 GiB
 	// at 1M-20M scFv reads.
@@ -68,7 +72,7 @@ _STEP_ROWS := [
 	{ step: "assemble", class: "none", cpu: 16, memFloor: 32, memIntercept: 16, memSlope: 40 },
 
 	// Sized from the .clna it reads.
-	{ step: "qc", class: "any", cpu: 4, memFloor: 32, memIntercept: 8, memSlope: 16 }
+	{ step: "qc", class: "any", cpu: 4, memFloor: 32, memIntercept: 8, memSlope: 16, queue: "medium" }
 ]
 
 // A step the table does not list.
@@ -176,13 +180,18 @@ ram := func(r) {
 	return formula.staticFallback(f.gib(fallback))
 }
 
-// apply sets the CPU and memory of a row on an exec builder. cpuOverride, when set, replaces the
-// row's CPU, except on a row with `override: false`. fixedRam, when given and set, replaces the
-// row's memory.
+// queue returns the queue of a row.
+queue := func(r) {
+	return is_undefined(r.queue) ? _DEFAULT_QUEUE : r.queue
+}
+
+// apply sets the queue, CPU and memory of a row on an exec builder. cpuOverride, when set,
+// replaces the row's CPU, except on a row with `override: false`. fixedRam, when given and set,
+// replaces the row's memory.
 apply := func(cmd, r, cpuOverride, ...fixedRam) {
 	cpu := is_undefined(cpuOverride) || r.override == false ? r.cpu : cpuOverride
 	mem := len(fixedRam) > 0 && !is_undefined(fixedRam[0]) ? fixedRam[0] : ram(r)
-	cmd.resources({ onCPU: { cpu: cpu, ram: mem } })
+	cmd.resources({ queue: queue(r), onCPU: { cpu: cpu, ram: mem } })
 	return cmd
 }
 
@@ -195,5 +204,6 @@ export {
 	reportRow: reportRow,
 	ramFromReport: ramFromReport,
 	ram: ram,
+	queue: queue,
 	apply: apply
 }
