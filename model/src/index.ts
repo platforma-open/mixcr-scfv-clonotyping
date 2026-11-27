@@ -67,7 +67,8 @@ export type BlockArgs = {
   lightVGenes?: string;
   lightJGenes?: string;
 
-  // GiB. The least memory each MiXCR step and export gets; unset leaves it to the input size.
+  // GiB. The least memory each MiXCR step and the clone and alignment exports get; unset leaves
+  // it to the input size. The QC report export keeps its own fixed memory.
   mixcrMem?: number;
   // GiB by MiXCR step (align, refineTagsAndSort, assemble, qc). The least memory that step gets;
   // it wins over mixcrMem for its step.

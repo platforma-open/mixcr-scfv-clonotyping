@@ -848,8 +848,9 @@ heavy-seq + linker + light-seq (or reverse)"
       :step="1"
     >
       <template #tooltip>
-        Each MiXCR step and export is sized from the size of the files it reads. Set this to give
-        every one at least this much. A value under Per-step memory replaces it for that step.
+        Each MiXCR step and the clone and alignment exports are sized from the size of the files
+        they read. Set this to give every one at least this much. A value under Per-step memory
+        replaces it for that step. The QC report export keeps its own fixed memory.
       </template>
     </PlNumberField>
     <PlAccordionSection label="Per-step memory">
