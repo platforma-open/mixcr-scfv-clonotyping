@@ -124,6 +124,15 @@ row := func(step, ...floor) {
 	return _raiseFloor(r, len(floor) == 1 ? floor[0] : undefined)
 }
 
+// stepFloor returns the memory floor a MiXCR step takes from the settings: its entry in
+// stepMemFloors (step -> GiB) when set, else mixcrMem. Either only raises the row's floor.
+stepFloor := func(step, mixcrMem, stepMemFloors) {
+	if is_map(stepMemFloors) && !is_undefined(stepMemFloors[step]) {
+		return stepMemFloors[step]
+	}
+	return mixcrMem
+}
+
 // stepRow returns the row a MiXCR step of class `cls` takes, its memFloor raised to floorGiB
 // when that is set and larger.
 stepRow := func(step, cls, floorGiB) {
@@ -205,6 +214,7 @@ export {
 	INPUT_TAG: INPUT_TAG,
 	DEFAULT: DEFAULT,
 	row: row,
+	stepFloor: stepFloor,
 	stepRow: stepRow,
 	cloneRow: cloneRow,
 	reportRow: reportRow,

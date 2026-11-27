@@ -84,6 +84,25 @@ TestMemSettingRaisesEveryStepFloor := func() {
 	test.isEqual(32, resources.stepRow("assemble", "none", 4).memFloor)
 }
 
+TestStepFloorWinsOverMixcrMemForItsStep := func() {
+	floors := { assemble: 80, qc: 40 }
+	test.isEqual(80, resources.stepFloor("assemble", 50, floors))
+	test.isEqual(50, resources.stepFloor("align", 50, floors))
+	test.isTrue(is_undefined(resources.stepFloor("align", undefined, floors)))
+	test.isEqual(50, resources.stepFloor("align", 50, undefined))
+	// A step floor below mixcrMem still wins for its step.
+	test.isEqual(40, resources.stepFloor("qc", 50, floors))
+}
+
+TestStepFloorOnlyRaisesTheRowFloor := func() {
+	test.isEqual(32, resources.stepRow("qc", "none", resources.stepFloor("qc", undefined, { qc: 8 })).memFloor)
+	test.isEqual(40, resources.stepRow("qc", "none", resources.stepFloor("qc", undefined, { qc: 40 })).memFloor)
+	// assemble keeps the clone estimate above the step floor.
+	r := resources.reportRow("assemble", "none", resources.stepFloor("assemble", undefined, { assemble: 64 }))
+	test.isEqual("64GiB", resources.ramFromReport(r, { estimatedInitialClones: 500000 }))
+	test.isEqual("108GiB", resources.ramFromReport(r, { estimatedInitialClones: 2913473 }))
+}
+
 TestPlanTakesNoSetting := func() {
 	r := resources.stepRow("plan", "none", 100)
 	test.isEqual(4, r.memFloor)

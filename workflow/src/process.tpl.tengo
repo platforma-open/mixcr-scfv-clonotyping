@@ -414,6 +414,7 @@ self.body(func(inputs) {
 			metaExtra: {
 				mixcrCpu: inputs.mixcrCpu,
 				mixcrMem: inputs.mixcrMem,
+				stepMemFloors: inputs.stepMemFloors,
 				assembleScfvCpu: inputs.assembleScfvCpu,
 				assembleScfvMem: inputs.assembleScfvMem
 			}

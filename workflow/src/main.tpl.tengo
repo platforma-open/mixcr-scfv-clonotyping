@@ -88,6 +88,7 @@ if !is_undefined(args.heavyTagPattern) && !is_undefined(args.lightTagPattern) {
 		referenceLibraryLight: referenceLibraryLight,
 		mixcrCpu: args.mixcrCpu,
 		mixcrMem: args.mixcrMem,
+		stepMemFloors: args.stepMemFloors,
 		assembleScfvCpu: args.assembleScfvCpu,
 		assembleScfvMem: args.assembleScfvMem,
 		lightImputeSequence: args.lightImputeSequence,

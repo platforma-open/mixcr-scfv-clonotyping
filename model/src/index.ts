@@ -67,6 +67,9 @@ export type BlockArgs = {
 
   // GiB. The least memory each MiXCR step and export gets; unset leaves it to the input size.
   mixcrMem?: number;
+  // GiB by MiXCR step (align, refineTagsAndSort, assemble, qc). The least memory that step gets;
+  // it wins over mixcrMem for its step.
+  stepMemFloors?: Record<string, number>;
   // The CPU of every MiXCR step; unset leaves each step its own.
   mixcrCpu?: number;
   // GiB. The least memory scFv assembly and annotation get; unset leaves it to the input size.
@@ -262,6 +265,10 @@ export const platforma = BlockModelV3.create({ dataModel, kind })
       lightVGenes: data.lightVGenes,
       lightJGenes: data.lightJGenes,
       mixcrMem: data.mixcrMem,
+      stepMemFloors:
+        data.stepMemFloors && Object.keys(data.stepMemFloors).length > 0
+          ? data.stepMemFloors
+          : undefined,
       mixcrCpu: data.mixcrCpu,
       assembleScfvMem: data.assembleScfvMem,
       assembleScfvCpu: data.assembleScfvCpu,

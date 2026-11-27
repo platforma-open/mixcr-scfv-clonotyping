@@ -403,6 +403,35 @@ watch(
   },
   { immediate: true, deep: true },
 );
+// The MiXCR steps a chain runs. The tag patterns decide the preset, and each preset has one
+// step list: generic-amplicon-with-umi refines tags before assembly. Matches the workflow's
+// UMI check.
+const hasUmis = computed(() =>
+  [app.model.data.heavyTagPattern, app.model.data.lightTagPattern].some(
+    (p) => p !== undefined && /UMI|Umi|umi/.test(p),
+  ),
+);
+const mixcrSteps = computed(() =>
+  hasUmis.value ? ["align", "refineTagsAndSort", "assemble", "qc"] : ["align", "assemble", "qc"],
+);
+
+function stepMemFloor(step: string): number | undefined {
+  return app.model.data.stepMemFloors?.[step];
+}
+
+function setStepMemFloor(step: string, v: number | undefined) {
+  const all = { ...app.model.data.stepMemFloors };
+  if (v === undefined) delete all[step];
+  else all[step] = v;
+  app.model.data.stepMemFloors = Object.keys(all).length === 0 ? undefined : all;
+}
+
+// What a step gets with no value of its own.
+function stepMemPlaceholder(step: string): string {
+  if (app.model.data.mixcrMem !== undefined) return `${app.model.data.mixcrMem} (MiXCR minimum)`;
+  if (step === "assemble" && !hasUmis.value) return "Sized by clone count";
+  return "Sized from input";
+}
 </script>
 
 <template>
@@ -799,6 +828,24 @@ heavy-seq + linker + light-seq (or reverse)"
         every one at least this much.
       </template>
     </PlNumberField>
+    <PlAccordionSection label="Per-step memory">
+      <PlNumberField
+        v-for="step in mixcrSteps"
+        :key="step"
+        :model-value="stepMemFloor(step)"
+        :label="`${step} minimum memory (GiB)`"
+        :placeholder="stepMemPlaceholder(step)"
+        clearable
+        :min-value="1"
+        :step="1"
+        @update:model-value="(v: number | undefined) => setStepMemFloor(step, v)"
+      >
+        <template #tooltip>
+          The least memory this step gets, whatever its input size; it replaces MiXCR Minimum Memory
+          for this step. The step still gets more when its input needs more.
+        </template>
+      </PlNumberField>
+    </PlAccordionSection>
     <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"

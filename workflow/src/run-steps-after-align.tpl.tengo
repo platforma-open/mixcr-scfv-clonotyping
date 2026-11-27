@@ -7,7 +7,7 @@
 //
 // Inputs: `steps` and `alignReport`, the content of the step list and of the align report;
 // `files` and `written`, the block files and the files the earlier steps wrote; `args`, { from,
-// chainName, readNames, readsPattern, stepClass, reports, mixcrMem, mixcrCpu }.
+// chainName, readNames, readsPattern, stepClass, reports, mixcrMem, stepMemFloors, mixcrCpu }.
 
 self := import("@platforma-sdk/workflow-tengo:tpl")
 assets := import("@platforma-sdk/workflow-tengo:assets")
@@ -37,6 +37,7 @@ self.body(func(inputs) {
 		readNames: args.readNames,
 		stepClass: args.stepClass,
 		mixcrMem: args.mixcrMem,
+		stepMemFloors: args.stepMemFloors,
 		mixcrCpu: args.mixcrCpu,
 		written: copy(inputs.written),
 		logs: {},

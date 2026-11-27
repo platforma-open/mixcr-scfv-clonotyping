@@ -231,7 +231,7 @@ self.body(func(inputs) {
 				stepClass: stepClass,
 				reports: reports
 			},
-			{ metaInputs: { mixcrMem: inputs.mixcrMem, mixcrCpu: inputs.mixcrCpu } }
+			{ metaInputs: { mixcrMem: inputs.mixcrMem, stepMemFloors: inputs.stepMemFloors, mixcrCpu: inputs.mixcrCpu } }
 		)
 		clna := stepsRun.output("clns", CACHE_PERIOD)
 
