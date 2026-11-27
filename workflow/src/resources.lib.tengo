@@ -38,13 +38,19 @@ _DEFAULT_QUEUE := "heavy"
 //
 // Rows are fitted to synthetic PacBio CCS scFv libraries of 1M to 20M reads at 0.1% and 0.5%
 // substitution and indel rates, run on MiXCR 4.7.0-403.
+//
+// The exports were fitted on the `main` entrypoint (heap 80% of the grant) and run on
+// `memory-from-limits`, whose heap below a 23 GiB grant is max(grant - 3.5 GiB, grant / 2). Each
+// export row grants at least 0.8 x g + 3.5 GiB for its fitted grant g, so the heap is no smaller
+// than the one it was fitted at.
 _ROWS := {
-	// Sized from the chain's .clna.
-	exportClones: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 1.1, queue: "medium" },
-	exportAlignments: { cpu: 2, memFloor: 4, memIntercept: 4, memSlope: 0, queue: "medium" },
+	// Sized from the chain's .clna. Fitted: 4 + 1.1 x .clna.
+	exportClones: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 1.1, queue: "medium" },
+	// Fitted: a flat 4.
+	exportAlignments: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0, queue: "medium" },
 
-	// Reads the report header of every sample's .clna.
-	exportReports: { cpu: 2, memFloor: 8, memIntercept: 8, memSlope: 0, queue: "medium" },
+	// Reads the report header of every sample's .clna. Fitted: a flat 8.
+	exportReports: { cpu: 2, memFloor: 12, memIntercept: 12, memSlope: 0, queue: "medium" },
 
 	// assembleScfv is sized from the four TSVs it reads, construct-annotations from the TSV
 	// assembleScfv wrote.

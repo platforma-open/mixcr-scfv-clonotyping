@@ -19,7 +19,7 @@ qcReportColumns := import(":qc-report-columns")
 
 self.defineOutputs("qcReportTable")
 
-mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
+mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:memory-from-limits")
 
 // exportReports runs `exportReportsTable` over the .clna files of one chain ("heavy" or "light")
 // and returns the table it writes. `library` is the chain's custom library, or undefined.

@@ -28,9 +28,8 @@ mixcrSteps := import(":mixcr-steps")
 
 self.defineOutputs(["qcIGHeavy", "qcIGLight", "reportsIGHeavy", "reportsIGLight", "logsIGHeavy", "logsIGLight", "clonotypesTableTsv", "clnsIGHeavy", "clnsIGLight"])
 
-mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:main")
-// The planned steps size the JVM heap from the memory each one is granted.
-mixcrStepSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:memory-from-limits")
+// Every MiXCR command sizes the JVM heap from the memory it is granted.
+mixcrSw := assets.importSoftware("@platforma-open/milaboratories.software-mixcr:memory-from-limits")
 runStepsTpl := assets.importTemplate(":run-steps")
 
 CACHE_PERIOD := 48 * times.hour
@@ -154,7 +153,7 @@ self.body(func(inputs) {
 		// The arguments of the whole-chain `analyze`, less `--threads`, which align gets from its
 		// own grant. The plan reads the reads only to check that they exist, so empty files
 		// under their names stand in for them.
-		planCmd := mixcrCmd.builder(mixcrStepSw).
+		planCmd := mixcrCmd.builder(mixcrSw).
 			name("scfv: plan " + chainName[chain]).
 			arg("analyze").
 			arg("--dry-run-json").arg(mixcrSteps.STEPS_FILE).

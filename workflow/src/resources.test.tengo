@@ -156,20 +156,39 @@ TestFloorBelowRowFloorIsIgnored := func() {
 
 TestExportClones := func() {
 	r := resources.row("exportClones")
-	// 4 + 1.1 x 10 GiB of .clna
-	test.isEqual(15, ramGiB(r, 10 * GIB))
+	// 8 + 1.1 x 10 GiB of .clna
+	test.isEqual(19, ramGiB(r, 10 * GIB))
+	test.isEqual(8, ramGiB(r, 0))
 }
 
 TestFlatRows := func() {
-	test.isEqual("4GiB", ramGiB(resources.row("exportAlignments"), 0))
-	test.isEqual("8GiB", ramGiB(resources.row("exportReports"), 0))
+	test.isEqual("8GiB", ramGiB(resources.row("exportAlignments"), 0))
+	test.isEqual("12GiB", ramGiB(resources.row("exportReports"), 0))
+}
+
+// The exports were fitted at an 80% heap and run on `memory-from-limits`, whose heap below a
+// 23 GiB grant is max(grant - 3.5 GiB, grant / 2). Each grant keeps at least the fitted heap.
+TestExportHeapIsNoSmallerThanTheFittedHeap := func() {
+	heap := func(grant) {
+		h := grant - 3.5
+		if h < grant / 2.0 {
+			h = grant / 2.0
+		}
+		return h
+	}
+	for c in [0, 1, 5, 10] {
+		fitted := 4 + 1.1 * c
+		test.isTrue(heap(float(ramGiB(resources.row("exportClones"), c * GIB))) >= 0.8 * fitted)
+	}
+	test.isTrue(heap(8.0) >= 0.8 * 4)
+	test.isTrue(heap(12.0) >= 0.8 * 8)
 }
 
 TestMemSettingRaisesTheExportFloors := func() {
 	test.isEqual("48GiB", ramGiB(resources.row("exportAlignments", 48), 0))
 	test.isEqual(48, ramGiB(resources.row("exportClones", 48), 10 * GIB))
 	// above the floor, exportClones keeps its input sizing
-	test.isEqual(59, ramGiB(resources.row("exportClones", 48), 50 * GIB))
+	test.isEqual(63, ramGiB(resources.row("exportClones", 48), 50 * GIB))
 }
 
 TestPythonSteps := func() {
@@ -179,8 +198,8 @@ TestPythonSteps := func() {
 }
 
 TestRoundsUpToWholeGiB := func() {
-	// 4 + 1.1 x 1 GiB = 5.1, rounded up
-	test.isEqual(6, ramGiB(resources.row("exportClones"), GIB))
+	// 8 + 1.1 x 1 GiB = 9.1, rounded up
+	test.isEqual(10, ramGiB(resources.row("exportClones"), GIB))
 }
 
 // Queues
