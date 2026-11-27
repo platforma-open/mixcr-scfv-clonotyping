@@ -799,32 +799,6 @@ heavy-seq + linker + light-seq (or reverse)"
     />
     <PlSectionSeparator>Resource Allocation</PlSectionSeparator>
     <PlNumberField
-      v-model="app.model.data.mixcrCpu"
-      label="MiXCR CPU (cores)"
-      placeholder="Per step"
-      clearable
-      :min-value="1"
-      :step="1"
-      :max-value="128"
-    >
-      <template #tooltip>
-        Each MiXCR step gets its own number of CPU cores. Set this to give every step this many.
-      </template>
-    </PlNumberField>
-    <PlNumberField
-      v-model="app.model.data.mixcrMem"
-      label="MiXCR Minimum Memory (GiB)"
-      placeholder="Sized from input"
-      clearable
-      :min-value="1"
-      :step="1"
-    >
-      <template #tooltip>
-        Each MiXCR step and export is sized from the size of the files it reads. Set this to give
-        every one at least this much. A value under Per-step memory replaces it for that step.
-      </template>
-    </PlNumberField>
-    <PlNumberField
       v-model="app.model.data.assembleScfvCpu"
       label="Assemble scFv CPU (cores)"
       placeholder="4"
@@ -848,6 +822,32 @@ heavy-seq + linker + light-seq (or reverse)"
       <template #tooltip>
         scFv assembly memory is sized from the size of the exported clones and alignments. Set this
         to give it at least this much.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.data.mixcrCpu"
+      label="MiXCR CPU (cores)"
+      placeholder="Per step"
+      clearable
+      :min-value="1"
+      :step="1"
+      :max-value="128"
+    >
+      <template #tooltip>
+        Each MiXCR step gets its own number of CPU cores. Set this to give every step this many.
+      </template>
+    </PlNumberField>
+    <PlNumberField
+      v-model="app.model.data.mixcrMem"
+      label="MiXCR Minimum Memory (GiB)"
+      placeholder="Sized from input"
+      clearable
+      :min-value="1"
+      :step="1"
+    >
+      <template #tooltip>
+        Each MiXCR step and export is sized from the size of the files it reads. Set this to give
+        every one at least this much. A value under Per-step memory replaces it for that step.
       </template>
     </PlNumberField>
     <PlAccordionSection label="Per-step memory">
