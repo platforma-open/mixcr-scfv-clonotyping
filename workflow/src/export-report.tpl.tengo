@@ -68,9 +68,11 @@ self.body(func(inputs) {
         lightRawTsv = exportReports("light", clnaFilesLight, inputs.lightLibrary)
     }
     
-    // Use pt to process the TSV files
+    // Use pt to process the TSV files. A flat 8 GiB / 2 CPU, as in mixcr-clonotyping's report.
     wf := pt.workflow().
-        inMediumQueue()
+        inMediumQueue().
+        mem("8GiB").
+        cpu(2)
     
     // Process heavy chain separately
     processChain := func(rawTsvFile, suffix) {
